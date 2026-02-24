@@ -71,31 +71,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| KAN-01 | TBD | Pending |
-| KAN-02 | TBD | Pending |
-| KAN-03 | TBD | Pending |
-| KAN-04 | TBD | Pending |
-| PIKAN-01 | TBD | Pending |
-| PIKAN-02 | TBD | Pending |
-| PIKAN-03 | TBD | Pending |
-| EVAL-01 | TBD | Pending |
-| EVAL-02 | TBD | Pending |
-| EVAL-03 | TBD | Pending |
-| EVAL-04 | TBD | Pending |
-| EVAL-05 | TBD | Pending |
-| EVAL-06 | TBD | Pending |
-| EVAL-07 | TBD | Pending |
-| EVAL-08 | TBD | Pending |
-| GENL-01 | TBD | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| KAN-01 | Phase 2 | Pending |
+| KAN-02 | Phase 2 | Pending |
+| KAN-03 | Phase 2 | Pending |
+| KAN-04 | Phase 3 | Pending |
+| PIKAN-01 | Phase 6 | Pending |
+| PIKAN-02 | Phase 6 | Pending |
+| PIKAN-03 | Phase 6 | Pending |
+| EVAL-01 | Phase 4 | Pending |
+| EVAL-02 | Phase 4 | Pending |
+| EVAL-03 | Phase 5 | Pending |
+| EVAL-04 | Phase 8 | Pending |
+| EVAL-05 | Phase 5 | Pending |
+| EVAL-06 | Phase 7 | Pending |
+| EVAL-07 | Phase 7 | Pending |
+| EVAL-08 | Phase 7 | Pending |
+| GENL-01 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-24*
-*Last updated: 2026-02-24 after initial definition*
+*Last updated: 2026-02-25 after roadmap creation (traceability updated)*
