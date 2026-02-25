@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-24)
 ## Current Position
 
 Phase: 1 of 8 (Data Pipeline & Infrastructure)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: Executing
-Last activity: 2026-02-25 -- Completed 01-01-PLAN.md (Data Acquisition Foundation)
+Last activity: 2026-02-25 -- Completed 01-02-PLAN.md (Data Preprocessing & Feature Engineering)
 
-Progress: [█░░░░░░░░░] ~4% (1/24 plans estimated)
+Progress: [██░░░░░░░░] ~8% (2/24 plans estimated)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 5 min
-- Total execution time: 5 min
+- Total plans completed: 2
+- Average duration: 4 min
+- Total execution time: 7 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 1 | 5 min | 5 min |
+| 01 | 2 | 7 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min)
-- Trend: Starting
+- Last 5 plans: 01-01 (5 min), 01-02 (2 min)
+- Trend: Improving
 
 *Updated after each plan completion*
 
@@ -46,6 +46,9 @@ Recent decisions affecting current work:
 - Roadmap: Phase 4 (baselines) can run in parallel with Phases 2-3 since it only needs the data pipeline
 - Plan 01-01: Used pathlib.Path for run directory helpers (cross-platform compatibility)
 - Plan 01-01: Apply HDF5 scale_factor attribute when present (PERFORM convention)
+- Plan 01-02: Spline order=3 for cubic interpolation (smoothest interpolation)
+- Plan 01-02: Day-of-year for month encoding (smoother transitions within months)
+- Plan 01-02: Outliers marked with 3-sigma threshold but NOT modified (preserves raw signal)
 
 ### Pending Todos
 
@@ -60,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 01-01-PLAN.md (Data Acquisition Foundation)
-Resume file: .planning/phases/01-data-pipeline-infrastructure/01-01-SUMMARY.md
+Stopped at: Completed 01-02-PLAN.md (Data Preprocessing & Feature Engineering)
+Resume file: .planning/phases/01-data-pipeline-infrastructure/01-02-SUMMARY.md
