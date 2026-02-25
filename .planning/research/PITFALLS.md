@@ -106,29 +106,29 @@ Phase 2 (KAN Training) and Phase 4 (Evaluation) -- regularization strategy must 
 
 ---
 
-### Pitfall 5: Colab Resource Ceiling Kills Long Experiments
+### Pitfall 5: Resource Ceiling + Ephemeral Compute Kills Long Experiments (Cloud)
 
 **What goes wrong:**
-Google Colab imposes hard limits: free tier has ~12 GB RAM, ~15 GB GPU VRAM (T4), 90-minute idle timeout, and 12-hour maximum session. KAN training with compound regularization on multi-dimensional wind-solar data is memory-intensive (spline coefficients scale as O(N_edges x grid_size x batch_size)). PySR baseline runs are CPU-only and can consume 80+ GB RAM with default population settings. A typical experimental workflow involves hours of KAN training followed by PySR comparison -- exceeding Colab session limits. Losing training state mid-experiment wastes days of work.
+Even with cloud execution (e.g., Modal), long experiments still fail in practice due to resource ceilings (RAM/OOM), timeouts, preemption, and the ephemeral nature of container disks. KAN training with compound regularization on multi-dimensional wind-solar data can be memory-intensive (spline coefficients scale as O(N_edges x grid_size x batch_size)). PySR baseline runs are CPU-only and can consume very large RAM with default population settings. If checkpoints and intermediate artifacts are not written to persistent storage, a crash wastes days of work.
 
 **Why it happens:**
-KAN's memory footprint is fundamentally higher than MLPs (approximately 11x more parameters per layer for equivalent connectivity). PySR's evolutionary algorithm maintains large populations in memory (default 80 populations) and cannot use GPU. The two tools cannot easily coexist in the same Colab session due to PyTorch/Julia C binding conflicts (importing torch after juliacall causes segfaults). Researchers often underestimate runtime and start experiments without checkpointing.
+KAN's memory footprint is fundamentally higher than MLPs (approximately 11x more parameters per layer for equivalent connectivity). PySR's evolutionary algorithm maintains large populations in memory (default 80 populations) and cannot use GPU. The two tools can also be fragile when run in the same Python process due to PyTorch/Julia C binding conflicts (importing torch after juliacall can segfault). Researchers often underestimate runtime and start experiments without persistent checkpointing.
 
 **How to avoid:**
-- **Separate KAN and PySR into different Colab notebooks/sessions.** Save KAN results (trained model, extracted features, predictions) to Google Drive, then load in a fresh session for PySR.
-- For PySR on Colab: set `procs=2` (Colab has 2 CPU cores), `populations=15-20` (not the default 80), and `maxsize=30-40`. Use `batching=True` with `batch_size=50` for large datasets.
-- Implement aggressive checkpointing: save KAN model state every 50 epochs to Drive. Use `torch.save()` for model weights and save grid/spline parameters separately.
-- For KAN training: start with small networks ([input, 3, 1] not [input, 10, 5, 1]) and small grid sizes. Only scale up after confirming the approach works.
-- Import order matters: always `import juliacall` before `import torch` in the same session to avoid segfaults.
+- **Persist everything that matters.** Write raw/processed data, checkpoints, and results to a Modal Volume (and/or S3) continuously during runs; treat container local disk as disposable.
+- **Isolate PySR from PyTorch when needed.** Run PySR and pykan in separate jobs/environments to avoid Julia/PyTorch binding conflicts.
+- **Constrain PySR resources early.** Start with fewer populations and enable batching; increase only after you have a stable Pareto frontier on a small subset.
+- **Checkpoint aggressively.** Save KAN model state on a time schedule (e.g., every 15 minutes) and at phase boundaries; include optimizer state, grid/spline parameters, and RNG state.
+- **Scale gradually.** Start with small networks ([input, 3, 1] not [input, 10, 5, 1]) and small grid sizes; only scale after the end-to-end pipeline is validated.
 
 **Warning signs:**
-- Colab RAM usage exceeds 80% during training (visible in the system monitor).
-- Training has been running for >4 hours without checkpoint.
-- PySR reports "Killed" or "TaskFailedException" -- this is memory exhaustion.
-- Kernel crashes without error message when running PySR after PyTorch code.
+- Process exits with OOM / killed errors during PySR or KAN training.
+- Training has been running for hours without any new checkpoint written.
+- Runs are not restartable because artifacts live only on container local disk.
+- Python segfaults when mixing PyTorch and Julia bindings in one process.
 
 **Phase to address:**
-Phase 1 (Data Preprocessing and Environment Setup) -- Colab workflow, checkpointing strategy, and resource budgets must be established before any training begins.
+Phase 1 (Data Preprocessing and Environment Setup) -- storage strategy, checkpointing strategy, and resource budgets must be established before any training begins.
 
 ---
 
@@ -207,7 +207,7 @@ Common mistakes when connecting components of the KAN-SR pipeline.
 |-------------|----------------|------------------|
 | PyTorch (pykan) + Julia (PySR) | Importing torch before juliacall causes segfault from C binding conflict | Always import juliacall first, or use separate notebook sessions; save intermediate results to disk |
 | KAN training + grid refinement | Calling `update_grid_from_samples()` after `auto_symbolic()` causes NaN errors in `curve2coef` | Complete all symbolic fixing before any grid refinement, or do grid refinement only before symbolic extraction |
-| PySR on Colab | Using default `populations=80` exhausts Colab RAM within minutes | Set `procs=2, populations=15, maxsize=35, batching=True, batch_size=50` |
+| PySR on constrained resources | Using default `populations=80` exhausts RAM quickly | Start with fewer populations and enable batching; scale up only after a small-data Pareto frontier stabilizes |
 | Periodic encoding + KAN | Feeding raw hour/month integers as features; KAN wastes capacity learning periodicity | Pre-encode time features as sin/cos pairs before KAN input; this is an explicit recommendation in the research plan |
 | ARPA-E PERFORM data + feature matrix | Mixing actual measurements with forecast values in the same feature vector without tracking provenance | Separate features into "measured" and "forecast" groups; train and evaluate interpretability on measured features only |
 | PIKAN derivative computation | Using numerical finite differences through splines for physics loss | Use PyTorch autograd through the spline computation graph; numerical derivatives add noise that destabilizes physics loss |
@@ -219,9 +219,9 @@ Patterns that work at small scale but fail as experiments grow.
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
 | Large KAN architecture ([in, 20, 10, 5, 1]) | Training takes hours, extracted formulas have 50+ terms, unreadable | Start with [in, 3, 1] or [in, 5, 3, 1]; increase only if underfitting | Anything beyond 2 hidden layers with >5 nodes each |
-| Fine spline grid (size > 20) | Training instability (NaN loss), excessive memory, overfitting | Start with grid size 3, increment to 5 then 10 max; only refine specific edges | Grid size > 15 on Colab with >5 features |
+| Fine spline grid (size > 20) | Training instability (NaN loss), excessive memory, overfitting | Start with grid size 3, increment to 5 then 10 max; only refine specific edges | Grid size > 15 with many features/big batches |
 | PySR with all features | Runs for hours/days, produces only trivial linear formulas | Pre-select top 5-8 features via KAN feature importance or mutual information | More than 10 input features |
-| Saving full training history | Colab Drive fills up, notebook slows down | Save only checkpoints (every 50 epochs) and final model; log metrics to CSV, not in-memory | Training > 500 epochs with grid > 5 |
+| Saving full training history | Storage fills up, runs slow down | Save only checkpoints and final model; log metrics to CSV/Parquet, not in-memory | Training > 500 epochs with grid > 5 |
 | Exhaustive symbolic library matching | Matching takes hours, produces spurious exotic function matches | Limit library to 15-20 domain-relevant functions; use R-squared cutoff | Library > 25 functions with > 10 surviving edges |
 
 ## "Looks Done But Isn't" Checklist
@@ -247,7 +247,7 @@ When pitfalls occur despite prevention, how to recover.
 | Two-stage error accumulation | MEDIUM | Re-run symbolic matching with stricter R-squared threshold; manually inspect edges with R-squared < 0.95; try interleaved fixing approach |
 | PIKAN loss imbalance | MEDIUM | Freeze physics loss weight, retrain with data loss only for 100 epochs, then gradually re-introduce physics loss with 10x lower weight |
 | KAN overfitting to noise | HIGH | Must retrain from scratch with coarser grid (size 3-5) and stronger L1 regularization (lambda_L1 x 10); no shortcut |
-| Colab session crash (lost state) | LOW-HIGH | LOW if checkpointed (restore from Drive); HIGH if no checkpoints (restart experiment from scratch) |
+| Job crash/restart (lost state) | LOW-HIGH | LOW if checkpointed (restore from persistent storage); HIGH if no checkpoints (restart experiment from scratch) |
 | Wrong symbolic library | MEDIUM | Re-run `auto_symbolic()` with corrected library; if interleaved fixing was used, may need to unfix and retrain some edges |
 | Temporal data leakage | HIGH | Must redo all experiments with correct chronological splits; all previously reported metrics are invalid |
 
@@ -261,7 +261,7 @@ How roadmap phases should address these pitfalls.
 | Two-stage error accumulation | Phase 3 (Symbolic Extraction) | Per-edge R-squared log; pre-vs-post symbolic accuracy gap < 5% |
 | PIKAN loss imbalance | Phase 3 (PIKAN Integration) | Gradient norm ratio monitoring; all loss components decrease over training |
 | KAN overfitting to noise | Phase 2 (KAN Training) + Phase 4 (Evaluation) | Validation loss tracked; generalization test on different ISO/year |
-| Colab resource limits | Phase 1 (Environment Setup) | Checkpointing tested before real experiments; PySR resource budget validated |
+| Resource limits / run reliability | Phase 1 (Environment Setup) | Checkpointing tested before real experiments; PySR resource budget validated |
 | Symbolic library design | Phase 2 (Design) + Phase 3 (Extraction) | Library reviewed against known wind-solar physics before extraction |
 | Temporal data leakage | Phase 1 (Data Preprocessing) | Data splitting code reviewed; no future information in training features |
 | Ignoring PySR as baseline | Phase 4 (Evaluation) | PySR Pareto front exists and is plotted alongside KAN-SR |
@@ -278,7 +278,7 @@ How roadmap phases should address these pitfalls.
 - [From PINNs to PIKANs: Recent Advances in Physics-Informed ML](https://arxiv.org/html/2410.13228v1) -- PIKAN training challenges, loss balancing [MEDIUM confidence]
 - [Fundamental Flaws of PINNs in Engineering Systems](https://www.sciencedirect.com/science/article/pii/S0360835225008502) -- Physics loss gradient imbalance, convergence pathologies [MEDIUM confidence]
 - [pykan GitHub Issues #89, #71, #385, #480, #555](https://github.com/KindXiaoming/pykan/issues) -- Practitioner-reported bugs: NaN after auto_symbolic, grid range failures, reproducibility [HIGH confidence for bug reports]
-- [PySR GitHub Issues #61, #424, #764](https://github.com/MilesCranmer/PySR/issues) -- Memory issues, Colab limitations, reproducibility [HIGH confidence for bug reports]
+- [PySR GitHub Issues #61, #424, #764](https://github.com/MilesCranmer/PySR/issues) -- Memory issues and reproducibility pitfalls (often observed on Colab and other constrained environments) [HIGH confidence for bug reports]
 - [PySR Tuning and Workflow Tips](https://astroautomata.com/PySR/tuning/) -- Official guidance on operator constraints, population sizing [HIGH confidence]
 - [Contemporary Symbolic Regression Methods and their Relative Performance](https://pmc.ncbi.nlm.nih.gov/articles/PMC11074949/) -- Benchmarking pitfalls, reproducibility issues [MEDIUM confidence]
 - [Review of Physics-Informed Neural Networks: Challenges in Loss Function Design](https://www.mdpi.com/2227-7390/13/20/3289) -- Multi-loss optimization pathologies [MEDIUM confidence]

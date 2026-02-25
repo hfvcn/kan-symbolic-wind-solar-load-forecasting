@@ -15,7 +15,7 @@
 | Performance | JIT compilation, vmap, automatic vectorization | Orders of magnitude slower than efficient alternatives |
 | Symbolic SR pipeline | Must reimplement (KAN-SR paper provides design) | Built-in `auto_symbolic`, `suggest_symbolic` |
 | PIKAN support | Natural fit via Diffrax (neural ODEs, autodiff) | Manual implementation required |
-| Colab GPU | Pre-installed, works out of box | Pre-installed, works out of box |
+| Cloud GPU availability (Modal) | Works out of box via container image | Works out of box via container image |
 | Ecosystem maturity | Equinox 0.13.x, Optax 0.2.6, Diffrax 0.7.1 -- actively maintained by Patrick Kidger | pykan 0.2.8 (Nov 2024), sporadic updates, 16k stars but many open issues |
 | L-BFGS support | Via Optimistix (modular, composable) | Via torch.optim.LBFGS |
 | SymPy integration | sympy2jax 0.0.7 (bidirectional, trainable) | Built-in symbolic_formula() |
@@ -32,7 +32,7 @@
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| JAX | >=0.5.2 (Colab default), up to 0.8.0 available | Array computation, JIT, autodiff, vmap | Pre-installed on Colab; KAN-SR paper's foundation; JIT gives 10-100x speedup over eager PyTorch for spline operations | HIGH |
+| JAX | >=0.5.2, up to 0.8.0 available | Array computation, JIT, autodiff, vmap | KAN-SR paper's foundation; JIT gives 10-100x speedup over eager PyTorch for spline operations | HIGH |
 | Equinox | 0.13.x (latest 0.13.2) | KAN network architecture, PyTree-based neural networks | Patrick Kidger ecosystem; KAN-SR paper uses it; PyTorch-like syntax but fully JAX-compatible; models are just PyTrees | HIGH |
 | Optax | 0.2.6 | First-order optimizers (AdamW, learning rate schedules) | Google DeepMind maintained; composable optimizer chains; KAN-SR paper uses it | HIGH |
 | Optimistix | 0.0.10 | Nonlinear least-squares (Gauss-Newton, Levenberg-Marquardt) | Critical for symbolic matching step -- curve-fitting spline activations to symbolic library; KAN-SR paper uses it | HIGH |
@@ -67,7 +67,7 @@
 | h5py | >=3.10 | Read ARPA-E PERFORM HDF5 files | PERFORM dataset is distributed as .h5 files on AWS S3; h5py is the standard Python HDF5 interface | HIGH |
 | pandas | >=2.0 | Tabular data manipulation, time series alignment | Standard for time series preprocessing; ISO load data from ARPA-E is tabular | HIGH |
 | NumPy | >=1.24 | Array operations, feature engineering | Foundation of scientific Python; JAX arrays are drop-in compatible | HIGH |
-| boto3 or s3fs | latest | AWS S3 access for ARPA-E data download | PERFORM data hosted at `s3://arpa-e-perform/`; boto3 for direct download, s3fs for streaming; download locally first for Colab (simpler) | MEDIUM |
+| boto3 or s3fs | latest | AWS S3 access for ARPA-E data download | PERFORM data hosted at `s3://arpa-e-perform/`; download to persistent storage (Modal Volume and/or S3) before training for reliability | MEDIUM |
 | scikit-learn | >=1.3 | Preprocessing (StandardScaler, train/test split), metrics | Z-score normalization, R2/MAE/RMSE metrics; lightweight, universally available | HIGH |
 
 ### Visualization
@@ -76,15 +76,15 @@
 |------------|---------|---------|-----|------------|
 | Matplotlib | >=3.8 | Publication-quality static plots: Pareto fronts, loss curves, KAN topology | Academic standard; required for thesis figures; PySR Pareto front plots use Matplotlib | HIGH |
 | Seaborn | >=0.13 | Statistical plots: correlation heatmaps, distribution plots | Built on Matplotlib; cleaner API for statistical visualization | MEDIUM |
-| Plotly | >=5.18 | Interactive exploration of Pareto frontiers in Jupyter/Colab | Hover over equations on Pareto front to see formula details; useful for development, not final thesis figures | LOW |
+| Plotly | >=5.18 | Interactive exploration of Pareto frontiers in Jupyter | Hover over equations on Pareto front to see formula details; useful for development, not final thesis figures | LOW |
 
 ### Development Environment
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| Google Colab | N/A | Primary compute environment (free/Pro GPU) | Project constraint: GPU access via Colab; T4/A100 GPUs; pre-installed JAX+PyTorch | HIGH |
-| Jupyter Notebook | N/A | Experiment tracking, inline visualization | Colab is Jupyter-based; existing `main.ipynb` in repo | HIGH |
-| Python | >=3.11 | Runtime | JAX 0.5+ requires Python 3.11; Colab has upgraded to 3.11 | HIGH |
+| Modal | N/A | Primary compute environment (cloud GPU + CPU) | Long-running, restartable jobs; environment isolation; persistent Volumes for artifacts; avoids notebook session timeouts | HIGH |
+| Jupyter Notebook | N/A | Experiment tracking, inline visualization | Use locally for analysis/plots; heavy training runs on Modal jobs | HIGH |
+| Python | >=3.11 | Runtime | Pin Python in Modal image for reproducibility; compatible with PyTorch + PySR toolchain | HIGH |
 
 ---
 
@@ -110,10 +110,8 @@
 ## Installation
 
 ```bash
-# === Google Colab Setup ===
-# JAX is pre-installed on Colab GPU runtimes
-# Verify JAX GPU access:
-# import jax; print(jax.devices())
+# === Modal / Local Setup ===
+# Use these installs in your Modal image and/or local virtualenv.
 
 # Core JAX ecosystem (Patrick Kidger stack)
 pip install equinox optax optimistix diffrax sympy2jax jaxtyping
@@ -128,10 +126,10 @@ python -c 'import pysr; pysr.install()'  # Downloads Julia + SymbolicRegression.
 # Data handling
 pip install h5py boto3 s3fs
 
-# Scientific Python (likely pre-installed on Colab)
+# Scientific Python (install in your Modal image / local env)
 pip install numpy pandas scikit-learn sympy
 
-# Visualization (likely pre-installed on Colab)
+# Visualization (install in your Modal image / local env)
 pip install matplotlib seaborn plotly
 
 # === Local Development (optional) ===
@@ -140,13 +138,13 @@ pip install jax[cuda12]
 # Then same packages as above
 ```
 
-### Colab-Specific Notes
+### Modal Execution Notes
 
-1. **Session persistence**: Colab sessions time out. Save checkpoints to Google Drive (`/content/drive/MyDrive/`).
-2. **JAX version**: Colab may lag behind latest JAX. Current Colab has JAX 0.5.2; use `pip install --upgrade jax jaxlib` if needed.
-3. **Julia for PySR**: First `pysr.install()` call takes 5-10 minutes to download Julia. Cache the installation on Drive.
-4. **GPU memory**: T4 has 16GB VRAM, A100 has 40GB. KAN networks are small (1-2 hidden layers) so T4 is sufficient.
-5. **ARPA-E data**: Download .h5 files from S3 to Colab local storage or Drive before training. Do NOT stream from S3 during training.
+1. **Persistence**: Container local disk is ephemeral; save checkpoints/results to a Modal Volume (and/or S3) during training.
+2. **Reproducibility**: Pin Python and key packages in the Modal image; write `pip freeze`/version metadata into each run directory.
+3. **Julia for PySR**: First `pysr.install()` download can be slow; cache Julia artifacts within your image build or persistent storage where feasible.
+4. **GPU memory**: Start with small/shallow KANs; scale only after the end-to-end pipeline is validated on a small slice of data.
+5. **Data movement**: Download `.h5` to a Volume first; avoid repeated downloads per run.
 
 ---
 
@@ -233,7 +231,7 @@ For neural ODE formulations of the dynamic system, Diffrax provides `diffrax.dif
 | Flax/Haiku | Older JAX NN libraries; Equinox is the modern standard (simpler, more Pythonic, actively developed) |
 | PyTorch Lightning | Unnecessary abstraction; project is research-focused with custom training loops |
 | Weights & Biases | Overkill for thesis project; use simple CSV logging + matplotlib |
-| Docker/containers | Colab provides the environment; no deployment needed |
+| Docker/containers | Modal runs in containers by design; you must define and maintain the image for reproducibility |
 
 ---
 
@@ -258,9 +256,9 @@ For neural ODE formulations of the dynamic system, Diffrax provides `diffrax.dif
 - [NABLA-SciML](https://github.com/jdtoscano94/Learning-Scientific_Machine_Learning_Residual_Based_Attention_PINNs_PIKANs_DeepONets) -- PIKAN tutorials
 - [jaxKAN (JOSS 2025)](https://github.com/srigas/jaxKAN) -- JAX KAN implementation reference
 - [JAX Installation Docs](https://docs.jax.dev/en/latest/installation.html) -- JAX version/compatibility info
-- [Colab Release Notes](https://developers.google.com/colab/release-notes) -- Colab environment details
+- (Removed) Colab-specific release notes — compute environment is Modal by default in this plan
 
 ### Tertiary (LOW confidence -- needs validation)
 - KAN-SR code availability: Paper does not link to a public repository. May need to contact authors (Buhler, Guillen-Gosalbez) or fully reimplement from paper description.
-- JAX 0.8.0 availability on Colab: Reported via `jax-ai-stack` package but not verified firsthand.
+- JAX 0.8.0 availability on managed notebook environments: Reported but not verified firsthand.
 - J-PIKAN (Jacobi polynomial PIKAN): Code pending release at github.com/xgxgnpu/J-PIKAN.

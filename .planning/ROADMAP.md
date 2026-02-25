@@ -12,7 +12,7 @@ This roadmap transforms 19 v1 requirements into 8 phases that deliver a complete
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Data Pipeline & Infrastructure** - Acquire ARPA-E PERFORM data, build preprocessing pipeline, establish Colab/Drive infrastructure
+- [ ] **Phase 1: Data Pipeline & Infrastructure** - Acquire ARPA-E PERFORM data, build preprocessing pipeline, establish Modal + persistent storage infrastructure
 - [ ] **Phase 2: KAN Architecture & Sparse Training** - Implement KAN network with composite regularization, achieve 80%+ edge pruning
 - [ ] **Phase 3: Symbolic Expression Extraction** - Extract closed-form mathematical formulas from sparse KAN via symbolic matching
 - [ ] **Phase 4: Baseline Experiments** - Run PySR and deep learning (LSTM/MLP) baselines for comparison
@@ -32,12 +32,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Preprocessing pipeline outputs clean tensors: missing values interpolated, Z-score normalized, no NaN/Inf values in output
   3. Feature matrix includes all four feature groups: meteorological (temp/GHI/wind speed/pressure), astronomical (solar angle), cyclic time encoding, and autoregressive lags (t-1 to t-48)
   4. Train/val/test split is strictly chronological with lag-window gap at boundaries; no future information leaks into training data
-  5. Google Drive checkpoint infrastructure saves and restores intermediate results; Colab session loss does not require re-downloading data
+  5. Persistent artifact store (Modal Volume and/or S3) saves and restores raw/processed data and intermediate results; jobs can resume without re-downloading data
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+-- [ ] 01-01: Modal smoke test + artifact contract
+- [ ] 01-02: PERFORM download + cache (Volume/S3)
+- [ ] 01-03: Preprocess + split smoke test
+- [ ] 01-04: Sync artifacts to local runs/
 
 ### Phase 2: KAN Architecture & Sparse Training
 **Goal**: Researcher has a trained, reliably sparse KAN model where 80%+ of edges are pruned, producing interpretable feature importance rankings
@@ -48,12 +50,12 @@ Plans:
   2. Composite regularization (L1 magnitude + entropy loss + linear L1) with progressive lambda scheduling drives edge magnitudes toward zero
   3. After pruning via pykan prune(), at least 80% of edges are removed while validation RMSE remains within 10% of unpruned model
   4. Spline grid range is set to [-5, 5] and updated from samples periodically; no silent range mismatch failures
-  5. Training checkpoints save to Google Drive every 15 minutes; training can resume from any checkpoint
+  5. Training checkpoints persist to a Modal Volume every 15 minutes; training can resume from any checkpoint
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01: KAN training (small slice) + checkpoints
+- [ ] 02-02: Prune + refit + sparsity report
 
 ### Phase 3: Symbolic Expression Extraction
 **Goal**: At least one closed-form symbolic formula for ERCOT load prediction is extracted from the sparse KAN, with per-edge quality metrics and LaTeX rendering
@@ -67,22 +69,22 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01: auto_symbolic + per-edge R² report
 
 ### Phase 4: Baseline Experiments
 **Goal**: PySR and deep learning baselines produce comparison results on the same ERCOT data, enabling fair evaluation of KAN-SR
 **Depends on**: Phase 1 (data pipeline); Phase 3 optional (evaluation benefits from KAN-SR results but baselines can start earlier)
 **Requirements**: EVAL-01, EVAL-02
 **Success Criteria** (what must be TRUE):
-  1. PySR runs in a separate Colab session (no PyTorch/Julia conflict), produces a Pareto frontier of symbolic formulas for ERCOT load
+  1. PySR runs in a separate job/environment (isolated from pykan/PyTorch when needed), produces a Pareto frontier of symbolic formulas for ERCOT load
   2. LSTM baseline trains on same chronological split with same features, producing RMSE/MAE/R-squared on test set
   3. MLP baseline trains with equivalent parameter count to KAN, producing RMSE/MAE/R-squared on test set
   4. All baselines use identical test data and evaluation metrics for fair comparison
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01: PySR baseline (isolated job)
+- [ ] 04-02: LSTM/MLP baselines + metrics
 
 ### Phase 5: Evaluation Framework & Ablation
 **Goal**: Multi-dimensional evaluation framework quantifies KAN-SR against all baselines, and ablation study demonstrates understanding of each regularization component

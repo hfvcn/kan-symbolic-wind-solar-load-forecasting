@@ -49,12 +49,15 @@
 - 备选：斯坦福 SUNSET 数据集（含云图等多模态数据）
 
 **计算环境：**
-- Google Colab (云 GPU)
+- Modal (云 GPU)
 - Python 生态，框架灵活选择
+
+**Modal 执行约定：**
+- 见 `.planning/MODAL.md`（Volume 持久化、产物目录结构、smoke test、同步到本地 runs/）
 
 ## Constraints
 
-- **计算资源**: Google Colab — 需要考虑显存限制和会话时长
+- **计算资源**: Modal — 需要考虑 GPU 成本、作业超时/重试、以及数据与 checkpoint 的持久化（Volume/S3）
 - **时间**: 尽快达到可用水准 — 优先 MVP，后续可深入
 - **核心指标**: 可解释性优先于纯精度 — 能提取有意义的公式比极致精度更重要
 

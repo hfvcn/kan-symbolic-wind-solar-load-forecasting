@@ -67,7 +67,7 @@ The KAN-SR wind-solar-load forecasting system is a **five-stage pipeline** that 
     |   |-- Loss = MSE + lambda_1 * L_magnitude + lambda_2 * L_entropy + lambda_3 * L1_weights
     |   |-- Optimizer: AdamW with cosine LR schedule
     |   |-- Monitor: validation loss + sparsity metrics per epoch
-    |   |-- Checkpoint every 15 min (Colab safety)
+    |   |-- Checkpoint every 15 min (job safety)
     |-- Phase 2b: Prune
     |   |-- model.prune() -- remove edges with near-zero activation magnitude
     |   |-- Verify pruned architecture makes structural sense
@@ -221,7 +221,7 @@ class KANTrainer:
         self.model = self.model.refine(new_grid)
 
     def checkpoint(self, path):
-        """Save model state (critical for Colab)."""
+        """Save model state (critical for long runs)."""
         self.model.saveckpt(path)
 
     @staticmethod
@@ -375,18 +375,18 @@ class Evaluator:
 
 ## Patterns to Follow
 
-### Pattern 1: Checkpoint-Resume Training Loop (Colab-Critical)
+### Pattern 1: Checkpoint-Resume Training Loop (Cloud-Critical)
 
-**What:** Save model state every N minutes and at end of each training phase. Resume seamlessly after Colab disconnection.
-**When:** Always. Colab has 90-min idle timeout and 12-hour max runtime.
+**What:** Save model state every N minutes and at end of each training phase. Resume seamlessly after job interruption.
+**When:** Always. Long experiments fail in practice (OOM, timeouts, preemption, transient errors); artifacts must be persisted.
 
 ```python
 import os, time
 
-CHECKPOINT_DIR = "/content/drive/MyDrive/kan-sr-checkpoints/"
+CHECKPOINT_DIR = "/vol/checkpoints/kan-sr/"
 
 def train_with_checkpointing(model, data, total_steps, ckpt_interval_min=15):
-    """Colab-safe training loop with periodic checkpointing."""
+    """Cloud-safe training loop with periodic checkpointing."""
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     last_ckpt_time = time.time()
 
@@ -436,13 +436,13 @@ def progressive_training(model, X, y, phases):
     return model
 ```
 
-### Pattern 3: Modular Notebook Architecture (Colab)
+### Pattern 3: Modular Project Architecture (Modal + Local Notebooks)
 
-**What:** Separate concerns across notebooks, share code via Google Drive mounted modules.
+**What:** Separate concerns across notebooks/scripts, share code via the repo `src/` package, and persist artifacts to cloud storage.
 **When:** Project organization.
 
 ```
-/content/drive/MyDrive/kan-sr-project/
+kan-sr-project/
 |-- src/
 |   |-- __init__.py
 |   |-- data_pipeline.py       # Component 1
@@ -452,7 +452,7 @@ def progressive_training(model, X, y, phases):
 |   |-- evaluator.py            # Component 5
 |   |-- config.py               # Hyperparameters, paths, constants
 |
-|-- notebooks/
+|-- notebooks/                  # Local exploration / plotting
 |   |-- 01_data_exploration.ipynb    # EDA, understand PERFORM data
 |   |-- 02_data_pipeline.ipynb       # Build & test data pipeline
 |   |-- 03_kan_training.ipynb        # Train KAN, visualize sparsification
@@ -461,9 +461,10 @@ def progressive_training(model, X, y, phases):
 |   |-- 06_pysr_baseline.ipynb       # Run PySR comparison
 |   |-- 07_evaluation.ipynb          # Full evaluation suite, plots
 |
-|-- checkpoints/                 # Saved model states
-|-- results/                     # Equations, metrics, plots
-|-- data/                        # Downloaded/processed data cache
+|-- modal_jobs/                 # Modal entrypoints (jobs)
+|-- checkpoints/                # Mirrors persistent checkpoints layout
+|-- results/                    # Equations, metrics, plots (synced from persistent storage)
+|-- data/                       # Optional local cache (truth lives in persistent storage)
 ```
 
 ### Pattern 4: Feature Ablation via KAN Sparsification
@@ -519,43 +520,38 @@ def analyze_feature_importance(model, feature_names):
 **Why bad:** The untrained KAN outputs random values. Physics residuals computed on random outputs produce massive gradients that destabilize training. The model never learns basic data patterns.
 **Instead:** Use curriculum learning: (1) train on data only for 60% of epochs, (2) add physics constraints with small weight, (3) gradually increase physics loss weight.
 
-## Colab-Specific Architecture Considerations
+## Modal Execution Considerations
 
 ### Memory Management
 
 | Concern | At 5-min resolution | At hourly aggregation |
 |---------|---------------------|-----------------------|
 | **Dataset size** | ~105K rows/year per feature (~2GB loaded) | ~8.7K rows/year (~100MB) |
-| **KAN training** | Colab free tier T4 (15GB VRAM) is sufficient for batch_size=1024 | Trivial |
+| **KAN training** | GPU selection + batch size control memory; start small and scale | Trivial |
 | **PySR baseline** | May need to downsample; PySR is CPU-bound and slow on >50K rows | Feasible directly |
-| **Checkpointing** | Save to Google Drive (15GB free); ~50MB per checkpoint | ~10MB per checkpoint |
+| **Checkpointing** | Save to persistent storage (Modal Volume/S3); ~50MB per checkpoint | ~10MB per checkpoint |
 
-### Colab Session Strategy
+### Job Strategy
 
-| Phase | Estimated Runtime | Session Strategy |
+| Phase | Estimated Runtime | Job Strategy |
 |-------|-------------------|------------------|
-| Data download + preprocessing | 30-60 min | Single session, save processed data to Drive |
-| KAN training (sparse) | 2-6 hours | Multiple sessions with checkpoint resume |
-| Symbolic extraction | 10-30 min | Single session after loading trained model |
-| PIKAN retraining | 2-4 hours | Multiple sessions with checkpoint resume |
-| PySR baseline | 4-12 hours | Dedicated session(s), niterations tuning |
-| Evaluation + plotting | 30 min | Single session |
+| Data download + preprocessing | 30-60 min | One job, persist processed tensors to storage |
+| KAN training (sparse) | 2-6 hours | One long job with frequent checkpoints (resume on failure) |
+| Symbolic extraction | 10-30 min | Separate short job loading the latest checkpoint |
+| PIKAN retraining | 2-4 hours | Separate long job; only after baseline extraction works |
+| PySR baseline | 4-12 hours | Dedicated job(s), resource-tuned for RAM/CPU |
+| Evaluation + plotting | 30 min | Short job or local notebook reading persisted artifacts |
 
-### Google Drive Mount Pattern
+### Modal Volume Mount Pattern (Conceptual)
 
 ```python
-# First cell of EVERY notebook
-from google.colab import drive
-drive.mount('/content/drive')
+import modal
 
-import sys
-PROJECT_DIR = "/content/drive/MyDrive/kan-sr-project"
-sys.path.insert(0, f"{PROJECT_DIR}/src")
+app = modal.App("kan-sr")
+volume = modal.Volume.from_name("kan-sr", create_if_missing=True)
 
-# Now imports work
-from data_pipeline import DataPipeline
-from kan_trainer import KANTrainer
-from config import CHECKPOINT_DIR, DATA_DIR
+# In your Modal functions, mount the volume at /vol and read/write:
+# /vol/data, /vol/checkpoints, /vol/results
 ```
 
 ## Build Order (Dependency Graph)
@@ -606,4 +602,4 @@ Phase 1: Data Pipeline (no dependencies)
 - [KAN for Solar Radiation and Temperature Forecasting](https://www.sciencedirect.com/science/article/pii/S030626192402227X) -- MEDIUM confidence, peer-reviewed journal
 - [KANMTS: Multivariate Time Series Prediction with KAN (Nature, 2025)](https://www.nature.com/articles/s41598-025-07654-7) -- HIGH confidence, Nature Scientific Reports
 - [Kolmogorov-Arnold Networks for Time Series: Bridging Predictive Power and Interpretability](https://arxiv.org/html/2406.02496v1) -- MEDIUM confidence, arXiv preprint
-- [Colab Checkpointing Best Practices 2025](https://apatero.com/blog/keep-google-colab-disconnecting-training-guide-2025) -- LOW confidence, blog post
+- (Removed) Colab-specific checkpointing blog — execution environment is Modal by default in this plan

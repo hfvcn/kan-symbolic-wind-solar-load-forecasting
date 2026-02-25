@@ -11,7 +11,7 @@ This project applies Kolmogorov-Arnold Networks with a symbolic regression pipel
 
 The recommended implementation builds on pykan (KindXiaoming/pykan) for the symbolic regression pipeline and PySR as the gold-standard comparison baseline. A critical stack decision is that the KAN-SR reference paper used JAX+Equinox, but since its code is not publicly available, the most practical approach for a graduation thesis is to use pykan directly — accepting its performance limitations — while following the KAN-SR paper's architectural decisions (shallow networks, RSWAF-style activations, composite regularization, hierarchical symbolic extraction). The production evaluation deliverable is a Pareto frontier of formula complexity vs prediction accuracy, compared between KAN-SR and PySR on ERCOT load data.
 
-The two greatest risks are (1) symbolic extraction quality: real noisy energy data may not decompose cleanly into interpretable formulas, and the two-stage KAN-to-symbol pipeline accumulates errors; and (2) Colab resource constraints: KAN training and PySR cannot run in the same session due to PyTorch/Julia binding conflicts, and experiment runtimes routinely exceed 12 hours. Both risks are mitigable with known techniques: strict per-edge R-squared thresholds and constant re-optimization for risk 1, aggressive checkpointing and separate sessions per tool for risk 2.
+The two greatest risks are (1) symbolic extraction quality: real noisy energy data may not decompose cleanly into interpretable formulas, and the two-stage KAN-to-symbol pipeline accumulates errors; and (2) long-run execution reliability: experiments can take many hours, and without robust checkpointing + persistent artifacts, failures waste days. Both risks are mitigable with known techniques: strict per-edge R-squared thresholds and constant re-optimization for risk 1, aggressive checkpointing to persistent storage and isolating PySR runs from PyTorch runs (to avoid Julia/PyTorch binding conflicts) for risk 2.
 
 ## Key Findings
 
@@ -27,9 +27,9 @@ If performance on real data is unacceptably slow with pykan, the fallback is to 
 - SymPy >=1.12: closed-form expression manipulation and LaTeX output — bridges KAN-SR and PySR
 - h5py + pandas + scikit-learn: ARPA-E PERFORM HDF5 data ingestion, preprocessing, and evaluation metrics
 - Matplotlib >=3.8: publication-quality Pareto fronts and visualization suite for thesis
-- Google Colab (GPU): primary compute environment — T4 VRAM sufficient for shallow KAN networks
+- Modal (GPU): primary compute environment — supports long-running, restartable jobs with persistent Volumes/S3 for artifacts
 
-**Critical version notes:** pykan requires PyTorch 2.2.2; PySR requires Julia 1.10+ (auto-installed); JAX 0.5+ requires Python >=3.11 which Colab now provides. Import order matters: `juliacall` must be imported before `torch` in the same session to avoid segfaults; best practice is to separate KAN and PySR into different notebooks entirely.
+**Critical version notes:** pykan requires PyTorch 2.2.2; PySR requires Julia 1.10+ (auto-installed). Import order matters if you run both in one Python process: `juliacall` must be imported before `torch` to reduce segfault risk; best practice is to run KAN and PySR in separate jobs/environments.
 
 ### Expected Features
 
@@ -67,19 +67,19 @@ See `.planning/research/FEATURES.md` for full details and dependency graph.
 
 ### Architecture Approach
 
-The system is a five-stage sequential pipeline with one well-defined parallel branch: Data Pipeline → KAN Network Training → SR Extraction → Evaluation (the critical path); PIKAN Physics Constraints augment the KAN training loop as an optional add-on; PySR Baseline runs in parallel with KAN training once data is ready. Each component has clear input/output contracts and can be developed and tested in isolation. The recommended notebook organization separates concerns into 7 notebooks: data exploration, data pipeline, KAN training, symbolic extraction, PIKAN physics, PySR baseline, and evaluation. All shared code lives in a `src/` directory on Google Drive for cross-notebook imports.
+The system is a five-stage sequential pipeline with one well-defined parallel branch: Data Pipeline → KAN Network Training → SR Extraction → Evaluation (the critical path); PIKAN Physics Constraints augment the KAN training loop as an optional add-on; PySR Baseline runs in parallel with KAN training once data is ready. Each component has clear input/output contracts and can be developed and tested in isolation. The recommended organization separates concerns into 7 notebooks/scripts: data exploration, data pipeline, KAN training, symbolic extraction, PIKAN physics, PySR baseline, and evaluation. All shared code lives in a `src/` directory in the repo, while large artifacts (data/checkpoints/results) live in persistent storage (Modal Volume and/or S3).
 
 **Major components:**
 1. Data Pipeline — HDF5 ingestion, feature engineering, chronological split, Z-score normalization; no random shuffle
-2. KAN Network Trainer — pykan training with progressive sparsification (lamb scheduling), pruning, grid refinement; checkpoint every 15 minutes to Drive
+2. KAN Network Trainer — pykan training with progressive sparsification (lamb scheduling), pruning, grid refinement; checkpoint every 15 minutes to persistent storage
 3. SR Extraction Pipeline — per-edge spline-to-symbol matching, SymPy simplification, constant re-optimization via BFGS; interleaved fixing approach
 4. PIKAN Physics Constraints — soft loss terms for energy conservation, solar night boundary, monotonicity; curriculum learning (add physics loss after initial convergence)
 5. Evaluation and Benchmarking — PySR baseline, Pareto frontier comparison, physical consistency checks, per-season accuracy decomposition
 
 **Key patterns to follow:**
 - Progressive sparsification: start weak regularization (lamb=0.001), increase gradually; prune only after 80%+ edges are dead
-- Checkpoint-resume: save every 15 minutes to Google Drive; never run >1 hour without a checkpoint
-- Separate KAN and PySR notebooks: PyTorch/Julia binding conflict makes coexistence fragile
+- Checkpoint-resume: save every 15 minutes to persistent storage; never run >1 hour without a checkpoint
+- Separate KAN and PySR runs: PyTorch/Julia binding conflict makes coexistence fragile
 - Chronological data split only: 2017-2018 train, early 2019 val, late 2019 test; insert lag-window gap at boundary
 
 ### Critical Pitfalls
@@ -96,7 +96,7 @@ See `.planning/research/PITFALLS.md` for full detail including warning signs and
 
 5. **Temporal data leakage** — Strictly chronological splitting; insert gap equal to maximum lag window between train and test; use expanding-window time-series CV, never k-fold. This is unrecoverable if discovered late — fix before any training.
 
-6. **Colab resource ceiling** — Separate KAN and PySR into different sessions; set PySR to `procs=2, populations=15, batching=True`; checkpoint aggressively; start with tiny networks to validate pipeline before scaling.
+6. **Resource ceiling / long-run reliability** — Isolate PySR from PyTorch when needed; set PySR to a conservative resource budget (e.g., fewer populations, batching); checkpoint aggressively; start with tiny networks to validate pipeline before scaling.
 
 7. **Symbolic library too narrow or too broad** — Design library with wind-solar physics in mind (include `x^3` for Betz law, `exp(-ax)` for thermal decay); limit to 15-20 domain-relevant functions; exclude exotic functions (Bessel, erf) initially.
 
@@ -106,10 +106,10 @@ Based on the combined research, the dependency graph from FEATURES.md and ARCHIT
 
 ### Phase 1: Foundation — Environment, Data, and Infrastructure
 
-**Rationale:** Every downstream phase depends on this. Two of the most unrecoverable pitfalls (temporal data leakage, Colab session loss) must be addressed here before any training begins. This phase has no ML content but establishes constraints that affect all subsequent work.
-**Delivers:** Working ARPA-E PERFORM data pipeline outputting normalized feature tensors; Google Drive checkpointing infrastructure; environment configuration (pykan + PySR separate sessions confirmed working); feature matrix with meteorological, astronomical, cyclic, and lag features for ERCOT.
+**Rationale:** Every downstream phase depends on this. Two of the most unrecoverable pitfalls (temporal data leakage, losing intermediate artifacts mid-experiment) must be addressed here before any training begins. This phase has no ML content but establishes constraints that affect all subsequent work.
+**Delivers:** Working ARPA-E PERFORM data pipeline outputting normalized feature tensors; persistent artifact store (Modal Volume and/or S3) for data/checkpoints/results; environment configuration (pykan + PySR isolated runs confirmed working); feature matrix with meteorological, astronomical, cyclic, and lag features for ERCOT.
 **Addresses:** TS-8 (data acquisition), TS-10 (feature engineering)
-**Avoids:** Pitfall 5 (Colab resource ceiling), Pitfall 7 (temporal data leakage) — both are fatal if not addressed here
+**Avoids:** Pitfall 5 (resource ceiling / long-run reliability), Pitfall 7 (temporal data leakage) — both are fatal if not addressed here
 **Research flag:** Standard patterns — HDF5 + pandas + boto3 is well-documented; ARPA-E PERFORM has official GitHub documentation; no deeper research needed
 
 ### Phase 2: KAN Architecture and Sparse Training
@@ -118,7 +118,7 @@ Based on the combined research, the dependency graph from FEATURES.md and ARCHIT
 **Delivers:** Trained sparse pykan model with 80%+ edges pruned; loss curves and sparsity metrics; feature importance ranking from first-layer edge magnitudes; checkpointing tested at scale.
 **Addresses:** TS-1 (KAN implementation), TS-2 (composite regularization), TS-4 (network pruning)
 **Avoids:** Pitfall 1 (spline grid range mismatch — set `grid_range=[-5,5]`), Pitfall 4 (KAN overfitting to noise — progressive grid refinement, validation loss monitoring)
-**Stack:** pykan 0.2.8, PyTorch (pykan backend), Google Colab GPU
+**Stack:** pykan 0.2.8, PyTorch (pykan backend), Modal GPU
 **Research flag:** Needs attention — progressive sparsification schedule (lamb values and epoch counts) requires empirical tuning specific to the ERCOT dataset; the reference paper used JAX not pykan so hyperparameters from the paper do not transfer directly
 
 ### Phase 3: Symbolic Expression Extraction
@@ -136,7 +136,7 @@ Based on the combined research, the dependency graph from FEATURES.md and ARCHIT
 **Delivers:** PySR Pareto frontier for ERCOT; LSTM and MLP accuracy benchmarks; multi-dimensional evaluation table (RMSE/MAE/R2, complexity, training time); Pareto frontier comparison plot (KAN-SR vs PySR); per-season accuracy breakdown.
 **Addresses:** TS-5 (PySR baseline), TS-6 (DL baselines), TS-7 (evaluation framework), D-8 (partial derivative sensitivity), D-7 (physical interpretation)
 **Avoids:** Technical debt of skipping baselines; RMSE-only evaluation; non-chronological test set
-**Stack:** PySR 1.5.9 (separate Colab session), scikit-learn metrics, Matplotlib, SymPy symbolic differentiation
+**Stack:** PySR 1.5.9 (separate job/environment), scikit-learn metrics, Matplotlib, SymPy symbolic differentiation
 **Research flag:** PySR hyperparameter tuning for energy data — standard patterns exist via PySR's official tuning guide but ERCOT-specific settings need validation
 
 ### Phase 5: Differentiators (If Time Allows)
@@ -156,7 +156,7 @@ Based on the combined research, the dependency graph from FEATURES.md and ARCHIT
 - Phase 2 before Phase 3: symbolic extraction is meaningless on a dense KAN; 80%+ pruning ratio is a hard prerequisite
 - Phase 4 can partially overlap Phase 2 (PySR and DL baselines only need the data pipeline); full evaluation consolidation happens after Phase 3
 - Phase 5 is explicitly deferred: thesis is defensible at Phase 4 completion; Phase 5 features make it excellent
-- Avoid combining KAN training (Phase 2) and PIKAN (Phase 5) in the same Colab session early on — only integrate physics loss after the baseline symbolic extraction works
+- Avoid combining KAN training (Phase 2) and PIKAN (Phase 5) in the same run early on — only integrate physics loss after the baseline symbolic extraction works
 
 ### Research Flags
 
@@ -185,7 +185,7 @@ Phases with standard patterns (skip research-phase):
 - **KAN-SR code unavailability:** The reference paper (arXiv:2509.10089) has no public code. Implementation must be inferred from paper description. Clarify during Phase 2 whether pykan's built-in pipeline sufficiently reproduces the paper's approach, or whether a JAX reimplementation is required.
 - **Real-data symbolic extraction quality:** All KAN-SR benchmarks in the literature use clean physics equations (Feynman SR dataset). Performance on noisy real-world wind-solar data is genuinely unknown. Set realistic expectations early — a partial symbolic formula with physical terms identified is a valid thesis contribution even if not a perfect closed-form equation.
 - **PIKAN constraint formulation:** The research plan mentions the swing equation for generator dynamics, but the ARPA-E PERFORM data is at ISO zone level (aggregate load/generation), not individual generator level. The appropriate physics constraints for this data are simpler (energy balance, monotonicity, boundary conditions). Validate constraint choice before implementing PIKAN.
-- **Colab version compatibility:** JAX 0.8.0 availability on Colab via `jax-ai-stack` is reported but unverified. If pursuing JAX path, verify Colab JAX version before committing to it.
+- **JAX version compatibility:** If pursuing the JAX path, verify JAX/jaxlib versions inside your container/runtime before committing to an implementation.
 
 ## Sources
 
@@ -201,7 +201,7 @@ Phases with standard patterns (skip research-phase):
 - [Opening the AI Black-Box: KAN-SR for Energy Applications (arXiv:2504.03913)](https://arxiv.org/abs/2504.03913) — direct domain application evidence
 - [Kolmogorov-Arnold Networks Meet Science (Phys. Rev. X, Dec 2025)](https://link.aps.org/doi/10.1103/4t7t-v19l) — MultKAN and scientific application patterns
 - [pykan GitHub Issues](https://github.com/KindXiaoming/pykan/issues) — practitioner-reported bugs and pitfalls
-- [PySR Tuning Guide](https://astroautomata.com/PySR/tuning/) — official Colab and population size guidance
+- [PySR Tuning Guide](https://astroautomata.com/PySR/tuning/) — tuning guidance (populations, batching, resource tradeoffs)
 
 ### Secondary (MEDIUM confidence)
 - [KAN-SR Critical Assessment (arXiv:2407.11075)](https://arxiv.org/abs/2407.11075) — identifies training instabilities and computational overhead
@@ -215,7 +215,7 @@ Phases with standard patterns (skip research-phase):
 
 ### Tertiary (LOW confidence — needs validation)
 - KAN-SR code availability: paper does not link a public repository; contact authors or reimplement from description
-- JAX 0.8.0 on Colab via `jax-ai-stack`: reported but not independently verified
+- JAX 0.8.0 availability on managed notebook environments: reported but not independently verified
 - J-PIKAN (Jacobi polynomial PIKAN): code pending release at github.com/xgxgnpu/J-PIKAN
 
 ---
