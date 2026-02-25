@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 01-01-PLAN.md — Data download module: S3 HDF5 access, caching, project structure (Wave 1)
+- [x] 01-01-PLAN.md — Data download module: S3 HDF5 access, caching, project structure (Wave 1)
 - [ ] 01-02-PLAN.md — Preprocessing & features: interpolation, quality logging, cyclic/solar/lag features (Wave 2)
 - [ ] 01-03-PLAN.md — Split, normalize & pipeline: chronological split, Z-score normalization, full Modal job (Wave 3)
 
@@ -153,7 +153,7 @@ Note: Phase 4 (baselines) can start after Phase 1 completes, in parallel with Ph
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Pipeline & Infrastructure | 0/3 | Planned | - |
+| 1. Data Pipeline & Infrastructure | 1/3 | In Progress | - |
 | 2. KAN Architecture & Sparse Training | 0/TBD | Not started | - |
 | 3. Symbolic Expression Extraction | 0/TBD | Not started | - |
 | 4. Baseline Experiments | 0/TBD | Not started | - |

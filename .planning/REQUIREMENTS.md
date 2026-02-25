@@ -9,7 +9,7 @@ Requirements for graduation thesis completion. Each maps to roadmap phases.
 
 ### Data & Infrastructure
 
-- [ ] **DATA-01**: 从 ARPA-E PERFORM 获取风光负荷同步数据（ERCOT 为主，HDF5 格式，5分钟分辨率）
+- [x] **DATA-01**: 从 ARPA-E PERFORM 获取风光负荷同步数据（ERCOT 为主，HDF5 格式，5分钟分辨率）
 - [ ] **DATA-02**: 数据预处理管线（时间戳对齐 UTC、缺失值样条插值、Z-score 归一化、周期性时间编码）
 - [ ] **DATA-03**: 多模态特征工程（气象：温度/GHI/风速/气压；时空：太阳角/周期编码；自回归：滞后窗口 t-1 到 t-48）
 
@@ -71,7 +71,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete |
 | DATA-02 | Phase 1 | Pending |
 | DATA-03 | Phase 1 | Pending |
 | KAN-01 | Phase 2 | Pending |
