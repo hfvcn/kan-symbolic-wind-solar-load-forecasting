@@ -51,17 +51,26 @@ VOLUME_MOUNT = "/vol"
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name(DEFAULT_VOLUME_NAME, create_if_missing=True)
 
+# Include local source tree in Modal containers so `import src.*` works.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = PROJECT_ROOT / "src"
+
 # Image with all data pipeline dependencies
-image = modal.Image.debian_slim(python_version="3.11").pip_install(
-    "h5py>=3.10",
-    "s3fs>=2024.2.0",
-    "pandas>=2.0",
-    "numpy>=1.24",
-    "scikit-learn>=1.3",
-    "pvlib>=0.10.0",
-    "pyarrow>=14.0",
-    "tqdm>=4.66",
-    "rich>=13.0",
+image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install(
+        "h5py>=3.10",
+        "s3fs>=2024.2.0",
+        "pandas>=2.0",
+        "numpy>=1.24",
+        "scikit-learn>=1.3",
+        "pvlib>=0.10.0",
+        "pyarrow>=14.0",
+        "tqdm>=4.66",
+        "rich>=13.0",
+    )
+    .env({"PYTHONPATH": "/root/project"})
+    .add_local_dir(SRC_DIR, remote_path="/root/project/src")
 )
 
 
@@ -128,7 +137,7 @@ def init_run_directories(run_dir: Path) -> dict[str, Path]:
 
 
 @app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=1800)
-def step_download(run_id: str, year: int = 2018) -> dict[str, Any]:
+def step_download(run_id: str, year: int = 2018, iso: str = "ERCOT") -> dict[str, Any]:
     """
     Step 1: Download ERCOT actuals from ARPA-E PERFORM S3.
 
@@ -140,7 +149,7 @@ def step_download(run_id: str, year: int = 2018) -> dict[str, Any]:
 
     sys.path.insert(0, "/vol")  # Ensure local imports work
 
-    from src.data.download import download_ercot_actuals
+    from src.data.download import download_iso_actuals
 
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
     raw_dir = run_dir / "raw"
@@ -164,8 +173,8 @@ def step_download(run_id: str, year: int = 2018) -> dict[str, Any]:
     init_run_directories(run_dir)
 
     try:
-        logger.info(f"Downloading ERCOT actuals for year {year}")
-        paths = download_ercot_actuals(run_dir, year=year)
+        logger.info(f"Downloading {iso} actuals for year {year}")
+        paths = download_iso_actuals(run_dir, year=year, iso=iso)
 
         # Commit volume and mark complete
         volume.commit()
@@ -176,6 +185,7 @@ def step_download(run_id: str, year: int = 2018) -> dict[str, Any]:
             "step": "download",
             "status": "completed",
             "year": year,
+            "iso": iso,
             "paths": paths,
         }
 
@@ -186,7 +196,7 @@ def step_download(run_id: str, year: int = 2018) -> dict[str, Any]:
 
 
 @app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=1800)
-def step_preprocess(run_id: str, year: int = 2018) -> dict[str, Any]:
+def step_preprocess(run_id: str, year: int = 2018, iso: str = "ERCOT") -> dict[str, Any]:
     """
     Step 2: Preprocess raw data with interpolation and quality logging.
 
@@ -230,17 +240,21 @@ def step_preprocess(run_id: str, year: int = 2018) -> dict[str, Any]:
         dfs = {}
         for data_type in ["wind", "solar", "load"]:
             h5_path = raw_dir / f"{data_type}_actuals_{year}.h5"
-            dfs[data_type] = load_hdf5_to_dataframe(h5_path)
+            dfs[data_type] = load_hdf5_to_dataframe(
+                h5_path,
+                year=year,
+                default_column_name=iso.upper(),
+            )
 
-        # Combine into single DataFrame (assuming ERCOT-level aggregates)
-        # Each dataframe has zone columns; we'll use ERCOT total (first column typically)
+        # Combine into single DataFrame (ISO-level aggregates)
+        # Each dataframe has BA columns; use ISO total column when present, otherwise fallback to first.
         logger.info("Combining data types into unified DataFrame...")
         combined = pd.DataFrame(index=dfs["load"].index)
 
         for data_type, df in dfs.items():
-            # Use first column (typically ERCOT aggregate) or ERCOT column
-            if "ERCOT" in df.columns:
-                combined[data_type] = df["ERCOT"]
+            iso_u = iso.upper()
+            if iso_u in df.columns:
+                combined[data_type] = df[iso_u]
             else:
                 combined[data_type] = df.iloc[:, 0]
 
@@ -284,7 +298,7 @@ def step_preprocess(run_id: str, year: int = 2018) -> dict[str, Any]:
 
 
 @app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=1800)
-def step_features(run_id: str, target_cols: list[str] | None = None) -> dict[str, Any]:
+def step_features(run_id: str, iso: str = "ERCOT", target_cols: list[str] | None = None) -> dict[str, Any]:
     """
     Step 3: Apply feature engineering to cleaned data.
 
@@ -299,10 +313,13 @@ def step_features(run_id: str, target_cols: list[str] | None = None) -> dict[str
     sys.path.insert(0, "/vol")
 
     from src.data.features import add_all_features
+    from src.data.meteorology import add_open_meteo_meteorology_features
+    from src.config import get_iso_centroid
 
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
     intermediate_cleaned = run_dir / "intermediate_cleaned.parquet"
     intermediate_featured = run_dir / "intermediate_featured.parquet"
+    met_cache = run_dir / "raw" / "open_meteo_hourly.parquet"
 
     if target_cols is None:
         target_cols = ["load", "wind", "solar"]
@@ -322,9 +339,21 @@ def step_features(run_id: str, target_cols: list[str] | None = None) -> dict[str
         logger.info("Loading cleaned intermediate data...")
         df = pd.read_parquet(intermediate_cleaned)
 
+        # Add meteorological proxy features (cache-first)
+        logger.info("Adding meteorology features (Open-Meteo archive, cache-first)...")
+        lat, lon = get_iso_centroid(iso)
+        df = add_open_meteo_meteorology_features(
+            df,
+            latitude=lat,
+            longitude=lon,
+            cache_path=met_cache,
+            allow_network=True,
+            allow_missing=True,
+        )
+
         # Apply all features
         logger.info("Applying feature engineering...")
-        df_featured = add_all_features(df, target_cols=target_cols)
+        df_featured = add_all_features(df, target_cols=target_cols, latitude=lat, longitude=lon)
 
         # Save intermediate Parquet
         df_featured.to_parquet(intermediate_featured, compression="snappy")
@@ -451,6 +480,7 @@ def step_split_normalize(run_id: str, target_col: str = "load") -> dict[str, Any
 @app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=7200)
 def run_pipeline(
     year: int = 2018,
+    iso: str = "ERCOT",
     target_col: str = "load",
     force: bool = False,
 ) -> dict[str, Any]:
@@ -481,6 +511,7 @@ def run_pipeline(
     payload = {
         "run_id": run_id,
         "year": year,
+        "iso": iso,
         "target_col": target_col,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "force": force,
@@ -501,13 +532,13 @@ def run_pipeline(
     results: dict[str, Any] = {"run_id": run_id}
 
     # Step 1: Download
-    results["download"] = step_download.remote(run_id, year=year)
+    results["download"] = step_download.remote(run_id, year=year, iso=iso)
 
     # Step 2: Preprocess
-    results["preprocess"] = step_preprocess.remote(run_id, year=year)
+    results["preprocess"] = step_preprocess.remote(run_id, year=year, iso=iso)
 
     # Step 3: Features
-    results["features"] = step_features.remote(run_id, target_cols=[target_col, "wind", "solar"])
+    results["features"] = step_features.remote(run_id, iso=iso, target_cols=[target_col, "wind", "solar"])
 
     # Step 4: Split and normalize
     results["split_normalize"] = step_split_normalize.remote(run_id, target_col=target_col)
@@ -542,13 +573,13 @@ def run_pipeline(
 
 
 @app.local_entrypoint()
-def main(year: int = 2018, target: str = "load", force: bool = False) -> None:
+def main(year: int = 2018, iso: str = "ERCOT", target: str = "load", force: bool = False) -> None:
     """
     Run the full data pipeline and sync artifacts locally.
 
     Usage:
         modal run modal_jobs/data_pipeline.py
-        modal run modal_jobs/data_pipeline.py --year 2019 --target wind
+        modal run modal_jobs/data_pipeline.py --year 2019 --iso MISO --target wind
         modal run modal_jobs/data_pipeline.py --force
 
     After completion, artifacts are synced to local runs/{run_id}/ directory.
@@ -557,62 +588,31 @@ def main(year: int = 2018, target: str = "load", force: bool = False) -> None:
 
     print(f"[pipeline] Starting data pipeline")
     print(f"[pipeline] Volume: {DEFAULT_VOLUME_NAME}")
+    print(f"[pipeline] ISO: {iso}")
     print(f"[pipeline] Year: {year}, Target: {target}, Force: {force}")
 
     # Run pipeline
-    result = run_pipeline.remote(year=year, target_col=target, force=force)
+    result = run_pipeline.remote(year=year, iso=iso, target_col=target, force=force)
     print(json.dumps(result, indent=2))
 
     # Auto-sync artifacts to local runs/ directory
     run_id = result["run_id"]
-    local_runs_dir = Path("runs") / run_id
-    local_runs_dir.mkdir(parents=True, exist_ok=True)
+    local_runs_base = Path("runs")
+    local_runs_base.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n[sync] Syncing artifacts to: {local_runs_dir}")
+    print(f"\n[sync] Syncing artifacts to: {local_runs_base}/{run_id}")
 
-    volume_run_path = f"/runs/{run_id}"
-
-    # Sync processed data
+    # NOTE: `modal volume get` treats directory-vs-file differently. Always add a trailing slash
+    # to reliably sync directories.
+    volume_run_path = f"/runs/{run_id}/"
     try:
         subprocess.run(
-            [
-                "modal", "volume", "get", DEFAULT_VOLUME_NAME,
-                f"{volume_run_path}/processed", str(local_runs_dir / "processed"),
-            ],
+            ["modal", "volume", "get", DEFAULT_VOLUME_NAME, volume_run_path, str(local_runs_base), "--force"],
             check=True,
-            capture_output=True,
         )
-        print(f"[sync] Synced processed/")
+        print("[sync] Synced full run directory")
     except subprocess.CalledProcessError as e:
-        print(f"[sync] Warning: Failed to sync processed/: {e}")
-
-    # Sync artifacts
-    try:
-        subprocess.run(
-            [
-                "modal", "volume", "get", DEFAULT_VOLUME_NAME,
-                f"{volume_run_path}/artifacts", str(local_runs_dir / "artifacts"),
-            ],
-            check=True,
-            capture_output=True,
-        )
-        print(f"[sync] Synced artifacts/")
-    except subprocess.CalledProcessError as e:
-        print(f"[sync] Warning: Failed to sync artifacts/: {e}")
-
-    # Sync reports
-    try:
-        subprocess.run(
-            [
-                "modal", "volume", "get", DEFAULT_VOLUME_NAME,
-                f"{volume_run_path}/reports", str(local_runs_dir / "reports"),
-            ],
-            check=True,
-            capture_output=True,
-        )
-        print(f"[sync] Synced reports/")
-    except subprocess.CalledProcessError as e:
-        print(f"[sync] Warning: Failed to sync reports/: {e}")
+        print(f"[sync] Warning: Failed to sync run directory: {e}")
 
     print(f"\n[pipeline] COMPLETE")
-    print(f"[pipeline] Artifacts synced to: {local_runs_dir}")
+    print(f"[pipeline] Artifacts synced to: {local_runs_base}/{run_id}")

@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import h5py
 import numpy as np
@@ -125,13 +125,14 @@ def download_perform_file(s3_path: str, local_path: str, force: bool = False) ->
     return str(local_path_obj)
 
 
-def download_ercot_actuals(
+def download_iso_actuals(
     run_dir: str | Path,
     year: int = DEFAULT_YEAR,
+    iso: str = "ERCOT",
     data_types: list[str] | None = None,
 ) -> dict[str, str]:
     """
-    Download ERCOT actuals data for specified types and year.
+    Download ISO actuals data for specified types and year.
 
     Downloads wind, solar, and/or load HDF5 files from ARPA-E PERFORM S3.
     Files are cached in {run_dir}/raw/ with idempotent behavior.
@@ -139,6 +140,7 @@ def download_ercot_actuals(
     Args:
         run_dir: Base directory for the run (e.g., '/vol/runs/2025-02-25_120000_abc12345').
         year: Data year (default: 2018).
+        iso: ISO/market folder (ERCOT/MISO/NYISO/SPP).
         data_types: List of types to download. Default: ['wind', 'solar', 'load'].
 
     Returns:
@@ -160,20 +162,55 @@ def download_ercot_actuals(
     result: dict[str, str] = {}
 
     for data_type in data_types:
-        s3_path = get_s3_path(data_type, year)
+        s3_paths = [get_s3_path(data_type, year, iso=iso)]
+        if data_type == "load":
+            # PERFORM load layout differs by ISO. ERCOT uses a flat BA_level path, but
+            # other ISOs often store 5-min BA load under a resolution subfolder.
+            iso_u = iso.upper()
+            s3_paths.extend(
+                [
+                    f"s3://arpa-e-perform/{iso_u}/{year}/Load/Actuals/BA_level/5min-resolution/{iso_u}_BA_Actuals.h5",
+                    f"s3://arpa-e-perform/{iso_u}/{year}/Load/Actuals/BA_level/5min-resolution/{iso_u}_Actuals.h5",
+                ]
+            )
+
         local_filename = f"{data_type}_actuals_{year}.h5"
         local_path = raw_dir / local_filename
 
-        downloaded_path = download_perform_file(s3_path, str(local_path))
+        last_err: Optional[Exception] = None
+        downloaded_path = None
+        for s3_path in s3_paths:
+            try:
+                downloaded_path = download_perform_file(s3_path, str(local_path))
+                break
+            except Exception as e:
+                last_err = e
+                continue
+        if downloaded_path is None:
+            assert last_err is not None
+            raise last_err
+
         result[data_type] = downloaded_path
         logger.info(f"Cached {data_type} actuals: {downloaded_path}")
 
     return result
 
 
+def download_ercot_actuals(
+    run_dir: str | Path,
+    year: int = DEFAULT_YEAR,
+    data_types: list[str] | None = None,
+) -> dict[str, str]:
+    """Backward-compatible wrapper for ERCOT."""
+    return download_iso_actuals(run_dir, year=year, iso="ERCOT", data_types=data_types)
+
+
 def load_hdf5_to_dataframe(
     file_path: str | Path,
     dataset_key: str = "actuals",
+    *,
+    year: Optional[int] = None,
+    default_column_name: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Load ARPA-E PERFORM HDF5 file into a pandas DataFrame.
@@ -211,7 +248,17 @@ def load_hdf5_to_dataframe(
 
     with h5py.File(file_path, "r") as f:
         # Read time index (stored as bytes, need to decode)
-        time_index_raw = f["time_index"][...]
+        time_key = None
+        for cand in ("time_index", "time-index"):
+            if cand in f:
+                time_key = cand
+                break
+        if time_key is None:
+            raise KeyError(
+                f"No time index dataset found in {file_path}. Expected 'time_index' or 'time-index'. "
+                f"Available: {list(f.keys())}"
+            )
+        time_index_raw = f[time_key][...]
 
         # Handle bytes -> string conversion
         if time_index_raw.dtype.kind == "S":  # Byte string
@@ -221,29 +268,27 @@ def load_hdf5_to_dataframe(
         else:
             time_index_str = time_index_raw.astype(str)
 
-        # Parse to datetime with UTC localization
-        time_index = pd.to_datetime(time_index_str)
-        time_index = time_index.tz_localize("UTC")
+        # Parse to datetime with UTC localization.
+        # Some PERFORM files already include timezone information; `utc=True`
+        # safely handles both naive and tz-aware inputs.
+        time_index = pd.to_datetime(time_index_str, utc=True)
 
-        # Read metadata for column names
+        # Read metadata for column names (structure varies across PERFORM releases).
         meta = f["meta"][...]
-
-        # Extract column names - meta structure may vary
-        # Common patterns: structured array with 'name' field or simple string array
         if meta.dtype.names is not None and "name" in meta.dtype.names:
-            # Structured array with 'name' field
-            column_names = meta["name"]
+            raw_names = meta["name"]
         else:
-            # Simple array - use as-is
-            column_names = meta
+            raw_names = np.asarray(meta).ravel()
 
-        # Decode if bytes
-        if hasattr(column_names[0], "decode"):
-            column_names = [c.decode("utf-8") for c in column_names]
-        elif isinstance(column_names[0], bytes):
-            column_names = [c.decode("utf-8") for c in column_names]
-        else:
-            column_names = [str(c) for c in column_names]
+        def _to_str(x) -> str:
+            if isinstance(x, (bytes, np.bytes_)):
+                try:
+                    return x.decode("utf-8")
+                except Exception:
+                    return str(x)
+            return str(x)
+
+        column_names = [_to_str(x) for x in raw_names.tolist()] if hasattr(raw_names, "tolist") else [_to_str(x) for x in raw_names]
 
         # Read actual data
         if dataset_key not in f:
@@ -260,9 +305,29 @@ def load_hdf5_to_dataframe(
         else:
             logger.debug("No scale_factor attribute found (using raw values)")
 
-    # Build DataFrame
-    df = pd.DataFrame(data, index=time_index, columns=column_names)
+    # Build DataFrame (handle 1D + transposed variants robustly).
+    data = np.asarray(data)
+    if data.ndim == 1:
+        col = column_names[0] if len(column_names) == 1 else (default_column_name or "value")
+        df = pd.DataFrame({col: data}, index=time_index)
+    elif data.ndim == 2:
+        if data.shape[0] == len(time_index):
+            if len(column_names) != data.shape[1]:
+                column_names = [f"c{i}" for i in range(data.shape[1])]
+            df = pd.DataFrame(data, index=time_index, columns=column_names)
+        elif data.shape[1] == len(time_index) and len(column_names) == data.shape[0]:
+            df = pd.DataFrame(data.T, index=time_index, columns=column_names)
+        else:
+            raise ValueError(
+                f"Unexpected HDF5 data shape for {file_path}: data.shape={data.shape}, time_index={len(time_index)}, "
+                f"n_cols(meta)={len(column_names)}"
+            )
+    else:
+        raise ValueError(f"Unsupported HDF5 data ndim for {file_path}: ndim={data.ndim}, shape={data.shape}")
     df.index.name = "timestamp"
+
+    if year is not None:
+        df = df.loc[df.index.year == int(year)]
 
     logger.info(f"Loaded DataFrame: {len(df)} rows x {len(df.columns)} columns")
     logger.info(f"Time range: {df.index.min()} to {df.index.max()}")

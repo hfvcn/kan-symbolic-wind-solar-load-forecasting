@@ -9,6 +9,7 @@ This module implements feature generation for energy forecasting models:
 Feature Groups:
     - Cyclic: Captures periodic patterns without discontinuities
     - Solar: Physical astronomical features for solar generation
+    - Meteorology: Temperature / irradiance / wind speed / pressure proxies (see meteorology.py)
     - Lag: Autoregressive features capturing recent temporal dynamics
 
 References:
@@ -256,6 +257,7 @@ def get_feature_groups() -> dict[str, list[str]]:
         Dict with keys:
             - "cyclic": Cyclic time encoding columns
             - "solar": Solar position columns
+            - "meteorology": Meteorological proxy columns (if present)
             - "lag_pattern": Regex pattern for lag columns
 
     Example:
@@ -276,6 +278,12 @@ def get_feature_groups() -> dict[str, list[str]]:
             "solar_altitude",
             "solar_azimuth",
             "is_night",
+        ],
+        "meteorology": [
+            "temp_2m_c",
+            "wind_speed_10m_m_s",
+            "surface_pressure_hpa",
+            "ghi_w_m2",
         ],
         "lag_pattern": r".*_lag_\d+$",  # Regex pattern for matching lag columns
     }

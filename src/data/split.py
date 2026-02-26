@@ -414,3 +414,31 @@ def inverse_transform(
         logger.info(f"Inverse transformed {len(cols_to_transform)} columns")
 
     return df_inverse
+
+
+def transform(
+    df: pd.DataFrame,
+    scaler_params: dict[str, Any],
+) -> pd.DataFrame:
+    """
+    Apply forward Z-score transform using saved scaler parameters.
+
+    This is the counterpart to `inverse_transform` and is useful for cross-ISO
+    evaluation where we want to apply a *training* scaler to a different region's
+    original-scale features.
+    """
+    df_scaled = df.copy()
+
+    mean = np.array(scaler_params["mean"])
+    scale = np.array(scaler_params["scale"])
+    feature_names = scaler_params["feature_names"]
+
+    cols_to_transform = [col for col in feature_names if col in df.columns]
+    if cols_to_transform:
+        feature_idx = {name: i for i, name in enumerate(feature_names)}
+        for col in cols_to_transform:
+            idx = feature_idx[col]
+            df_scaled[col] = (df[col] - mean[idx]) / scale[idx]
+        logger.info(f"Transformed {len(cols_to_transform)} columns to Z-score using saved params")
+
+    return df_scaled

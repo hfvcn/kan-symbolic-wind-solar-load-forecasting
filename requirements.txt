@@ -12,5 +12,12 @@ tqdm>=4.66
 # Modal cloud compute
 modal>=0.60
 
+# Phase 2+ (KAN training / symbolic / evaluation)
+torch>=2.1
+pykan==0.2.8
+pyyaml>=6.0
+sympy>=1.13.3
+matplotlib>=3.8
+
 # Development
 ruff>=0.3.0

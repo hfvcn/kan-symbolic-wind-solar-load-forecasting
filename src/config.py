@@ -33,6 +33,25 @@ ERCOT_LATITUDE: float = 31.0
 ERCOT_LONGITUDE: float = -100.0
 """ERCOT system centroid longitude (degrees) for solar calculations."""
 
+DEFAULT_ISO: str = "ERCOT"
+"""Default ISO/market for PERFORM data loading."""
+
+ISO_CENTROIDS: dict[str, tuple[float, float]] = {
+    "ERCOT": (31.0, -100.0),
+    "MISO": (43.0, -90.0),
+    "NYISO": (43.0, -75.0),
+    "SPP": (36.0, -97.0),
+}
+"""Approximate ISO centroid coordinates for solar position & meteorology proxies."""
+
+
+def get_iso_centroid(iso: str) -> tuple[float, float]:
+    iso_u = iso.upper()
+    if iso_u in ISO_CENTROIDS:
+        return ISO_CENTROIDS[iso_u]
+    # Fallback to ERCOT centroid if unknown; keep pipeline runnable.
+    return ISO_CENTROIDS[DEFAULT_ISO]
+
 
 # =============================================================================
 # S3 Data Source Configuration
@@ -42,20 +61,21 @@ S3_BUCKET: str = "arpa-e-perform"
 """ARPA-E PERFORM public S3 bucket (anonymous access)."""
 
 S3_PATH_TEMPLATES: dict[str, str] = {
-    "wind": "ERCOT/{year}/Wind/Actuals/BA_level/BA_wind_actuals_{year}.h5",
-    "solar": "ERCOT/{year}/Solar/Actuals/BA_level/BA_solar_actuals_{year}.h5",
-    "load": "ERCOT/{year}/Load/Actuals/BA_level/BA_load_actuals_{year}.h5",
+    "wind": "{iso}/{year}/Wind/Actuals/BA_level/BA_wind_actuals_{year}.h5",
+    "solar": "{iso}/{year}/Solar/Actuals/BA_level/BA_solar_actuals_{year}.h5",
+    "load": "{iso}/{year}/Load/Actuals/BA_level/BA_load_actuals_{year}.h5",
 }
 """S3 path templates for wind, solar, and load actuals. Format with year."""
 
 
-def get_s3_path(data_type: str, year: int) -> str:
+def get_s3_path(data_type: str, year: int, iso: str = DEFAULT_ISO) -> str:
     """
     Construct full S3 path for a data type and year.
 
     Args:
         data_type: One of 'wind', 'solar', 'load'.
         year: Data year (e.g., 2018).
+        iso: ISO/market folder name (default: ERCOT).
 
     Returns:
         Full S3 URI (s3://arpa-e-perform/...).
@@ -65,7 +85,7 @@ def get_s3_path(data_type: str, year: int) -> str:
     """
     if data_type not in S3_PATH_TEMPLATES:
         raise ValueError(f"Unknown data_type: {data_type}. Must be one of {list(S3_PATH_TEMPLATES.keys())}")
-    path = S3_PATH_TEMPLATES[data_type].format(year=year)
+    path = S3_PATH_TEMPLATES[data_type].format(iso=iso.upper(), year=year)
     return f"s3://{S3_BUCKET}/{path}"
 
 
