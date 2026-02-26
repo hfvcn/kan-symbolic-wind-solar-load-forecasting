@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-24)
 
 **Core value:** From data, extract human-understandable physical formulas -- not just accurate predictions, but transparent logic that grid engineers can read, verify, and trust.
-**Current focus:** Completed — system runs end-to-end training + evaluation + thesis asset generation.
+**Current focus:** Post-v1 optimization — unify hyperparameter tuning + Modal execution into one driver script; improve symbolic formula quality (especially non-trivial physical factors, not only autoregressive lags).
 
 ## Current Position
 
-Phase: Verification closure (Phases 6–7)
-Plan: All plans code complete; remaining are run-based verifications
-Status: All roadmap phases verified with real runs synced locally; thesis assets generated + indexed; full unit test suite passes.
-Last activity: 2026-02-26 -- Closed remaining Phase 6–7 gaps (solar hard constraint, seeded PySR CV, MultKAN run), refreshed evaluation tables/plots, and rebuilt ASSET_INDEX.
+Phase: Post-v1 optimization
+Plan: Add a single-file experiment driver + run small symbolic sweeps; keep TDD (unit tests) and regenerate thesis assets as needed.
+Status: v1 roadmap remains verified; additional optimization runs are being added and indexed.
+Last activity: 2026-02-26 -- Added `scripts/experiment_driver.py`, exposed KAN train/symbolic tunable knobs, fixed Phase 2 metric summarization to prefer TEST predictions, and ran a symbolic sweep on the best preliminary KAN train run.
 
 Progress:
 - Implementation: [██████████] 18/18 plans code complete
@@ -22,6 +22,7 @@ Verified runs (synced locally):
 - Phase 1 (data): `2026-02-26_032058_1957fda1` (ERCOT), `2026-02-26_052312_f85bed5b` (MISO)
 - Phase 2 (KAN train): `2026-02-26_035935_74ef1f78`
 - Phase 3 (KAN symbolic): `2026-02-26_041718_5579aeeb`
+- Optimization (KAN symbolic sweep from `2026-02-26_055200_958b3949`): `2026-02-26_090620_1fc7d27a`, `2026-02-26_091400_ba9fd48c`
 - Phase 4 (baselines): `2026-02-26_043102_777fac2d` (MLP), `2026-02-26_043230_b2b5c68f` (LSTM), `2026-02-26_045336_77244377` (PySR)
 - Phase 7 (seeded PySR): `2026-02-26_064508_3e631069`
 - Phase 6 (solar hard constraint): `2026-02-26_064925_a74e5d63`

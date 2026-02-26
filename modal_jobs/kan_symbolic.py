@@ -111,6 +111,7 @@ def extract_symbolic(
     weight_simple: float = 0.9,
     fix_below_threshold_to_zero: bool = False,
     sample_rows: int = 10_000,
+    lib: list[str] | None = None,
 ) -> dict[str, Any]:
     import numpy as np
     import pandas as pd
@@ -209,7 +210,7 @@ def extract_symbolic(
     # Per-edge suggestions + optional fixing.
     edge_fits = extract_symbolic_edges(
         model,
-        lib=DEFAULT_SYMBOLIC_LIB,
+        lib=lib or DEFAULT_SYMBOLIC_LIB,
         r2_threshold=r2_threshold,
         weight_simple=weight_simple,
         fix_below_threshold_to_zero=fix_below_threshold_to_zero,
@@ -290,6 +291,8 @@ def extract_symbolic(
         "r2_threshold": float(r2_threshold),
         "weight_simple": float(weight_simple),
         "fix_below_threshold_to_zero": bool(fix_below_threshold_to_zero),
+        "sample_rows": int(sample_rows),
+        "lib": list(lib or DEFAULT_SYMBOLIC_LIB),
         "eval_test": eval_metrics,
         "feature_cols": feature_cols,
         "target_col": payload["cfg"]["target_col"],
@@ -303,14 +306,25 @@ def extract_symbolic(
 @app.local_entrypoint()
 def main(
     train_run_id: str,
+    run_id: str = "",
     r2_threshold: float = 0.99,
     weight_simple: float = 0.9,
     fix_below_threshold_to_zero: bool = False,
+    sample_rows: int = 10_000,
+    lib: str = "default",
 ) -> None:
+    lib_list = None
+    lib_s = str(lib).strip().lower()
+    if lib_s not in {"", "default"}:
+        lib_list = [s.strip() for s in str(lib).split(",") if s.strip()]
+    run_id_opt = run_id.strip() or None
     result = extract_symbolic.remote(
         train_run_id,
+        run_id=run_id_opt,
         r2_threshold=r2_threshold,
         weight_simple=weight_simple,
         fix_below_threshold_to_zero=fix_below_threshold_to_zero,
+        sample_rows=sample_rows,
+        lib=lib_list,
     )
     print(json.dumps(result, indent=2))

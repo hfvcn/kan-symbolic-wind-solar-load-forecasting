@@ -46,10 +46,10 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/smoke_test.
 
 ```bash
 # Phase 2: KAN 训练（输出 checkpoint/model.pt + predictions_test.parquet）
-modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py <data_run_id> --target load
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id <data_run_id> --target load
 
 # Phase 3: 符号提取（输出 formula.sympy.txt / formula.tex / predictions_test.parquet）
-modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py <kan_train_run_id>
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id>
 ```
 
 同步到本地后（`runs/<id>`），可生成论文图表：
@@ -64,11 +64,11 @@ python3 /Users/vfch/Documents/project/graduation-design/scripts/physics_mapping.
 
 ```bash
 # Torch 基线（MLP / LSTM）
-modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py <data_run_id> --model-type mlp --target load
-modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py <data_run_id> --model-type lstm --target load
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py --data-run-id <data_run_id> --model-type mlp --target load
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py --data-run-id <data_run_id> --model-type lstm --target load
 
 # PySR 基线（可选：seed_from_symbolic_run 用于交叉验证）
-modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/pysr_baseline.py <data_run_id> --target load
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/pysr_baseline.py --data-run-id <data_run_id> --target load
 ```
 
 ## 评估与论文资产（Phase 5-8）
@@ -85,4 +85,24 @@ python3 /Users/vfch/Documents/project/graduation-design/scripts/transfer_eval.py
 
 # 生成论文资产索引（ASSET_INDEX.md）
 python3 /Users/vfch/Documents/project/graduation-design/scripts/build_asset_index.py
+```
+
+## 一键实验驱动（推荐）
+
+为了方便频繁调参与重复跑实验，本仓库提供单文件集成脚本 `scripts/experiment_driver.py`：
+
+1) 打开脚本顶部 `CONFIG` 区域，集中修改：
+- 数据 run_id（或是否重跑 Phase 1）
+- KAN 训练 sweep（超参数 / 特征选择）
+- KAN 符号提取 sweep（r2_threshold / lib / sample_rows 等）
+- 是否跑 baselines / 是否自动生成论文图表与索引
+
+2) 运行：
+
+```bash
+# 只打印将执行的命令（不真的跑 Modal）
+python3 scripts/experiment_driver.py --dry-run
+
+# 真正执行：Modal 训练/符号提取 -> 同步 runs/ -> 本地评估与绘图 -> 生成 ASSET_INDEX
+python3 scripts/experiment_driver.py --execute
 ```

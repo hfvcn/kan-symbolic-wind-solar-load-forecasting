@@ -81,9 +81,25 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
     # Phase 2 KAN training
     if phase == "02-kan-training":
         kind = payload.get("kind", "kan")
+        pred_path = artifacts / "predictions_test.parquet"
         eval_path = artifacts / "eval_pruned.json"
         sparsity_path = artifacts / "sparsity.json"
-        if eval_path.exists():
+        if pred_path.exists():
+            try:
+                from src.kan_sr.metrics import mae as mae_fn
+                from src.kan_sr.metrics import r2 as r2_fn
+                from src.kan_sr.metrics import rmse as rmse_fn
+
+                pred_df = pd.read_parquet(pred_path).dropna(subset=["y_true", "y_pred"])
+                if len(pred_df) > 0:
+                    y_true = pred_df["y_true"].to_numpy(dtype="float64")
+                    y_pred = pred_df["y_pred"].to_numpy(dtype="float64")
+                    rmse = float(rmse_fn(y_true, y_pred))
+                    mae = float(mae_fn(y_true, y_pred))
+                    r2 = float(r2_fn(y_true, y_pred))
+            except Exception:
+                pass
+        if rmse is None and eval_path.exists():
             m = _read_json(eval_path)
             rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
         if sparsity_path.exists():

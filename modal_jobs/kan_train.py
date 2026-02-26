@@ -342,6 +342,9 @@ def _train_kan_impl(
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
     cfg: TrainConfig = TrainConfig(),
+    include_base: bool = True,
+    include_groups: Optional[list[str]] = None,
+    lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
 ) -> dict[str, Any]:
@@ -355,6 +358,9 @@ def _train_kan_impl(
         run_id: Optional fixed run id for resuming.
         kind: Optional run label to store in payload.json (e.g., ablation tag).
         cfg: Training hyperparameters.
+        include_base: Whether to include base (non-target) cols among (load, wind, solar).
+        include_groups: Feature group names (from src.data.features.get_feature_groups).
+        lag_series: Series to generate lag features for (e.g., load, wind, solar).
         lag_steps: Lag feature subset (default [1,12,48]).
         max_train_rows: Optional cap for quick iteration / smoke training.
     """
@@ -394,8 +400,20 @@ def _train_kan_impl(
         train_df = train_df.iloc[:max_train_rows].copy()
         logger.info(f"Downsampled train_df to first {max_train_rows} rows for iteration")
 
-    lag_steps = lag_steps or [1, 12, 48]
-    feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
+    if include_groups is None:
+        include_groups = ["meteorology", "solar", "cyclic"]
+    if lag_series is None:
+        lag_series = ["load", "wind", "solar"]
+    if lag_steps is None:
+        lag_steps = [1, 12, 48]
+    feature_cols = pick_feature_columns(
+        train_df,
+        target_col=cfg.target_col,
+        include_base=include_base,
+        include_groups=include_groups,
+        lag_steps=lag_steps,
+        lag_series=lag_series,
+    )
 
     dataset, ds_meta = build_kan_dataset(train_df, val_df, target_col=cfg.target_col, feature_cols=feature_cols, scale_target=True)
     target_scaler = ds_meta.get("target_scaler")
@@ -427,6 +445,10 @@ def _train_kan_impl(
         "feature_cols": feature_cols,
         "target_scaler": target_scaler,
         "lag_steps": list(lag_steps),
+        "lag_series": list(lag_series),
+        "include_groups": list(include_groups),
+        "include_base": bool(include_base),
+        "max_train_rows": max_train_rows,
         "device": device_name,
         "env": _torch_env_info(),
     }
@@ -685,6 +707,9 @@ def train_kan_cpu(
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
     cfg: TrainConfig = TrainConfig(),
+    include_base: bool = True,
+    include_groups: Optional[list[str]] = None,
+    lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
 ) -> dict[str, Any]:
@@ -695,6 +720,9 @@ def train_kan_cpu(
         run_id=run_id,
         kind=kind,
         cfg=cfg,
+        include_base=include_base,
+        include_groups=include_groups,
+        lag_series=lag_series,
         lag_steps=lag_steps,
         max_train_rows=max_train_rows,
     )
@@ -708,6 +736,9 @@ def train_kan_gpu(
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
     cfg: TrainConfig = TrainConfig(),
+    include_base: bool = True,
+    include_groups: Optional[list[str]] = None,
+    lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
 ) -> dict[str, Any]:
@@ -718,6 +749,9 @@ def train_kan_gpu(
         run_id=run_id,
         kind=kind,
         cfg=cfg,
+        include_base=include_base,
+        include_groups=include_groups,
+        lag_series=lag_series,
         lag_steps=lag_steps,
         max_train_rows=max_train_rows,
     )
@@ -730,6 +764,10 @@ def main(
     target: str = "load",
     hidden_width: int = 10,
     max_train_rows: int = 50_000,
+    include_groups: str = "meteorology,solar,cyclic",
+    lag_series: str = "load,wind,solar",
+    lag_steps: str = "1,12,48",
+    include_base: bool = True,
     warmup_steps: int = 200,
     sparsify_steps: int = 800,
     refine_steps: int = 200,
@@ -763,6 +801,27 @@ def main(
         sparsify_lamb_coef=sparsify_lamb_coef,
         sparsify_lamb_coefdiff=sparsify_lamb_coefdiff,
     )
+    include_groups_s = str(include_groups).strip()
+    if include_groups_s.lower() in {"none", "null", "no"}:
+        include_groups_list = []
+    else:
+        include_groups_list = [s.strip() for s in include_groups_s.split(",") if s.strip()]
+
+    lag_series_s = str(lag_series).strip()
+    if lag_series_s.lower() in {"none", "null", "no"}:
+        lag_series_list = []
+    else:
+        lag_series_list = [s.strip() for s in lag_series_s.split(",") if s.strip()]
+
+    lag_steps_s = str(lag_steps).strip()
+    if lag_steps_s.lower() in {"none", "null", "no"}:
+        lag_steps_list = []
+    else:
+        lag_steps_list = [int(s.strip()) for s in lag_steps_s.split(",") if s.strip()]
+    max_train_rows_opt: Optional[int] = int(max_train_rows)
+    if max_train_rows_opt <= 0:
+        max_train_rows_opt = None
+
     fn = train_kan_gpu if use_gpu else train_kan_cpu
     result = fn.remote(
         data_run_id,
@@ -770,6 +829,10 @@ def main(
         run_id=run_id,
         kind=kind,
         cfg=cfg,
-        max_train_rows=max_train_rows,
+        include_base=include_base,
+        include_groups=include_groups_list,
+        lag_series=lag_series_list,
+        lag_steps=lag_steps_list,
+        max_train_rows=max_train_rows_opt,
     )
     print(json.dumps(result, indent=2))

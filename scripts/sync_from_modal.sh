@@ -95,18 +95,59 @@ if [[ "$is_dir_sync" == "1" && "$remote_path" != */ ]]; then
 fi
 
 run_name="$(basename -- "$remote_path")"
-local_dest="$LOCAL_BASE"
-if [[ "$is_dir_sync" != "1" ]]; then
-  local_dest="${LOCAL_BASE%/}/$run_name"
-fi
+local_dest="${LOCAL_BASE%/}/$run_name"
 
 echo "Syncing ${VOLUME_NAME}:${remote_path} -> ${local_dest}"
-if ! modal volume get "$VOLUME_NAME" "$remote_path" "$local_dest" --force; then
-  echo "Retrying without --force (clearing destination first)..." >&2
-  cleanup_target="$local_dest"
-  if [[ "$is_dir_sync" == "1" ]]; then
-    cleanup_target="${LOCAL_BASE%/}/$run_name"
+
+if [[ "$is_dir_sync" == "1" ]]; then
+  # Robust directory sync:
+  # - Download into a temp directory (Modal CLI may nest paths differently)
+  # - Detect the actual run root (payload.json location)
+  # - Replace local_dest atomically-ish (rm + copy)
+  tmp_dir="$(mktemp -d "${LOCAL_BASE%/}/.tmp_modal_sync_${run_name}_XXXXXX")"
+  cleanup() {
+    rm -rf "$tmp_dir"
+  }
+  trap cleanup EXIT
+
+  if ! modal volume get "$VOLUME_NAME" "$remote_path" "$tmp_dir" --force; then
+    echo "Retrying without --force (clearing temp dir first)..." >&2
+    rm -rf "$tmp_dir"
+    tmp_dir="$(mktemp -d "${LOCAL_BASE%/}/.tmp_modal_sync_${run_name}_XXXXXX")"
+    trap cleanup EXIT
+    modal volume get "$VOLUME_NAME" "$remote_path" "$tmp_dir"
   fi
-  rm -rf "$cleanup_target"
-  modal volume get "$VOLUME_NAME" "$remote_path" "$local_dest"
+
+  content_root=""
+  if [[ -f "$tmp_dir/payload.json" ]]; then
+    content_root="$tmp_dir"
+  elif [[ -f "$tmp_dir/$run_name/payload.json" ]]; then
+    content_root="$tmp_dir/$run_name"
+  elif [[ -f "$tmp_dir/runs/$run_name/payload.json" ]]; then
+    content_root="$tmp_dir/runs/$run_name"
+  else
+    mapfile -t found_payloads < <(find "$tmp_dir" -maxdepth 3 -type f -name payload.json 2>/dev/null)
+    if [[ "${#found_payloads[@]}" -eq 1 ]]; then
+      content_root="$(dirname -- "${found_payloads[0]}")"
+    else
+      echo "ERROR: Could not uniquely locate payload.json after download (found=${#found_payloads[@]})." >&2
+      echo "Temp dir: $tmp_dir" >&2
+      exit 3
+    fi
+  fi
+
+  rm -rf "$local_dest"
+  mkdir -p "$local_dest"
+  cp -a "$content_root/." "$local_dest/"
+
+  trap - EXIT
+  rm -rf "$tmp_dir"
+else
+  mkdir -p "$local_dest"
+  if ! modal volume get "$VOLUME_NAME" "$remote_path" "$local_dest" --force; then
+    echo "Retrying without --force (clearing destination first)..." >&2
+    rm -rf "$local_dest"
+    mkdir -p "$local_dest"
+    modal volume get "$VOLUME_NAME" "$remote_path" "$local_dest"
+  fi
 fi
