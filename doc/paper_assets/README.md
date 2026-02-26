@@ -9,9 +9,12 @@
   - MISO: `2026-02-26_052312_f85bed5b`
 - Phase 2 (KAN train)
   - Load (used by symbolic + transfer): `2026-02-26_035935_74ef1f78`
+  - Load (best preliminary, ablation no_l1): `2026-02-26_055200_958b3949`
   - MultKAN (hidden_mult=2): `2026-02-26_070523_c05a4c19`
   - Solar (night hard-constraint verified): `2026-02-26_064925_a74e5d63`
-- Phase 3 (KAN symbolic): `2026-02-26_041718_5579aeeb`
+- Phase 3 (KAN symbolic)
+  - Original (weak): `2026-02-26_041718_5579aeeb`
+  - Improved sweep (from `2026-02-26_055200_958b3949`): `2026-02-26_090620_1fc7d27a` (better), `2026-02-26_091400_ba9fd48c`
 - Phase 4 (baselines)
   - MLP: `2026-02-26_043102_777fac2d`
   - LSTM: `2026-02-26_043230_b2b5c68f`
@@ -36,6 +39,8 @@
    - `python3 scripts/physics_mapping.py --symbolic-run runs/<sym_id>`
    - `python3 scripts/transfer_eval.py --train-run runs/<kan_train_id> --target-data-run runs/<target_iso_data_id>`
    - `python3 scripts/build_asset_index.py`
+
+更省事的方式：直接用单文件驱动脚本 `scripts/experiment_driver.py`（集中调参 + 触发 Modal + 同步 + 本地评估/绘图 + 资产索引）。
 
 ## 一键重生成（本地）
 
