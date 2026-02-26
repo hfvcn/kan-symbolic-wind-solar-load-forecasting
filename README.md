@@ -6,7 +6,20 @@
 
 本项目的训练/基线/评估通常在 Modal 上运行，运行产物先落到 Modal Volume（持久化存储），再同步到本地 `runs/` 目录（不提交到 Git）。
 
-详细约定见：`/Users/vfch/Documents/project/graduation-design/MODAL.md`
+详细约定见：`.planning/MODAL.md`
+
+## 数据管道（Phase 1）
+
+数据管道会从 ARPA-E PERFORM 下载 ERCOT 风/光/负荷实际值，并完成：
+- 缺失值处理（短缺失三次样条插值 + 质量报告）
+- 气象代理特征（Open-Meteo 历史档案：温度 / GHI / 风速 / 气压；cache-first 保存到 `raw/open_meteo_hourly.parquet`）
+- 周期性时间编码 + 太阳高度角/方位角
+- 48 步滞后特征（t-1..t-48）
+- 按时间顺序切分 + 48 步 gap 防泄漏 + Z-score（仅拟合 train）
+
+```bash
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/data_pipeline.py --year 2018 --iso ERCOT
+```
 
 ### Modal 功能自检（Smoke Test）
 
@@ -27,4 +40,49 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/smoke_test.
 
 # 3) 同步指定 run（run_id 为远端目录名）
 /Users/vfch/Documents/project/graduation-design/scripts/sync_from_modal.sh 2026-02-25_001
+```
+
+## 训练与符号提取（Phase 2-3）
+
+```bash
+# Phase 2: KAN 训练（输出 checkpoint/model.pt + predictions_test.parquet）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py <data_run_id> --target load
+
+# Phase 3: 符号提取（输出 formula.sympy.txt / formula.tex / predictions_test.parquet）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py <kan_train_run_id>
+```
+
+同步到本地后（`runs/<id>`），可生成论文图表：
+
+```bash
+python3 /Users/vfch/Documents/project/graduation-design/scripts/make_thesis_figures.py --run runs/<id>
+python3 /Users/vfch/Documents/project/graduation-design/scripts/sensitivity_analysis.py --symbolic-run runs/<sym_id>
+python3 /Users/vfch/Documents/project/graduation-design/scripts/physics_mapping.py --symbolic-run runs/<sym_id>
+```
+
+## 基线实验（Phase 4）
+
+```bash
+# Torch 基线（MLP / LSTM）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py <data_run_id> --model-type mlp --target load
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py <data_run_id> --model-type lstm --target load
+
+# PySR 基线（可选：seed_from_symbolic_run 用于交叉验证）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/pysr_baseline.py <data_run_id> --target load
+```
+
+## 评估与论文资产（Phase 5-8）
+
+```bash
+# 对比表 + Pareto 简图 + seasonal breakdown + transfer gap（如包含 transfer run）
+python3 /Users/vfch/Documents/project/graduation-design/scripts/evaluate_runs.py --run runs/<id1> --run runs/<id2> ...
+
+# PySR 方程集 vs KAN symbolic 点（复杂度 vs RMSE）
+python3 /Users/vfch/Documents/project/graduation-design/scripts/plot_pareto_frontier.py --pysr-run runs/<pysr_id> --kan-symbolic-run runs/<sym_id>
+
+# 跨 ISO 迁移评估（本地生成 runs/transfer_*）
+python3 /Users/vfch/Documents/project/graduation-design/scripts/transfer_eval.py --train-run runs/<kan_train_id> --target-data-run runs/<target_iso_data_id>
+
+# 生成论文资产索引（ASSET_INDEX.md）
+python3 /Users/vfch/Documents/project/graduation-design/scripts/build_asset_index.py
 ```

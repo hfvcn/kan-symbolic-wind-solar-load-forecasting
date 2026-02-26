@@ -1,0 +1,391 @@
+"""
+PySR baseline (Phase 4) as an isolated Modal job (Julia-backed).
+
+Outputs:
+  /vol/runs/<run_id>/
+    payload.json
+    artifacts/
+      equations.csv
+      best_equation.txt
+      eval_test.json
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import modal
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logger.addHandler(handler)
+
+
+APP_NAME = "kan-sr-baseline-pysr"
+DEFAULT_VOLUME_NAME = os.environ.get("KAN_SR_VOLUME", "kan-sr")
+VOLUME_MOUNT = "/vol"
+
+app = modal.App(APP_NAME)
+volume = modal.Volume.from_name(DEFAULT_VOLUME_NAME, create_if_missing=True)
+
+# Include local source tree in Modal containers so `import src.*` works.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = PROJECT_ROOT / "src"
+
+image = (
+    modal.Image.debian_slim(python_version="3.11")
+    # PySR/Julia deps sometimes pull via git; Julia install needs curl+tar.
+    .apt_install("git", "curl", "ca-certificates", "tar")
+    # Pin a stable Julia runtime to avoid juliacall downloading newer versions that can segfault.
+    .run_commands(
+        "set -eux; "
+        "JULIA_VERSION=1.10.4; "
+        "JULIA_MINOR=1.10; "
+        "curl -fsSL -o /tmp/julia.tgz "
+        "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz; "
+        "tar -xzf /tmp/julia.tgz -C /usr/local; "
+        "rm -f /tmp/julia.tgz; "
+        "mv /usr/local/julia-${JULIA_VERSION} /usr/local/julia; "
+        "ln -sf /usr/local/julia/bin/julia /usr/local/bin/julia; "
+        "julia --version"
+    )
+    .pip_install(
+        "numpy>=1.24",
+        "pandas>=2.0",
+        "pyarrow>=14.0",
+        "sympy>=1.13.3",
+        # PySR (brings Julia runtime via juliacall in recent versions)
+        "pysr>=1.5.0",
+    )
+    .env(
+        {
+            "PYTHONPATH": "/root/project",
+            # Keep Julia single-threaded to reduce instability/segfault risk in containers.
+            "JULIA_NUM_THREADS": "1",
+            "OPENBLAS_NUM_THREADS": "1",
+            "OMP_NUM_THREADS": "1",
+            "MKL_NUM_THREADS": "1",
+            # Force juliapkg/juliacall to use the pinned Julia binary and persist env in the Volume.
+            "PYTHON_JULIAPKG_EXE": "/usr/local/julia/bin/julia",
+            "PYTHON_JULIAPKG_PROJECT": "/vol/julia_env",
+            "JULIA_DEPOT_PATH": "/vol/julia_depot",
+        }
+    )
+    .add_local_dir(SRC_DIR, remote_path="/root/project/src")
+)
+
+
+def _utc_run_id() -> str:
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
+    return f"{ts}_{uuid.uuid4().hex[:8]}"
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(payload, f, indent=2, default=str)
+
+
+@dataclass(frozen=True)
+class PySRConfig:
+    target_col: str = "load"
+    niterations: int = 200
+    populations: int = 8
+    population_size: int = 40
+    maxsize: int = 20
+    warm_start: bool = False
+    use_original_features: bool = True
+
+
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600)
+def run_pysr(
+    data_run_id: str,
+    *,
+    data_timestamp: str | None = None,
+    run_id: str | None = None,
+    cfg: PySRConfig = PySRConfig(),
+    lag_steps: list[int] | None = None,
+    max_train_rows: int | None = 10_000,
+    seed_from_symbolic_run: str | None = None,
+    seed_max_seeds: int = 8,
+) -> dict[str, Any]:
+    import numpy as np
+    import pandas as pd
+
+    from pysr import PySRRegressor
+
+    from src.data.split import load_splits_from_parquet
+    from src.kan_sr.dataset import pick_feature_columns
+    from src.kan_sr.metrics import mae, r2, rmse
+
+    run_id = run_id or _utc_run_id()
+    run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
+    artifacts_dir = run_dir / "artifacts"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    processed_dir = Path(VOLUME_MOUNT) / "runs" / data_run_id / "processed"
+    train_df, val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=data_timestamp)
+
+    if max_train_rows is not None and len(train_df) > max_train_rows:
+        train_df = train_df.sample(n=max_train_rows, random_state=1).sort_index()
+        logger.info(f"Downsampled train_df to {max_train_rows} sampled rows for PySR speed")
+
+    lag_steps = lag_steps or [1, 12, 48]
+    feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
+
+    # If seeded cross-validation is requested, align to the symbolic run feature set.
+    seed_features_meta: dict[str, Any] | None = None
+    if seed_from_symbolic_run:
+        sym_run = Path(VOLUME_MOUNT) / "runs" / seed_from_symbolic_run
+        sym_payload_path = sym_run / "payload.json"
+        if not sym_payload_path.exists():
+            raise FileNotFoundError(f"symbolic payload not found: {sym_payload_path}")
+        sym_payload = json.loads(sym_payload_path.read_text())
+        sym_feature_cols = sym_payload.get("feature_cols")
+        if not sym_feature_cols:
+            raise ValueError("symbolic payload missing feature_cols")
+        missing = [c for c in sym_feature_cols if c not in train_df.columns]
+        if missing:
+            raise ValueError(f"symbolic feature cols missing from dataset: {missing[:10]}")
+        feature_cols = list(sym_feature_cols)
+
+    # Optionally invert the Phase-1 z-score normalization so PySR learns in original units.
+    if cfg.use_original_features:
+        from src.data.split import inverse_transform
+
+        scaler_params_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+        scaler_params = json.loads(scaler_params_path.read_text())
+        x_train_df = inverse_transform(train_df[feature_cols], scaler_params)
+        x_test_df = inverse_transform(test_df[feature_cols], scaler_params)
+    else:
+        x_train_df = train_df[feature_cols]
+        x_test_df = test_df[feature_cols]
+
+    X_train = x_train_df.to_numpy(dtype=np.float64)
+    y_train = train_df[cfg.target_col].to_numpy(dtype=np.float64)
+
+    X_test = x_test_df.to_numpy(dtype=np.float64)
+    y_test = test_df[cfg.target_col].to_numpy(dtype=np.float64)
+
+    # KAN-seeded cross-validation: append seed sub-expression values as extra input columns.
+    if seed_from_symbolic_run:
+        from src.eval.seed_features import compute_seed_matrix, extract_seed_features
+
+        expr_str = (Path(VOLUME_MOUNT) / "runs" / seed_from_symbolic_run / "artifacts" / "formula.sympy.txt").read_text()
+        import sympy as sp
+
+        locals_map = {name: sp.Symbol(name) for name in feature_cols}
+        expr = sp.sympify(expr_str, locals=locals_map)
+        seeds = extract_seed_features(expr, max_seeds=seed_max_seeds)
+
+        seed_train, seed_names, kept = compute_seed_matrix(seeds, feature_cols=feature_cols, x_df=x_train_df)
+        seed_test, _seed_names2, _kept2 = compute_seed_matrix(kept, feature_cols=feature_cols, x_df=x_test_df)
+
+        if seed_train.shape[1] > 0:
+            # Stabilize the Julia backend by keeping seed feature scales reasonable.
+            # We robust-clip and z-score using *train* statistics, then apply to test.
+            clip_lo = np.quantile(seed_train, 0.005, axis=0)
+            clip_hi = np.quantile(seed_train, 0.995, axis=0)
+            seed_train = np.clip(seed_train, clip_lo, clip_hi)
+            seed_test = np.clip(seed_test, clip_lo, clip_hi)
+
+            seed_mean = seed_train.mean(axis=0)
+            seed_std = seed_train.std(axis=0)
+            seed_std = np.where(seed_std > 0, seed_std, 1.0)
+            seed_train = (seed_train - seed_mean) / seed_std
+            seed_test = (seed_test - seed_mean) / seed_std
+
+            X_train = np.concatenate([X_train, seed_train], axis=1)
+            X_test = np.concatenate([X_test, seed_test], axis=1)
+            feature_cols = list(feature_cols) + list(seed_names)
+            seed_features_meta = {
+                "seed_from_symbolic_run": seed_from_symbolic_run,
+                "seed_max_seeds": int(seed_max_seeds),
+                "seeds": [s.as_dict() for s in kept],
+                "scaler": {
+                    "clip_quantiles": [0.005, 0.995],
+                    "clip_lo": clip_lo.tolist(),
+                    "clip_hi": clip_hi.tolist(),
+                    "mean": seed_mean.tolist(),
+                    "std": seed_std.tolist(),
+                },
+            }
+
+    payload = {
+        "run_id": run_id,
+        "phase": "04-baselines-pysr",
+        "data_run_id": data_run_id,
+        "data_timestamp": data_timestamp,
+        "cfg": asdict(cfg),
+        "feature_cols": feature_cols,
+        "lag_steps": list(lag_steps),
+        "seed_from_symbolic_run": seed_from_symbolic_run,
+        "seed_features_meta": seed_features_meta,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _write_json(run_dir / "payload.json", payload)
+    volume.commit()
+
+    # Configure PySR for interpretable equations.
+    #
+    # NOTE: We must avoid Julia segfaults in constant optimization, which are more likely
+    # when feeding raw-scale + derived seed features. For seeded runs, we disable constant
+    # optimization (and we also disable Julia multithreading) for stability.
+    import inspect
+
+    # Use a smaller/safer operator set for seeded runs to reduce segfault risk
+    # (division and exp can easily produce huge/NaN values when combined with derived features).
+    binary_ops = ["+", "-", "*", "/"]
+    unary_ops = ["sin", "cos", "exp"]
+    populations = cfg.populations
+    population_size = cfg.population_size
+    maxsize = cfg.maxsize
+    if seed_from_symbolic_run:
+        binary_ops = ["+", "-", "*"]
+        unary_ops = ["sin", "cos"]
+        populations = min(populations, 4)
+        population_size = min(population_size, 30)
+        maxsize = min(maxsize, 15)
+
+    model_kwargs: dict[str, Any] = {
+        "niterations": cfg.niterations,
+        "populations": populations,
+        "population_size": population_size,
+        "maxsize": maxsize,
+        "binary_operators": binary_ops,
+        "unary_operators": unary_ops,
+        "model_selection": "best",
+        "warm_start": cfg.warm_start,
+        # Use a stable, standard elementwise loss (MSE).
+        "elementwise_loss": "L2DistLoss()",
+        # Reduce crash risk in constrained environments.
+        "parallelism": "serial",
+        "procs": 1,
+        "batching": True,
+        "batch_size": 256,
+        # Reduce verbosity in Modal logs.
+        "progress": True,
+    }
+
+    sig = inspect.signature(PySRRegressor)
+    if "multithreading" in sig.parameters:
+        model_kwargs["multithreading"] = False
+    if "deterministic" in sig.parameters:
+        model_kwargs["deterministic"] = True
+    if "random_state" in sig.parameters:
+        model_kwargs["random_state"] = 1
+    if seed_from_symbolic_run:
+        # Extra guardrails against Julia crashes during constant optimization.
+        if "should_optimize_constants" in sig.parameters:
+            model_kwargs["should_optimize_constants"] = False
+        if "optimize_probability" in sig.parameters:
+            model_kwargs["optimize_probability"] = 0.0
+        if "optimizer_iterations" in sig.parameters:
+            model_kwargs["optimizer_iterations"] = 0
+        if "optimizer_nrestarts" in sig.parameters:
+            model_kwargs["optimizer_nrestarts"] = 0
+
+    model = PySRRegressor(**model_kwargs)
+
+    model.fit(X_train, y_train, variable_names=feature_cols)
+
+    # Save equations table
+    import sympy as sp
+
+    eq_df = model.equations_.copy()
+
+    # Add test metrics per equation when sympy representation is available.
+    sym_col = "sympy_format" if "sympy_format" in eq_df.columns else ("equation" if "equation" in eq_df.columns else None)
+    if sym_col is not None:
+        locals_map = {name: sp.Symbol(name) for name in feature_cols}
+        test_rmse = []
+        test_mae = []
+        test_r2 = []
+        for s in eq_df[sym_col].astype(str).tolist():
+            try:
+                expr = sp.sympify(s, locals=locals_map)
+                f = sp.lambdify(feature_cols, expr, modules="numpy")
+                args = [X_test[:, i] for i in range(X_test.shape[1])]
+                pred = f(*args)
+                pred = np.asarray(pred, dtype=np.float64).reshape(-1)
+                if pred.shape[0] == 1 and y_test.shape[0] > 1:
+                    pred = np.full_like(y_test, float(pred[0]), dtype=np.float64)
+                test_rmse.append(rmse(y_test, pred))
+                test_mae.append(mae(y_test, pred))
+                test_r2.append(r2(y_test, pred))
+            except Exception:  # noqa: BLE001
+                test_rmse.append(float("nan"))
+                test_mae.append(float("nan"))
+                test_r2.append(float("nan"))
+
+        eq_df["test_rmse"] = test_rmse
+        eq_df["test_mae"] = test_mae
+        eq_df["test_r2"] = test_r2
+
+    eq_path = artifacts_dir / "equations.csv"
+    eq_df.to_csv(eq_path, index=False)
+
+    if seed_features_meta is not None:
+        _write_json(artifacts_dir / "seed_features.json", seed_features_meta)
+
+    # Pick best equation and evaluate on test
+    y_pred = model.predict(X_test)
+    eval_test = {"rmse": rmse(y_test, y_pred), "mae": mae(y_test, y_pred), "r2": r2(y_test, y_pred)}
+    _write_json(artifacts_dir / "eval_test.json", eval_test)
+
+    # Save test predictions for downstream evaluation/plots
+    # Hard constraint (PIKAN): nighttime PV must be 0 (for solar target).
+    if cfg.target_col == "solar" and "is_night" in test_df.columns:
+        try:
+            from src.data.split import inverse_transform
+
+            scaler_params = json.loads(
+                (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
+            )
+            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+            y_pred = y_pred.copy()
+            y_pred[is_night_orig > 0.5] = 0.0
+        except Exception:  # noqa: BLE001
+            pass
+
+    pred_df = pd.DataFrame({"y_true": y_test, "y_pred": y_pred, "residual": y_pred - y_test}, index=test_df.index)
+    pred_df.to_parquet(artifacts_dir / "predictions_test.parquet", compression="snappy")
+
+    # Save best equation string (human-friendly)
+    try:
+        best = model.get_best()
+        (artifacts_dir / "best_equation.txt").write_text(str(best))
+    except Exception as e:  # noqa: BLE001
+        (artifacts_dir / "best_equation.txt").write_text(f"Failed to get best equation: {e}")
+
+    payload["completed_at"] = datetime.now(timezone.utc).isoformat()
+    payload["eval_test"] = eval_test
+    _write_json(run_dir / "payload.json", payload)
+    volume.commit()
+
+    return {"run_id": run_id, "status": "completed", "eval_test": eval_test, "artifacts_dir": str(artifacts_dir)}
+
+
+@app.local_entrypoint()
+def main(
+    data_run_id: str,
+    target: str = "load",
+    niterations: int = 200,
+    seed_from_symbolic_run: str = "",
+) -> None:
+    cfg = PySRConfig(target_col=target, niterations=niterations)
+    seed = seed_from_symbolic_run.strip() or None
+    result = run_pysr.remote(data_run_id, cfg=cfg, seed_from_symbolic_run=seed)
+    print(json.dumps(result, indent=2))
