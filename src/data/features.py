@@ -284,6 +284,11 @@ def get_feature_groups() -> dict[str, list[str]]:
             "wind_speed_10m_m_s",
             "surface_pressure_hpa",
             "ghi_w_m2",
+            # Physics-oriented engineered proxies (optional; may be absent depending on pipeline)
+            "wind_speed_10m_m_s_cubed",
+            "ghi_day_w_m2",
+            "cdd_18c",
+            "hdd_18c",
         ],
         "lag_pattern": r".*_lag_\d+$",  # Regex pattern for matching lag columns
     }

@@ -87,7 +87,9 @@ def main() -> None:
 
     # Per-run seasonal breakdown (if predictions_test.parquet exists)
     for run_path in [Path(p) for p in args.run]:
-        pred_path = run_path / "artifacts" / "predictions_test.parquet"
+        pred_path = run_path / "artifacts" / "predictions_test_reconstructed.parquet"
+        if not pred_path.exists():
+            pred_path = run_path / "artifacts" / "predictions_test.parquet"
         if not pred_path.exists():
             continue
         try:

@@ -38,7 +38,29 @@ class TestPhysicsMapping(unittest.TestCase):
         summ = checks["wind_speed_monotone_increasing"]["details"]["derivative_summary"]
         self.assertAlmostEqual(float(summ["pct_negative"]), 0.0, places=12)
 
+    def test_analyze_physics_net_load_decreasing(self) -> None:
+        from src.eval.physics_mapping import analyze_physics
+
+        v = sp.Symbol("wind_speed_10m_m_s")
+        g = sp.Symbol("ghi_w_m2")
+        # net_load should decrease as wind/GHI increase (proxy for more RE generation).
+        expr = -(v**3) - 2 * g
+
+        rng = np.random.default_rng(1)
+        df = pd.DataFrame(
+            {
+                "wind_speed_10m_m_s": rng.normal(size=800).astype(np.float64),
+                "ghi_w_m2": rng.normal(size=800).astype(np.float64),
+            }
+        )
+
+        rep = analyze_physics(expr, feature_cols=["wind_speed_10m_m_s", "ghi_w_m2"], x_df=df, target_col="net_load")
+        checks = {c["name"]: c for c in rep["checks"]}
+        self.assertIn("wind_proxy_monotone_decreasing", checks)
+        self.assertTrue(checks["wind_proxy_monotone_decreasing"]["passed"])
+        self.assertIn("ghi_proxy_monotone_decreasing", checks)
+        self.assertTrue(checks["ghi_proxy_monotone_decreasing"]["passed"])
+
 
 if __name__ == "__main__":
     unittest.main()
-

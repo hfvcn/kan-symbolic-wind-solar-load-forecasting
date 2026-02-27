@@ -21,6 +21,24 @@
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/data_pipeline.py --year 2018 --iso ERCOT
 ```
 
+## 派生数据集（Phase 1.5，可选但强烈推荐）
+
+5min 负荷预测里 `load_lag_1`（持久性/persistence）往往压倒性强，导致符号公式退化为“纯自回归”。为更贴合论文目标（让温度/GHI/风速等物理因子显式进入关系式），本项目提供派生数据集构建任务：
+
+- 定义：`net_load = load - wind - solar`（耦合负荷/净负荷）
+- 残差/变化量建模：`delta_load = load - load_lag_1`，`delta_net_load = net_load - net_load_lag_1`
+- 工程物理代理特征（自动归一化并写入 scaler_params）：
+  - `wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c`
+
+```bash
+# 从已有 Phase-1 data_run 派生出一个新 data_run（不重新下载原始数据）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/derive_dataset.py \
+  --source-data-run-id <data_run_id> \
+  --add-physics-proxies \
+  --net-load-lag-steps 1,12,48 \
+  --degree-base-c 18
+```
+
 ### Modal 功能自检（Smoke Test）
 
 ```bash
@@ -50,6 +68,12 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.p
 
 # Phase 3: 符号提取（输出 formula.sympy.txt / formula.tex / predictions_test.parquet）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id>
+```
+
+若训练/符号提取的目标是 `delta_load` / `delta_net_load`，可在本地将 test 预测重建回绝对序列（便于论文图表对比）：
+
+```bash
+python3 /Users/vfch/Documents/project/graduation-design/scripts/reconstruct_predictions.py --run runs/<run_id>
 ```
 
 同步到本地后（`runs/<id>`），可生成论文图表：
@@ -93,6 +117,7 @@ python3 /Users/vfch/Documents/project/graduation-design/scripts/build_asset_inde
 
 1) 打开脚本顶部 `CONFIG` 区域，集中修改：
 - 数据 run_id（或是否重跑 Phase 1）
+- （可选）是否先跑 Phase 1.5 派生数据集（`RUN_DERIVED_DATASET`）
 - KAN 训练 sweep（超参数 / 特征选择）
 - KAN 符号提取 sweep（r2_threshold / lib / sample_rows 等）
 - 是否跑 baselines / 是否自动生成论文图表与索引

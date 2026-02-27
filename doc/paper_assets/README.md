@@ -30,8 +30,12 @@
 建议工作流：
 
 1. 在 Modal 上跑完实验（KAN 训练 / 符号提取 / PySR / baselines）
+   - 可选：先跑 Phase 1.5 派生数据集（`net_load` / `delta_load` / `delta_net_load` + 物理代理特征）：
+     - `modal run modal_jobs/derive_dataset.py --source-data-run-id <data_run_id> --add-physics-proxies`
 2. 使用 `scripts/sync_from_modal.sh latest` 或指定 `run_id` 同步到本地 `runs/`
-3. 运行评估与绘图脚本，将产物输出到本目录：
+3. 若目标为 `delta_*`，先重建为绝对序列（用于论文图表与对比表口径）：
+   - `python3 scripts/reconstruct_predictions.py --run runs/<id>`
+4. 运行评估与绘图脚本，将产物输出到本目录：
    - `python3 scripts/evaluate_runs.py --run runs/<id1> --run runs/<id2> ...`
    - `python3 scripts/plot_pareto_frontier.py --pysr-run runs/<pysr_id> --kan-symbolic-run runs/<sym_id>`
    - `python3 scripts/make_thesis_figures.py --run runs/<id>`

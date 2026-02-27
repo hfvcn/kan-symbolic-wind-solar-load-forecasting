@@ -32,6 +32,54 @@ class TestRunSummarizerInference(unittest.TestCase):
             self.assertEqual(s.kind, "kan")
             self.assertAlmostEqual(float(s.rmse or 0.0), 1.0, places=6)
 
+    def test_prefers_reconstructed_predictions_when_present(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "delta_run"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "delta_run", "phase": "02-kan-training", "kind": "kan", "cfg": {"target_col": "delta_load"}}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            # Baseline file (worse)
+            pd.DataFrame({"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 0.0, 0.0], "residual": [0.0, -1.0, -2.0]}).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+            # Reconstructed file (perfect)
+            pd.DataFrame({"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 1.0, 2.0], "residual": [0.0, 0.0, 0.0]}).to_parquet(
+                artifacts / "predictions_test_reconstructed.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertIsNotNone(s.rmse)
+            self.assertAlmostEqual(float(s.rmse), 0.0, places=12)
+
+    def test_skill_score_vs_persistence(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "kan_train"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "kan_train", "phase": "02-kan-training", "kind": "kan"}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            pd.DataFrame(
+                {"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 1.0, 2.0], "residual": [0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertAlmostEqual(float(s.rmse_persistence or 0.0), 1.0, places=12)
+            self.assertAlmostEqual(float(s.skill_score or 0.0), 1.0, places=12)
+
     def test_symbolic_phase_inferred_when_payload_phase_is_null(self) -> None:
         from src.eval.runs import summarize_run
 

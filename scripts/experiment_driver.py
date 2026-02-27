@@ -54,6 +54,16 @@ DATA_PIPELINE = {
     "force": False,
 }
 
+# Optional: build a derived dataset run from an existing Phase-1 run.
+# This enables residual/delta modeling and net-load experiments without re-running
+# the full raw-data pipeline.
+RUN_DERIVED_DATASET = False
+DERIVED_DATASET = {
+    "degree_base_c": 18.0,
+    "net_load_lag_steps": "1,12,48",
+    "add_physics_proxies": True,
+}
+
 # Use existing KAN-train runs (skips training stage).
 EXISTING_KAN_TRAIN_RUN_IDS: list[str] = [
     # Best preliminary run (ablation no_l1) — good test RMSE, but symbolic not yet re-tried.
@@ -283,7 +293,9 @@ def sync_run(run_id: str, *, dry_run: bool) -> CmdResult:
 
 
 def _compute_test_metrics(run_dir: Path) -> dict[str, float] | None:
-    pred_path = run_dir / "artifacts" / "predictions_test.parquet"
+    pred_path = run_dir / "artifacts" / "predictions_test_reconstructed.parquet"
+    if not pred_path.exists():
+        pred_path = run_dir / "artifacts" / "predictions_test.parquet"
     if not pred_path.exists():
         return None
     try:
@@ -343,6 +355,7 @@ def main() -> None:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "volume_name": VOLUME_NAME,
         "dry_run": dry_run,
+        "source_data_run_id": DATA_RUN_ID,
         "data_run_id": DATA_RUN_ID,
         "runs": [],
         "local_outputs": {"out_dir": str(LOCAL_OUT_DIR)},
@@ -391,6 +404,39 @@ def main() -> None:
             log_md(f"- data_run_id: `{data_run_id}`")
         else:
             manifest["errors"].append({"stage": "data_pipeline", "returncode": res.returncode})
+
+    # Phase 1.5: derived dataset (optional)
+    if RUN_DERIVED_DATASET and ("data" in selected_phases):
+        log_md("")
+        log_md("## Phase 1.5: Derived dataset (delta/net-load + engineered features)")
+        job = REPO_ROOT / "modal_jobs" / "derive_dataset.py"
+        cmd_args = [
+            "--source-data-run-id",
+            str(data_run_id),
+            "--degree-base-c",
+            str(DERIVED_DATASET.get("degree_base_c", 18.0)),
+            "--net-load-lag-steps",
+            str(DERIVED_DATASET.get("net_load_lag_steps", "1,12,48")),
+        ]
+        if bool(DERIVED_DATASET.get("add_physics_proxies", True)):
+            cmd_args += ["--add-physics-proxies"]
+        else:
+            cmd_args += ["--no-add-physics-proxies"]
+
+        res, payload = modal_run(job, cmd_args, dry_run=dry_run)
+        if payload and payload.get("run_id"):
+            derived_id = str(payload["run_id"])
+            manifest["derived_data_run_id"] = derived_id
+            manifest["source_data_run_id"] = str(data_run_id)
+            data_run_id = derived_id
+            manifest["data_run_id"] = data_run_id
+            log_md(f"- derived_data_run_id: `{data_run_id}` (from `{manifest['source_data_run_id']}`)")
+            if auto_sync:
+                sync_res = sync_run(data_run_id, dry_run=dry_run)
+                if sync_res.returncode != 0:
+                    manifest["errors"].append({"stage": "sync", "run_id": data_run_id, "returncode": sync_res.returncode})
+        else:
+            manifest["errors"].append({"stage": "derive_dataset", "returncode": res.returncode})
 
     # Select KAN train run ids: existing + newly trained
     selected_kan_train_run_ids: list[str] = list(EXISTING_KAN_TRAIN_RUN_IDS)
@@ -612,6 +658,13 @@ def main() -> None:
             p = REPO_ROOT / "runs" / rid
             if p.exists():
                 run_dirs.append(p)
+
+        # Post-process delta runs (reconstruct absolute series) so evaluation/figures are paper-friendly.
+        if len(run_dirs) > 0:
+            args_recon: list[str] = []
+            for p in run_dirs:
+                args_recon += ["--run", str(p)]
+            run_local(REPO_ROOT / "scripts" / "reconstruct_predictions.py", args_recon, dry_run=dry_run)
 
         # Best-effort: attach physics mapping + sensitivity to each symbolic run.
         for rid in selected_symbolic_run_ids:

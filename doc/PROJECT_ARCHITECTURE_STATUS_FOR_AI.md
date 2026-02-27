@@ -5,8 +5,19 @@
 > 2) 当前实验结论与瓶颈（为什么“可解释性”和“性能”很难兼得）  
 > 3) 在尽量贴合论文要求的前提下，下一步应如何改进（需要它提出可执行方案）
 
-更新时间：2026-02-26  
+更新时间：2026-02-27  
 项目路径（仅供本地开发者定位）：`/Users/vfch/Documents/project/graduation-design`
+
+## 0.1 重要更新（2026-02-27）
+
+为更贴合论文目标（在不靠平凡滞后解的情况下，让公式显式包含温度/GHI/风速等关键因素），系统新增了一个“Phase 1.5 派生数据集”能力：
+
+- 新增 Modal 任务：`modal_jobs/derive_dataset.py`
+  - 从既有 Phase 1 data_run 派生出新 data_run（无需重新下载原始数据）
+  - 新增 targets：`net_load`、`delta_load`、`delta_net_load`
+  - 新增工程物理代理特征（自动归一化并扩展 scaler_params）：`wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c`
+  - 新增 `net_load_lag_{k}`（默认 k∈{1,12,48}）用于 net-load 持久性/残差建模
+- 本地评估新增“持久性基线 + skill score”口径，并支持 `delta_*` 目标自动重建为绝对序列用于论文图表。
 
 ---
 
@@ -344,4 +355,3 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 论文资产重生成：
 - 参考 `doc/paper_assets/README.md`
-

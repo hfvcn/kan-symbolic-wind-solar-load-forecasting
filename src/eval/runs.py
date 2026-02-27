@@ -27,9 +27,12 @@ class RunSummary:
     run_id: str
     phase: str
     kind: str
+    target_col: str | None
     rmse: float | None
     mae: float | None
     r2: float | None
+    rmse_persistence: float | None
+    skill_score: float | None
     complexity: float | None
     complexity_name: str | None
     physical_score: float | None
@@ -42,9 +45,12 @@ class RunSummary:
             "run_id": self.run_id,
             "phase": self.phase,
             "kind": self.kind,
+            "target_col": self.target_col,
             "rmse": self.rmse,
             "mae": self.mae,
             "r2": self.r2,
+            "rmse_persistence": self.rmse_persistence,
+            "skill_score": self.skill_score,
             "complexity": self.complexity,
             "complexity_name": self.complexity_name,
             "physical_score": self.physical_score,
@@ -52,6 +58,62 @@ class RunSummary:
             "compute_time_s": self.compute_time_s,
             "path": str(self.path),
         }
+
+
+def _infer_target_col(payload: dict[str, Any]) -> str | None:
+    if payload.get("target_col"):
+        return str(payload.get("target_col"))
+    cfg = payload.get("cfg")
+    if isinstance(cfg, dict) and cfg.get("target_col"):
+        return str(cfg.get("target_col"))
+    return None
+
+
+def _pick_predictions_path(artifacts_dir: Path) -> Path | None:
+    for name in ["predictions_test_reconstructed.parquet", "predictions_test.parquet"]:
+        p = artifacts_dir / name
+        if p.exists():
+            return p
+    return None
+
+
+def _metrics_from_predictions(pred_df: pd.DataFrame) -> dict[str, float] | None:
+    import numpy as np
+
+    from src.kan_sr.metrics import mae as mae_fn
+    from src.kan_sr.metrics import r2 as r2_fn
+    from src.kan_sr.metrics import rmse as rmse_fn
+
+    if "y_true" not in pred_df.columns or "y_pred" not in pred_df.columns:
+        return None
+
+    df = pred_df.copy()
+    df["y_base"] = df["y_true"].shift(1)
+    y_true = df["y_true"].to_numpy(dtype="float64")
+    y_pred = df["y_pred"].to_numpy(dtype="float64")
+    y_base = df["y_base"].to_numpy(dtype="float64")
+
+    mask = np.isfinite(y_true) & np.isfinite(y_pred) & np.isfinite(y_base)
+    if int(np.sum(mask)) == 0:
+        return None
+
+    yt = y_true[mask]
+    yp = y_pred[mask]
+    yb = y_base[mask]
+
+    rm = float(rmse_fn(yt, yp))
+    rb = float(rmse_fn(yt, yb))
+    skill = None
+    if rb > 0 and np.isfinite(rb):
+        skill = float(1.0 - (rm / rb))
+
+    return {
+        "rmse": rm,
+        "mae": float(mae_fn(yt, yp)),
+        "r2": float(r2_fn(yt, yp)),
+        "rmse_persistence": rb,
+        "skill_score": skill,
+    }
 
 
 def summarize_run(run_dir: str | Path) -> RunSummary:
@@ -73,30 +135,30 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
     artifacts = run_dir / "artifacts"
     kind = "unknown"
     rmse = mae = r2 = None
+    rmse_persistence = None
+    skill_score = None
     complexity = None
     complexity_name = None
     physical_score = None
     param_count = payload.get("model_param_count")
+    target_col = _infer_target_col(payload)
 
     # Phase 2 KAN training
     if phase == "02-kan-training":
         kind = payload.get("kind", "kan")
-        pred_path = artifacts / "predictions_test.parquet"
+        pred_path = _pick_predictions_path(artifacts)
         eval_path = artifacts / "eval_pruned.json"
         sparsity_path = artifacts / "sparsity.json"
-        if pred_path.exists():
+        if pred_path is not None:
             try:
-                from src.kan_sr.metrics import mae as mae_fn
-                from src.kan_sr.metrics import r2 as r2_fn
-                from src.kan_sr.metrics import rmse as rmse_fn
-
-                pred_df = pd.read_parquet(pred_path).dropna(subset=["y_true", "y_pred"])
-                if len(pred_df) > 0:
-                    y_true = pred_df["y_true"].to_numpy(dtype="float64")
-                    y_pred = pred_df["y_pred"].to_numpy(dtype="float64")
-                    rmse = float(rmse_fn(y_true, y_pred))
-                    mae = float(mae_fn(y_true, y_pred))
-                    r2 = float(r2_fn(y_true, y_pred))
+                pred_df = pd.read_parquet(pred_path)
+                m = _metrics_from_predictions(pred_df)
+                if m is not None:
+                    rmse = float(m["rmse"])
+                    mae = float(m["mae"])
+                    r2 = float(m["r2"])
+                    rmse_persistence = float(m["rmse_persistence"])
+                    skill_score = float(m["skill_score"]) if m.get("skill_score") is not None else None
             except Exception:
                 pass
         if rmse is None and eval_path.exists():
@@ -112,8 +174,22 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
         if phase == "unknown":
             phase = "03-symbolic-extraction"
         kind = "kan_symbolic"
-        m = _read_json(artifacts / "formula_eval_test.json")
-        rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
+        pred_path = _pick_predictions_path(artifacts)
+        if pred_path is not None:
+            try:
+                pred_df = pd.read_parquet(pred_path)
+                m = _metrics_from_predictions(pred_df)
+                if m is not None:
+                    rmse = float(m["rmse"])
+                    mae = float(m["mae"])
+                    r2 = float(m["r2"])
+                    rmse_persistence = float(m["rmse_persistence"])
+                    skill_score = float(m["skill_score"]) if m.get("skill_score") is not None else None
+            except Exception:
+                pass
+        if rmse is None:
+            m = _read_json(artifacts / "formula_eval_test.json")
+            rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
         cpath = artifacts / "formula_metrics.json"
         if cpath.exists():
             c = _read_json(cpath)
@@ -132,6 +208,16 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
         if eval_path.exists():
             m = _read_json(eval_path)
             rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
+        pred_path = _pick_predictions_path(artifacts)
+        if pred_path is not None:
+            try:
+                pred_df = pd.read_parquet(pred_path)
+                mm = _metrics_from_predictions(pred_df)
+                if mm is not None:
+                    rmse_persistence = float(mm["rmse_persistence"])
+                    skill_score = float(mm["skill_score"]) if mm.get("skill_score") is not None else None
+            except Exception:
+                pass
         if param_count is not None:
             complexity = float(param_count)
             complexity_name = "param_count"
@@ -143,6 +229,16 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
         if eval_path.exists():
             m = _read_json(eval_path)
             rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
+        pred_path = _pick_predictions_path(artifacts)
+        if pred_path is not None:
+            try:
+                pred_df = pd.read_parquet(pred_path)
+                mm = _metrics_from_predictions(pred_df)
+                if mm is not None:
+                    rmse_persistence = float(mm["rmse_persistence"])
+                    skill_score = float(mm["skill_score"]) if mm.get("skill_score") is not None else None
+            except Exception:
+                pass
         eq_path = artifacts / "equations.csv"
         if eq_path.exists():
             df = pd.read_csv(eq_path)
@@ -166,9 +262,12 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
         run_id=str(run_id),
         phase=str(phase),
         kind=str(kind),
+        target_col=target_col,
         rmse=rmse,
         mae=mae,
         r2=r2,
+        rmse_persistence=rmse_persistence,
+        skill_score=skill_score,
         complexity=complexity,
         complexity_name=complexity_name,
         physical_score=physical_score,
