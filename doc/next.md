@@ -1,76 +1,22 @@
-修改配置（只改这一个文件）：experiment_driver.py
-把顶部 CONFIG 区域改成下面这样（直接覆盖对应变量即可）：
+目前结果作为“预测模型”是可用且合理的；但如果按论文目标（“可解释数学模型 + 关键物理因素进入关系式”）来衡量，还不算完成，仍需要继续优化。
 
-DATA_RUN_ID = "2026-02-26_032058_1957fda1"
-RUN_DATA_PIPELINE = False
+可用性（精度层面）：新 KAN 已经显著超过持久性基线（这在 5min 预测里才算“真正学到了增量信息”）
 
-RUN_DERIVED_DATASET = True
-DERIVED_DATASET = {
-    "degree_base_c": 18.0,
-    "net_load_lag_steps": "1,12,24,48",
-    "add_physics_proxies": True,
-}
+delta_load→load：RMSE 82.85 vs persistence 130.48，skill 0.365（doc/paper_assets/comparison_table_all_runs.csv:1）
+delta_net_load→net_load：RMSE 329.37 vs persistence 494.18，skill 0.333（doc/paper_assets/comparison_table_all_runs.csv:1）
+之前最强 baseline（PySR）RMSE 127.60、skill 0.022（doc/paper_assets/comparison_table_all_runs.csv:1）——所以“修改后 KAN 的准确率”确实提升很多。
+合理性（是不是“虚高/不可信”）：
 
-EXISTING_KAN_TRAIN_RUN_IDS = []
+你看到的 R²≈0.999x 主要来自 负荷绝对值方差很大（std≈4624，而 RMSE≈83），所以 R² 天然接近 1；更有区分度的是 skill 对 persistence 的提升。
+delta 方式重建不会“白送精度”：重建后误差 = delta_pred - delta_true，RMSE 本质仍是对变化量预测误差（见重建指标文件：runs/2026-02-27_130143_635744ad/artifacts/eval_test_reconstructed.json:1、runs/2026-02-27_163309_0420c80c/artifacts/eval_test_reconstructed.json:1）。
+你担心的“不公平（耗时差异）”确实存在：新 KAN 这两次训练预算明显更大
 
-KAN_TRAIN_SWEEP = [
-    {
-        "name": "kan_delta_load_slow_lags",
-        "target": "delta_load",
-        "use_gpu": False,
-        "hidden_width": 10,
-        "hidden_mult": 0,
-        "mult_arity": 2,
-        "warmup_steps": 400,
-        "sparsify_steps": 1600,
-        "refine_steps": 400,
-        "sparsify_lamb": 0.005,
-        "sparsify_lamb_l1": 0.5,
-        "sparsify_lamb_entropy": 1.0,
-        "max_train_rows": 0,
-        "include_base": False,
-        "include_groups": "meteorology,solar,cyclic",
-        "lag_series": "load",
-        "lag_steps": "12,24,48",
-    },
-    {
-        "name": "kan_delta_net_load_physics",
-        "target": "delta_net_load",
-        "use_gpu": False,
-        "hidden_width": 10,
-        "hidden_mult": 0,
-        "mult_arity": 2,
-        "warmup_steps": 400,
-        "sparsify_steps": 1600,
-        "refine_steps": 400,
-        "sparsify_lamb": 0.005,
-        "sparsify_lamb_l1": 0.5,
-        "sparsify_lamb_entropy": 1.0,
-        "max_train_rows": 0,
-        "include_base": False,
-        "include_groups": "meteorology,solar,cyclic",
-        "lag_series": "net_load",
-        "lag_steps": "12,24,48",
-    },
-]
+新 KAN：约 3.4–3.5 小时/次（compute_time_s≈12282–12657）（doc/paper_assets/comparison_table_all_runs.csv:1）
+旧 KAN / baselines：多为 几十秒到几分钟（同表）
+同时新 KAN 的配置也不同：steps 从旧的 90/250 提到 2400，正则也更弱（例如 lamb/l1/entropy=0.005/0.5/1.0），所以“提升”是 任务改造（delta/net）+ 训练预算增大 + 正则设置变化共同作用，不是纯粹同预算下的模型对比。
+是否还需要继续优化（论文目标层面）：需要。因为现在只是 Phase-2 训练结果，还没有产出“可解释数学模型”的关键交付物，而且关键因素覆盖还不够
 
-KAN_SYMBOLIC_SWEEP = [
-    {"name": "sym_r2_0.92_interp", "r2_threshold": 0.92, "weight_simple": 0.9, "fix_below_threshold_to_zero": False, "sample_rows": 20000, "lib": "x,x^2,x^3,sin,cos,abs"},
-    {"name": "sym_r2_0.88_interp", "r2_threshold": 0.88, "weight_simple": 0.85, "fix_below_threshold_to_zero": False, "sample_rows": 20000, "lib": "x,x^2,x^3,sin,cos,abs"},
-]
-
-RUN_TORCH_BASELINES = False
-RUN_PYSR_BASELINE = False
-RUN_LOCAL_EVAL = True
-BUILD_ASSET_INDEX = True
-接下来要运行的指令（按顺序执行）
-cd /Users/vfch/Documents/project/graduation-design
-
-python3 scripts/experiment_driver.py --dry-run --phases data,train,symbolic,local
-python3 scripts/experiment_driver.py --execute --phases data,train,symbolic,local
-跑完后看结果（不需要再手工跑评估，driver 已自动做）
-表格：comparison_table.csv（重点看 rmse_persistence、skill_score）
-索引：ASSET_INDEX.md
-（如果后续不想每次都重新派生数据集：把 RUN_DERIVED_DATASET=False，并把 DATA_RUN_ID 改成上一轮 manifest.json 里的 derived_data_run_id。）
-
+delta_load 这次的活跃特征几乎不含 wind/GHI（wind、GHI 相关 active_edges=0），更多是太阳几何/周期/少量温度与滞后（runs/2026-02-27_130143_635744ad/artifacts/feature_importance.csv:1）
+delta_net_load 里 GHI/HDD 有进入，但 wind 仍为 0（runs/2026-02-27_163309_0420c80c/artifacts/feature_importance.csv:1）
+所以就“发现风速、光照、温度、历史负荷的内在数学关系”而言：精度达标了，但“可解释公式 + 关键因素显式出现/可验证”的部分还没达标。
 
