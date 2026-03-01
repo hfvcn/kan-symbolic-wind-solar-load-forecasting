@@ -61,6 +61,7 @@ def train_mlp_regressor(
     batch_size: int = 512,
     epochs: int = 50,
     patience: int = 8,
+    log_every: int = 50,
 ) -> TorchTrainResult:
     scaler = fit_target_scaler(y_train).as_dict()
     y_train_s = (y_train - scaler["mean"]) / scaler["std"]
@@ -82,6 +83,10 @@ def train_mlp_regressor(
     best_state = None
     best_val = math.inf
     bad = 0
+    early_stop = int(patience) > 0
+    log_every_s = int(log_every)
+    if log_every_s <= 0:
+        raise ValueError("log_every must be positive")
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -97,6 +102,16 @@ def train_mlp_regressor(
             losses.append(float(loss.detach().cpu().item()))
 
         val_metrics = _eval_model(model, x_val_t, y_val_t, scaler)
+        if epoch == 1 or epoch == epochs or (epoch % log_every_s == 0):
+            print(
+                (
+                    f"[torch_train] device={device} epoch={epoch}/{epochs} "
+                    f"train_loss={float(np.mean(losses)) if losses else float('nan'):.6g} "
+                    f"val_rmse={float(val_metrics['rmse']):.6g} "
+                    f"val_r2={float(val_metrics['r2']):.6g}"
+                ),
+                flush=True,
+            )
         _append_metrics_row(
             metrics_path,
             {
@@ -111,7 +126,7 @@ def train_mlp_regressor(
             best_val = float(val_metrics["rmse"])
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             bad = 0
-        else:
+        elif early_stop:
             bad += 1
             if bad >= patience:
                 break
@@ -142,4 +157,3 @@ def make_lstm_sequences(
         xs.append(x[t - seq_len + 1 : t + 1])
         ys.append(y[t])
     return np.stack(xs, axis=0), np.stack(ys, axis=0)
-

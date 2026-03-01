@@ -45,7 +45,8 @@ VOLUME_NAME = os.environ.get("VOLUME_NAME", "kan-sr")
 
 # If you already have a Phase-1 run synced locally, set it here. Otherwise set
 # RUN_DATA_PIPELINE=True to create one.
-DATA_RUN_ID = "2026-02-26_032058_1957fda1"
+# For Phase 1.5 derived dataset runs (net_load + delta targets), point to the derived run id.
+DATA_RUN_ID = "2026-02-27_111856_3d590023"
 RUN_DATA_PIPELINE = False
 DATA_PIPELINE = {
     "year": 2018,
@@ -66,8 +67,9 @@ DERIVED_DATASET = {
 
 # Use existing KAN-train runs (skips training stage).
 EXISTING_KAN_TRAIN_RUN_IDS: list[str] = [
-    # Best preliminary run (ablation no_l1) — good test RMSE, but symbolic not yet re-tried.
-    "2026-02-26_055200_958b3949",
+    # Strong delta targets (already synced locally under runs/).
+    "2026-02-27_130143_635744ad",
+    "2026-02-27_163309_0420c80c",
 ]
 
 # Optional: add NEW KAN training runs to sweep (each entry produces a new run_id).
@@ -75,81 +77,48 @@ EXISTING_KAN_TRAIN_RUN_IDS: list[str] = [
 #   - Set max_train_rows=0 to use full train split (no downsampling).
 #   - Set include_groups / lag_series / lag_steps to encourage interpretability.
 KAN_TRAIN_SWEEP: list[dict[str, Any]] = [
-    # "physics-first" (exogenous-only) run: remove autoregressive load lags to encourage
-    # temperature / irradiance / solar-geometry effects to appear in symbolic formulas.
-    # (Accuracy will likely drop, but interpretability/physics mapping may improve.)
-    {
-        "name": "kan_exogenous_only_cpu",
-        "target": "load",
-        "use_gpu": False,
-        "hidden_width": 10,
-        "hidden_mult": 0,
-        "mult_arity": 2,
-        "warmup_steps": 200,
-        "sparsify_steps": 800,
-        "refine_steps": 200,
-        "sparsify_lamb": 0.01,
-        "sparsify_lamb_l1": 1.0,
-        "sparsify_lamb_entropy": 2.0,
-        "max_train_rows": 0,  # 0 => full train split
-        "include_base": True,
-        "include_groups": "meteorology,solar,cyclic",
-        "lag_series": "none",
-        "lag_steps": "none",
-    },
-    # Example "final-ish" run (edit/enable when you want a longer training):
-    # {
-    #     "name": "kan_full_gpu",
-    #     "target": "load",
-    #     "use_gpu": True,
-    #     "hidden_width": 10,
-    #     "hidden_mult": 0,
-    #     "mult_arity": 2,
-    #     "warmup_steps": 200,
-    #     "sparsify_steps": 800,
-    #     "refine_steps": 200,
-    #     "sparsify_lamb": 0.01,
-    #     "sparsify_lamb_l1": 1.0,
-    #     "sparsify_lamb_entropy": 2.0,
-    #     "sparsify_lamb_coef": 0.0,
-    #     "sparsify_lamb_coefdiff": 0.0,
-    #     "max_train_rows": 0,  # 0 => full train split
-    #     "include_base": True,
-    #     "include_groups": "meteorology,solar,cyclic",
-    #     "lag_series": "load,wind,solar",
-    #     "lag_steps": "1,12,48",
-    # },
-    # (Old commented "physics-first" example moved above and enabled.)
+    # Intentionally empty for this GPU full-flow session: we reuse existing Phase-2 runs.
 ]
 
 # Symbolic extraction sweep for each selected KAN-train run.
 KAN_SYMBOLIC_SWEEP: list[dict[str, Any]] = [
     {
-        "name": "sym_r2_0.95_defaultlib",
-        "r2_threshold": 0.95,
+        "name": "sym_strict_r2_0.995",
+        "r2_threshold": 0.995,
         "weight_simple": 0.9,
         "fix_below_threshold_to_zero": False,
         "sample_rows": 20_000,
-        "lib": "default",
+        "lib": "x,x^2,x^3,sin,cos,abs",
+        "use_gpu": True,
     },
     {
-        "name": "sym_r2_0.90_no_exp_gaussian",
-        "r2_threshold": 0.90,
+        "name": "sym_medium_r2_0.995",
+        "r2_threshold": 0.995,
         "weight_simple": 0.85,
         "fix_below_threshold_to_zero": False,
         "sample_rows": 20_000,
-        "lib": "x,x^2,x^3,x^4,sin,cos,abs",
+        "lib": "x,x^2,x^3,sin,cos,abs,exp",
+        "use_gpu": True,
     },
 ]
 
 # Baselines (optional)
-RUN_TORCH_BASELINES = False
+RUN_TORCH_BASELINES = True
 TORCH_BASELINES = [
-    {"model_type": "mlp", "target": "load"},
-    {"model_type": "lstm", "target": "load"},
+    {
+        "model_type": "mlp",
+        "target": "load",
+        # Fairness knobs: avoid "KAN is special" by syncing features + training budget to the matched KAN run.
+        "match_kan": True,
+        "sync_kan_feature_cols": True,
+        "sync_kan_budget": True,
+        # Avoid early stopping so the baseline doesn't finish "too quickly" vs KAN.
+        "patience": 0,
+        # Optional: request a T4 container (model will use CUDA).
+        "use_gpu": True,
+    },
 ]
 RUN_PYSR_BASELINE = False
-PYSR_BASELINE = {"target": "load"}
 
 # Local evaluation / plots (best-effort)
 RUN_LOCAL_EVAL = True
@@ -212,19 +181,25 @@ def extract_last_json(text: str) -> Any:
     `data_pipeline.py` sync messages).
 
     This extracts the last JSON blob we can decode, preferring a dict that
-    looks like a run payload (has `run_id` or `status`).
+    looks like a run payload (preferring `run_id`, then falling back to `status`).
     """
     decoder = json.JSONDecoder()
     idxs = [i for i, ch in enumerate(text) if ch in "{["]
     last_any: Any | None = None
+    last_with_status: dict[str, Any] | None = None
     for i in reversed(idxs):
         try:
             obj, _end = decoder.raw_decode(text[i:])
         except Exception:
             continue
         last_any = obj
-        if isinstance(obj, dict) and ("run_id" in obj or "status" in obj):
-            return obj
+        if isinstance(obj, dict):
+            if "run_id" in obj:
+                return obj
+            if "status" in obj:
+                last_with_status = obj
+    if last_with_status is not None:
+        return last_with_status
     if last_any is not None:
         return last_any
     raise ValueError("Failed to locate JSON in command output")
@@ -557,6 +532,8 @@ def main() -> None:
                             cmd_args.append("--fix-below-threshold-to-zero")
                         if cfg.get("lib") is not None:
                             cmd_args += ["--lib", str(cfg.get("lib"))]
+                        if bool(cfg.get("use_gpu", False)):
+                            cmd_args.append("--use-gpu")
                         if detached_remote:
                             cmd_args += ["--run-id", det_run_id]
 
@@ -608,45 +585,168 @@ def main() -> None:
         log_md("")
         log_md("## Phase 4: Torch baselines")
         for b in TORCH_BASELINES:
-            try:
-                job = REPO_ROOT / "modal_jobs" / "baseline_torch.py"
-                cmd_args = [
-                    "--data-run-id",
-                    str(data_run_id),
-                    "--model-type",
-                    str(b["model_type"]),
-                    "--target",
-                    str(b.get("target", "load")),
-                ]
-                res, payload = modal_run(job, cmd_args, dry_run=dry_run)
-                run_id = str(payload["run_id"]) if payload and payload.get("run_id") else None
-                if run_id:
-                    selected_baseline_run_ids.append(run_id)
-                    manifest["runs"].append({"stage": "baseline_torch", "name": str(b["model_type"]), "run_id": run_id})
-                    log_md(f"- {b['model_type']} run_id: `{run_id}`")
-                    if auto_sync:
-                        sync_run(run_id, dry_run=dry_run)
-            except Exception as e:  # noqa: BLE001
-                manifest["errors"].append({"stage": "baseline_torch", "error": str(e)})
+            match_kan = bool(b.get("match_kan", False))
+            match_ids = selected_kan_train_run_ids if (match_kan and len(selected_kan_train_run_ids) > 0) else [None]
+            for match_id in match_ids:
+                try:
+                    inferred_ts = None
+                    inferred_target = None
+                    if match_id:
+                        # Align to the exact processed timestamp + target used by the KAN run (if synced locally).
+                        try:
+                            p = REPO_ROOT / "runs" / str(match_id) / "payload.json"
+                            if p.exists():
+                                meta = json.loads(p.read_text())
+                                inferred_ts = meta.get("data_timestamp")
+                                inferred_target = (meta.get("cfg") or {}).get("target_col")
+                        except Exception:
+                            inferred_ts = None
+                            inferred_target = None
+
+                    target_arg = str(inferred_target) if inferred_target else str(b.get("target", "load"))
+
+                    job = REPO_ROOT / "modal_jobs" / "baseline_torch.py"
+                    cmd_args = [
+                        "--data-run-id",
+                        str(data_run_id),
+                        "--model-type",
+                        str(b["model_type"]),
+                        "--target",
+                        target_arg,
+                    ]
+
+                    # Optional training knobs
+                    if b.get("epochs") is not None:
+                        cmd_args += ["--epochs", str(int(b["epochs"]))]
+                    if b.get("seq_len") is not None:
+                        cmd_args += ["--seq-len", str(int(b["seq_len"]))]
+                    if b.get("lr") is not None:
+                        cmd_args += ["--lr", str(float(b["lr"]))]
+                    if b.get("batch_size") is not None:
+                        cmd_args += ["--batch-size", str(int(b["batch_size"]))]
+                    if b.get("lstm_batch_size") is not None:
+                        cmd_args += ["--lstm-batch-size", str(int(b["lstm_batch_size"]))]
+                    if b.get("patience") is not None:
+                        cmd_args += ["--patience", str(int(b["patience"]))]
+                    if b.get("max_train_rows") is not None:
+                        cmd_args += ["--max-train-rows", str(int(b["max_train_rows"]))]
+                    if b.get("lag_steps") is not None:
+                        cmd_args += ["--lag-steps", str(b["lag_steps"])]
+
+                    if bool(b.get("use_gpu", False)):
+                        cmd_args.append("--use-gpu")
+
+                    # Fairness: sync features/budget to a specific KAN train run
+                    if match_id:
+                        cmd_args += ["--match-kan-run-id", str(match_id)]
+                        if bool(b.get("sync_kan_feature_cols", False)):
+                            cmd_args.append("--sync-kan-feature-cols")
+                        if bool(b.get("sync_kan_budget", False)):
+                            cmd_args.append("--sync-kan-budget")
+                        if inferred_ts:
+                            cmd_args += ["--data-timestamp", str(inferred_ts)]
+
+                    res, payload = modal_run(job, cmd_args, dry_run=dry_run)
+                    run_id = str(payload["run_id"]) if payload and payload.get("run_id") else None
+                    if run_id:
+                        selected_baseline_run_ids.append(run_id)
+                        manifest["runs"].append(
+                            {
+                                "stage": "baseline_torch",
+                                "name": str(b["model_type"]),
+                                "run_id": run_id,
+                                "match_kan_run_id": str(match_id) if match_id else None,
+                                "target_col": target_arg,
+                                "cfg": b,
+                                "data_timestamp": inferred_ts,
+                            }
+                        )
+                        log_md(f"- {b['model_type']} run_id: `{run_id}`")
+                        if match_id:
+                            log_md(f"  - matched_kan_run_id: `{match_id}`")
+                            log_md(f"  - target_col: `{target_arg}`")
+                        if inferred_ts:
+                            log_md(f"  - data_timestamp: `{inferred_ts}`")
+                        if auto_sync:
+                            sync_run(run_id, dry_run=dry_run)
+                except Exception as e:  # noqa: BLE001
+                    manifest["errors"].append({"stage": "baseline_torch", "error": str(e), "cfg": b, "match_kan_run_id": match_id})
 
     if RUN_PYSR_BASELINE and ("baselines" in selected_phases):
         log_md("")
         log_md("## Phase 4: PySR baseline")
-        try:
-            job = REPO_ROOT / "modal_jobs" / "pysr_baseline.py"
-            cmd_args = ["--data-run-id", str(data_run_id), "--target", str(PYSR_BASELINE.get("target", "load"))]
-            res, payload = modal_run(job, cmd_args, dry_run=dry_run)
-            run_id = str(payload["run_id"]) if payload and payload.get("run_id") else None
-            if run_id:
-                selected_baseline_run_ids.append(run_id)
-                manifest["runs"].append({"stage": "baseline_pysr", "name": "pysr", "run_id": run_id})
-                log_md(f"- pysr run_id: `{run_id}`")
-                if auto_sync:
-                    sync_run(run_id, dry_run=dry_run)
-            else:
-                manifest["errors"].append({"stage": "baseline_pysr", "returncode": res.returncode})
-        except Exception as e:  # noqa: BLE001
-            manifest["errors"].append({"stage": "baseline_pysr", "error": str(e)})
+        match_kan = bool(PYSR_BASELINE.get("match_kan", False))
+        match_ids = selected_kan_train_run_ids if (match_kan and len(selected_kan_train_run_ids) > 0) else [None]
+        for match_id in match_ids:
+            try:
+                job = REPO_ROOT / "modal_jobs" / "pysr_baseline.py"
+                inferred_ts = None
+                inferred_target = None
+                if match_id:
+                    try:
+                        p = REPO_ROOT / "runs" / str(match_id) / "payload.json"
+                        if p.exists():
+                            meta = json.loads(p.read_text())
+                            inferred_ts = meta.get("data_timestamp")
+                            inferred_target = (meta.get("cfg") or {}).get("target_col")
+                    except Exception:
+                        inferred_ts = None
+                        inferred_target = None
+                target_arg = str(inferred_target) if inferred_target else str(PYSR_BASELINE.get("target", "load"))
+
+                cmd_args = ["--data-run-id", str(data_run_id), "--target", target_arg]
+
+                if PYSR_BASELINE.get("niterations") is not None:
+                    cmd_args += ["--niterations", str(int(PYSR_BASELINE["niterations"]))]
+                if PYSR_BASELINE.get("populations") is not None:
+                    cmd_args += ["--populations", str(int(PYSR_BASELINE["populations"]))]
+                if PYSR_BASELINE.get("population_size") is not None:
+                    cmd_args += ["--population-size", str(int(PYSR_BASELINE["population_size"]))]
+                if PYSR_BASELINE.get("maxsize") is not None:
+                    cmd_args += ["--maxsize", str(int(PYSR_BASELINE["maxsize"]))]
+                if bool(PYSR_BASELINE.get("warm_start", False)):
+                    cmd_args.append("--warm-start")
+                if PYSR_BASELINE.get("lag_steps") is not None:
+                    cmd_args += ["--lag-steps", str(PYSR_BASELINE["lag_steps"])]
+                if PYSR_BASELINE.get("max_train_rows") is not None:
+                    cmd_args += ["--max-train-rows", str(int(PYSR_BASELINE["max_train_rows"]))]
+
+                if match_id:
+                    cmd_args += ["--match-kan-run-id", str(match_id)]
+                    if bool(PYSR_BASELINE.get("sync_kan_feature_cols", False)):
+                        cmd_args.append("--sync-kan-feature-cols")
+                    if bool(PYSR_BASELINE.get("sync_kan_budget", False)):
+                        cmd_args.append("--sync-kan-budget")
+                    if inferred_ts:
+                        cmd_args += ["--data-timestamp", str(inferred_ts)]
+
+                res, payload = modal_run(job, cmd_args, dry_run=dry_run)
+                run_id = str(payload["run_id"]) if payload and payload.get("run_id") else None
+                if run_id:
+                    selected_baseline_run_ids.append(run_id)
+                    manifest["runs"].append(
+                        {
+                            "stage": "baseline_pysr",
+                            "name": "pysr",
+                            "run_id": run_id,
+                            "match_kan_run_id": str(match_id) if match_id else None,
+                            "target_col": target_arg,
+                            "cfg": dict(PYSR_BASELINE),
+                            "data_timestamp": inferred_ts,
+                        }
+                    )
+                    log_md(f"- pysr run_id: `{run_id}`")
+                    if match_id:
+                        log_md(f"  - matched_kan_run_id: `{match_id}`")
+                        log_md(f"  - target_col: `{target_arg}`")
+                    if inferred_ts:
+                        log_md(f"  - data_timestamp: `{inferred_ts}`")
+                    if auto_sync:
+                        sync_run(run_id, dry_run=dry_run)
+                else:
+                    manifest["errors"].append({"stage": "baseline_pysr", "returncode": res.returncode, "match_kan_run_id": match_id})
+            except Exception as e:  # noqa: BLE001
+                manifest["errors"].append({"stage": "baseline_pysr", "error": str(e), "match_kan_run_id": match_id})
 
     # Local evaluation / plots
     if RUN_LOCAL_EVAL and not dry_run and ("local" in selected_phases) and (not detached_remote):

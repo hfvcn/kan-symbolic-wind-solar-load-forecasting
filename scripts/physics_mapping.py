@@ -47,6 +47,7 @@ def main() -> None:
     args = ap.parse_args()
 
     sym_run = Path(args.symbolic_run)
+    print(f"[physics_mapping] start run={sym_run} out_dir={args.out_dir} max_samples={args.max_samples}", flush=True)
     payload = json.loads((sym_run / "payload.json").read_text())
     feature_cols = payload.get("feature_cols")
     if not feature_cols:
@@ -72,10 +73,12 @@ def main() -> None:
         x_test_orig = x_test_orig.iloc[: int(args.max_samples)].copy()
 
     expr_str = (sym_run / "artifacts" / "formula.sympy.txt").read_text()
-    locals_map = {name: sp.Symbol(name) for name in feature_cols}
+    locals_map = {name: sp.Symbol(name, real=True) for name in feature_cols}
     expr = sp.sympify(expr_str, locals=locals_map)
 
+    print(f"[physics_mapping] analyzing target={target_col} n_features={len(feature_cols)} n_samples={len(x_test_orig)}", flush=True)
     rep = analyze_physics(expr, feature_cols=feature_cols, x_df=x_test_orig, target_col=target_col)
+    print(f"[physics_mapping] done score={rep.get('score')} n_checks={rep.get('n_checks')}", flush=True)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

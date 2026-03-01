@@ -5,7 +5,7 @@
 > 2) 当前实验结论与瓶颈（为什么“可解释性”和“性能”很难兼得）  
 > 3) 在尽量贴合论文要求的前提下，下一步应如何改进（需要它提出可执行方案）
 
-更新时间：2026-02-27  
+更新时间：2026-03-01  
 项目路径（仅供本地开发者定位）：`/Users/vfch/Documents/project/graduation-design`
 
 ## 0.1 重要更新（2026-02-27）
@@ -18,6 +18,22 @@
   - 新增工程物理代理特征（自动归一化并扩展 scaler_params）：`wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c`
   - 新增 `net_load_lag_{k}`（默认 k∈{1,12,48}）用于 net-load 持久性/残差建模
 - 本地评估新增“持久性基线 + skill score”口径，并支持 `delta_*` 目标自动重建为绝对序列用于论文图表。
+
+## 0.2 重要更新（2026-03-01）
+
+本次已验证：采用“派生数据集 + Δ目标（残差/增量）”能让 KAN 在 5min 预测任务上**显著超过持久性基线**，并跑通“同步→重建→评估→出图”的本地闭环。
+
+- 已同步的关键 run（均已在本地 `runs/` 可用）：
+  - Phase 1.5 派生数据集（重建预测必选）：`2026-02-27_111856_3d590023`
+  - Phase 2 KAN 训练（Δ负荷）：`2026-02-27_130143_635744ad`（target=`delta_load`）
+  - Phase 2 KAN 训练（Δ净负荷）：`2026-02-27_163309_0420c80c`（target=`delta_net_load`）
+- 本地已完成 Δ→绝对序列重建：
+  - 为上述两个训练 run 生成 `artifacts/predictions_test_reconstructed.parquet` 与 `artifacts/eval_test_reconstructed.json`
+- 重建后 test 指标（对比持久性基线）：
+  - `delta_load→load`：RMSE ~82.85（persistence ~130.48，skill ~0.365）
+  - `delta_net_load→net_load`：RMSE ~329.37（persistence ~494.18，skill ~0.333）
+- 重要注意（公平性/预算差异）：上述两次 KAN 训练使用更大的训练预算（总 steps=2400，CPU 耗时约 3.4–3.5h），且稀疏正则相对放松；因此性能提升来源包含“任务重定义 + 训练预算/正则变化”，不等价于“同预算下 KAN 必然更优”。
+- 解释性差距仍存在：这两次是 Phase 2 训练 run（尚未做 Phase 3 符号提取），并且 `feature_importance.csv` 显示 wind/GHI 特征在 `delta_load` run 中活跃边为 0；`delta_net_load` run 中 GHI/HDD 有进入但 wind 仍为 0。
 
 ---
 
@@ -257,6 +273,11 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 - `figures/`：预测曲线、残差分布、公式渲染图等
 - `ASSET_INDEX.md`：把所有资产索引成可快速引用的清单
 
+补充说明（容易踩坑）：
+- 对 `delta_*` 目标：需要先运行 `scripts/reconstruct_predictions.py` 生成“绝对值口径”的预测；评估脚本会优先读取 `predictions_test_reconstructed.parquet`。
+- `scripts/evaluate_runs.py` 会按传入的 `--run` 列表生成对比表；如果只传少量 run，会覆盖 `comparison_table.csv` 为该子集。若要长期保留“全量对比”，需要把所有 run 一并传入，或另存一份全量表（例如 `comparison_table_all_runs.csv`）。
+-（环境兼容性）在受限环境里若 Matplotlib 无法写入 `~/.matplotlib`，可先设置 `MPLCONFIGDIR` 到可写目录再运行绘图脚本。
+
 > 注意：`physics_mapping.json` 是本地脚本写入的，会被 `sync_from_modal.sh` 重新同步覆盖；因此每次重新 sync 之后，若需要 `physical_score` 进入对比表，需要重新跑 physics_mapping 脚本。
 
 ---
@@ -304,6 +325,10 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 - Phase 1（ERCOT 2018, target=load）：`2026-02-26_032058_1957fda1`
   - 105,120 行；特征后 160 列；切分后 73,536 / 15,672 / 15,672
+- Phase 1.5（派生数据集：net_load + delta targets + 物理代理特征）：`2026-02-27_111856_3d590023`
+  - source：`2026-02-26_032058_1957fda1`
+  - 新增 targets：`net_load`、`delta_load`、`delta_net_load`
+  - 新增特征：`wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c` 等
 
 ### 11.2 预测性能（test）概览（部分关键 run）
 
@@ -311,6 +336,8 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 | run_id | 类型 | target | 关键设置 | RMSE | R² | 备注 |
 |---|---|---|---|---:|---:|---|
+| `2026-02-27_130143_635744ad` | KAN train | `delta_load→load`（重建口径） | `lag_steps=[12,24,48]`，`include_base=false` | ~82.85 | ~0.99968 | **skill~0.365**；耗时~3.5h（CPU）；wind/GHI 特征活跃边为 0 |
+| `2026-02-27_163309_0420c80c` | KAN train | `delta_net_load→net_load`（重建口径） | `lag_steps=[12,24,48]`，`include_base=false` | ~329.37 | ~0.99952 | **skill~0.333**；耗时~3.4h（CPU）；GHI/HDD 进入但 wind 活跃边为 0 |
 | `2026-02-26_043102_777fac2d` | Torch MLP | load | 含 `load_lag_1` | ~175.7 | ~0.9986 | 5min 预测几乎可复制上一时刻 |
 | `2026-02-26_045336_77244377` | PySR | load | 含 `load_lag_1` | ~127.6 | ~0.9992 | 公式非常简单但强依赖历史负荷 |
 | `2026-02-26_055200_958b3949` | KAN train | load | 消融 no_l1（仍含 lag） | ~1050.1 | ~0.9484 | KAN 明显落后于简单基线 |
@@ -324,8 +351,9 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 1) **强自回归支配**：允许 `load_lag_1` 时，所有强模型（MLP/PySR/部分 KAN）都会主要依赖它 → 精度极高，但“风速/光照/温度”很难进入最终公式（或只作为很小的修正项，容易被剪枝/符号化忽略）。  
 2) **外生-only 可解释但不准**：去掉所有 lag 后，温度/太阳高度角等会进入公式，甚至能通过“温度敏感性存在”的检查，但预测性能显著下降（R² 变负）。  
-3) **KAN vs 简单基线差距**：在当前设置下，KAN 的最佳 run 仍明显弱于 PySR/MLP；需要判断是训练超参/稀疏策略过强、还是任务定义让基线天然占优。  
+3) **KAN 与基线的关系已发生变化**：在原始 `load` 目标下，KAN 仍明显落后于 PySR/MLP；但在 Phase 1.5 派生数据集上改用 `delta_*` 目标后，KAN 已能显著超过持久性基线（skill≈0.33–0.37），并在 RMSE 上优于 PySR/MLP。需要注意：这伴随着更大的训练预算与不同的任务定义，因此“公平对比”应同时报告训练预算/耗时。  
 4) **耦合负荷定义需明确**：论文提“风光耦合负荷”，但目前实验目标主要是 `load`；如果“耦合负荷”更接近净负荷 `net_load = load - wind - solar` 或某种耦合形式，则需要在数据定义/目标函数上做调整，才能让风/光因子在数学关系中自然出现。  
+5) **关键物理因子仍可能被稀疏化剪掉**：即使已提供 wind/GHI/温度及其工程代理特征，当前最强的 `delta_load` KAN run 仍把 wind/GHI 剪到 0；`delta_net_load` run 则保留了 GHI/HDD 但 wind 仍为 0。这意味着：若论文要求“风速、光照强度、温度、历史负荷”在最终数学关系中同时出现，仍需要进一步的训练/稀疏策略与符号提取约束设计。  
 
 ---
 
@@ -355,3 +383,11 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 论文资产重生成：
 - 参考 `doc/paper_assets/README.md`
+-（本次 2026-03-01 验证的最小闭环）同步→重建→评估→出图：
+  - `scripts/sync_from_modal.sh 2026-02-27_111856_3d590023`
+  - `scripts/sync_from_modal.sh 2026-02-27_130143_635744ad`
+  - `scripts/sync_from_modal.sh 2026-02-27_163309_0420c80c`
+  - `python3 scripts/reconstruct_predictions.py --run runs/2026-02-27_130143_635744ad --run runs/2026-02-27_163309_0420c80c`
+  - `python3 scripts/evaluate_runs.py --run runs/2026-02-27_130143_635744ad --run runs/2026-02-27_163309_0420c80c --out-dir doc/paper_assets`
+  - `python3 scripts/make_thesis_figures.py --run runs/2026-02-27_130143_635744ad --run runs/2026-02-27_163309_0420c80c --out-dir doc/paper_assets/figures`
+  - `python3 scripts/build_asset_index.py`

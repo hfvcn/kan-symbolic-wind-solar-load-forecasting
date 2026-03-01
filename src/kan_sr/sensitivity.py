@@ -31,8 +31,10 @@ class DerivativeSummary:
         }
 
 
-def compute_partials(expr: sp.Expr, vars_: list[sp.Symbol]) -> dict[str, sp.Expr]:
-    return {v.name: sp.simplify(sp.diff(expr, v)) for v in vars_}
+def compute_partials(expr: sp.Expr, vars_: list[sp.Symbol], *, simplify: bool = False) -> dict[str, sp.Expr]:
+    if simplify:
+        return {v.name: sp.simplify(sp.diff(expr, v)) for v in vars_}
+    return {v.name: sp.diff(expr, v) for v in vars_}
 
 
 def summarize_derivative(values: np.ndarray, *, var: str) -> DerivativeSummary:
@@ -50,4 +52,3 @@ def summarize_derivative(values: np.ndarray, *, var: str) -> DerivativeSummary:
         pct_negative=float(np.mean(v < 0.0)),
         n=int(len(v)),
     )
-

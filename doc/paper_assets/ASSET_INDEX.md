@@ -17,18 +17,20 @@
 - `doc/paper_assets/physics_mapping_2026-02-26_091400_ba9fd48c.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_130037_55f49a5c.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_130651_18ca3f58.md`
+- `doc/paper_assets/physics_mapping_2026-03-01_072253_5c9f7912.md`
+- `doc/paper_assets/physics_mapping_2026-03-01_072418_8b55ce9a.md`
+- `doc/paper_assets/physics_mapping_2026-03-01_072603_6825d4d0.md`
+- `doc/paper_assets/physics_mapping_2026-03-01_072722_fc08d99e.md`
 - `doc/paper_assets/sensitivity_summary_2026-02-26_041718_5579aeeb.csv`
 - `doc/paper_assets/sensitivity_summary_2026-02-26_090620_1fc7d27a.csv`
 - `doc/paper_assets/sensitivity_summary_2026-02-26_091400_ba9fd48c.csv`
 - `doc/paper_assets/sensitivity_summary_2026-02-26_130037_55f49a5c.csv`
 - `doc/paper_assets/sensitivity_summary_2026-02-26_130651_18ca3f58.csv`
+- `doc/paper_assets/sensitivity_summary_2026-03-01_072253_5c9f7912.csv`
+- `doc/paper_assets/sensitivity_summary_2026-03-01_072418_8b55ce9a.csv`
+- `doc/paper_assets/sensitivity_summary_2026-03-01_072722_fc08d99e.csv`
 
 ## Runs
-
-### 2026-02-25_093805_9134fe03
-
-- phase: `00-smoke-test`
-- kind: `smoke_test`
 
 ### 2026-02-26_032058_1957fda1
 
@@ -62,7 +64,6 @@
 - `runs/2026-02-26_041718_5579aeeb/artifacts/formula.tex`
 - `runs/2026-02-26_041718_5579aeeb/artifacts/formula.sympy.txt`
 - `runs/2026-02-26_041718_5579aeeb/artifacts/formula_metrics.json`
-- `runs/2026-02-26_041718_5579aeeb/artifacts/physics_mapping.json`
 - `runs/2026-02-26_041718_5579aeeb/artifacts/predictions_test.parquet`
 - `runs/2026-02-26_041718_5579aeeb/artifacts/separability.json`
 - figures:
@@ -113,11 +114,6 @@
   - `doc/paper_assets/figures/residual_qq_2026-02-26_045336_77244377.png`
   - `doc/paper_assets/figures/seasonal_rmse_2026-02-26_045336_77244377.png`
   - `doc/paper_assets/figures/timeseries_2026-02-26_045336_77244377.png`
-
-### 2026-02-26_052312_f85bed5b
-
-- phase: `01-data-pipeline`
-- kind: `data_pipeline`
 
 ### 2026-02-26_053425_2e4bc623
 
@@ -218,7 +214,6 @@
 - `runs/2026-02-26_090620_1fc7d27a/artifacts/formula.tex`
 - `runs/2026-02-26_090620_1fc7d27a/artifacts/formula.sympy.txt`
 - `runs/2026-02-26_090620_1fc7d27a/artifacts/formula_metrics.json`
-- `runs/2026-02-26_090620_1fc7d27a/artifacts/physics_mapping.json`
 - `runs/2026-02-26_090620_1fc7d27a/artifacts/predictions_test.parquet`
 - `runs/2026-02-26_090620_1fc7d27a/artifacts/separability.json`
 - figures:
@@ -237,7 +232,6 @@
 - `runs/2026-02-26_091400_ba9fd48c/artifacts/formula.tex`
 - `runs/2026-02-26_091400_ba9fd48c/artifacts/formula.sympy.txt`
 - `runs/2026-02-26_091400_ba9fd48c/artifacts/formula_metrics.json`
-- `runs/2026-02-26_091400_ba9fd48c/artifacts/physics_mapping.json`
 - `runs/2026-02-26_091400_ba9fd48c/artifacts/predictions_test.parquet`
 - `runs/2026-02-26_091400_ba9fd48c/artifacts/separability.json`
 - figures:
@@ -272,7 +266,6 @@
 - `runs/2026-02-26_130037_55f49a5c/artifacts/formula.tex`
 - `runs/2026-02-26_130037_55f49a5c/artifacts/formula.sympy.txt`
 - `runs/2026-02-26_130037_55f49a5c/artifacts/formula_metrics.json`
-- `runs/2026-02-26_130037_55f49a5c/artifacts/physics_mapping.json`
 - `runs/2026-02-26_130037_55f49a5c/artifacts/predictions_test.parquet`
 - `runs/2026-02-26_130037_55f49a5c/artifacts/separability.json`
 - figures:
@@ -291,7 +284,6 @@
 - `runs/2026-02-26_130651_18ca3f58/artifacts/formula.tex`
 - `runs/2026-02-26_130651_18ca3f58/artifacts/formula.sympy.txt`
 - `runs/2026-02-26_130651_18ca3f58/artifacts/formula_metrics.json`
-- `runs/2026-02-26_130651_18ca3f58/artifacts/physics_mapping.json`
 - `runs/2026-02-26_130651_18ca3f58/artifacts/predictions_test.parquet`
 - `runs/2026-02-26_130651_18ca3f58/artifacts/separability.json`
 - figures:
@@ -301,6 +293,272 @@
   - `doc/paper_assets/figures/residual_qq_2026-02-26_130651_18ca3f58.png`
   - `doc/paper_assets/figures/seasonal_rmse_2026-02-26_130651_18ca3f58.png`
   - `doc/paper_assets/figures/timeseries_2026-02-26_130651_18ca3f58.png`
+
+### 2026-02-27_111856_3d590023
+
+- phase: `01.5-derived-dataset`
+- kind: `unknown`
+
+### 2026-02-27_130143_635744ad
+
+- phase: `02-kan-training`
+- kind: `kan`
+- `runs/2026-02-27_130143_635744ad/artifacts/eval_test_reconstructed.json`
+- `runs/2026-02-27_130143_635744ad/artifacts/eval_pruned.json`
+- `runs/2026-02-27_130143_635744ad/artifacts/predictions_test.parquet`
+- `runs/2026-02-27_130143_635744ad/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-02-27_130143_635744ad/artifacts/feature_importance.csv`
+- `runs/2026-02-27_130143_635744ad/artifacts/sparsity.json`
+- figures:
+  - `doc/paper_assets/figures/feature_importance_2026-02-27_130143_635744ad.png`
+  - `doc/paper_assets/figures/residual_box_2026-02-27_130143_635744ad.png`
+  - `doc/paper_assets/figures/residual_hist_2026-02-27_130143_635744ad.png`
+  - `doc/paper_assets/figures/residual_qq_2026-02-27_130143_635744ad.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-02-27_130143_635744ad.png`
+  - `doc/paper_assets/figures/timeseries_2026-02-27_130143_635744ad.png`
+
+### 2026-02-27_163309_0420c80c
+
+- phase: `02-kan-training`
+- kind: `kan`
+- `runs/2026-02-27_163309_0420c80c/artifacts/eval_test_reconstructed.json`
+- `runs/2026-02-27_163309_0420c80c/artifacts/eval_pruned.json`
+- `runs/2026-02-27_163309_0420c80c/artifacts/predictions_test.parquet`
+- `runs/2026-02-27_163309_0420c80c/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-02-27_163309_0420c80c/artifacts/feature_importance.csv`
+- `runs/2026-02-27_163309_0420c80c/artifacts/sparsity.json`
+- figures:
+  - `doc/paper_assets/figures/feature_importance_2026-02-27_163309_0420c80c.png`
+  - `doc/paper_assets/figures/residual_box_2026-02-27_163309_0420c80c.png`
+  - `doc/paper_assets/figures/residual_hist_2026-02-27_163309_0420c80c.png`
+  - `doc/paper_assets/figures/residual_qq_2026-02-27_163309_0420c80c.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-02-27_163309_0420c80c.png`
+  - `doc/paper_assets/figures/timeseries_2026-02-27_163309_0420c80c.png`
+
+### 2026-03-01_061313_c5642fb5
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula.tex`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/formula_metrics.json`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_061313_c5642fb5/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_061313_c5642fb5.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_061313_c5642fb5.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_061313_c5642fb5.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_061313_c5642fb5.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_061313_c5642fb5.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_061313_c5642fb5.png`
+
+### 2026-03-01_061458_59db1fe6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula.tex`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/formula_metrics.json`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_061458_59db1fe6/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_061458_59db1fe6.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_061458_59db1fe6.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_061458_59db1fe6.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_061458_59db1fe6.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_061458_59db1fe6.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_061458_59db1fe6.png`
+
+### 2026-03-01_061747_92da9d64
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_061747_92da9d64/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula.tex`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_061747_92da9d64/artifacts/formula_metrics.json`
+- `runs/2026-03-01_061747_92da9d64/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_061747_92da9d64/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_061747_92da9d64/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_061747_92da9d64.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_061747_92da9d64.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_061747_92da9d64.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_061747_92da9d64.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_061747_92da9d64.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_061747_92da9d64.png`
+
+### 2026-03-01_061911_4821be46
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_061911_4821be46/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula.tex`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_061911_4821be46/artifacts/formula_metrics.json`
+- `runs/2026-03-01_061911_4821be46/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_061911_4821be46/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_061911_4821be46/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_061911_4821be46.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_061911_4821be46.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_061911_4821be46.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_061911_4821be46.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_061911_4821be46.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_061911_4821be46.png`
+
+### 2026-03-01_062033_c6c12f8d
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_062033_c6c12f8d/artifacts/eval_test.json`
+- `runs/2026-03-01_062033_c6c12f8d/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_062033_c6c12f8d/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_062033_c6c12f8d/artifacts/predictions_test_reconstructed.parquet`
+- figures:
+  - `doc/paper_assets/figures/residual_box_2026-03-01_062033_c6c12f8d.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_062033_c6c12f8d.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_062033_c6c12f8d.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_062033_c6c12f8d.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_062033_c6c12f8d.png`
+
+### 2026-03-01_072253_5c9f7912
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula.tex`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/formula_metrics.json`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/physics_mapping.json`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_072253_5c9f7912/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_072253_5c9f7912.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_072253_5c9f7912.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_072253_5c9f7912.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_072253_5c9f7912.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_072253_5c9f7912.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_072253_5c9f7912.png`
+
+### 2026-03-01_072418_8b55ce9a
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula.tex`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/formula_metrics.json`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/physics_mapping.json`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_072418_8b55ce9a/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_072418_8b55ce9a.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_072418_8b55ce9a.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_072418_8b55ce9a.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_072418_8b55ce9a.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_072418_8b55ce9a.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_072418_8b55ce9a.png`
+
+### 2026-03-01_072603_6825d4d0
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula.tex`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/formula_metrics.json`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/physics_mapping.json`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_072603_6825d4d0/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_072603_6825d4d0.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_072603_6825d4d0.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_072603_6825d4d0.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_072603_6825d4d0.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_072603_6825d4d0.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_072603_6825d4d0.png`
+
+### 2026-03-01_072722_fc08d99e
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula.tex`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/formula_metrics.json`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/physics_mapping.json`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_072722_fc08d99e/artifacts/separability.json`
+- figures:
+  - `doc/paper_assets/figures/formula_2026-03-01_072722_fc08d99e.png`
+  - `doc/paper_assets/figures/residual_box_2026-03-01_072722_fc08d99e.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_072722_fc08d99e.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_072722_fc08d99e.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_072722_fc08d99e.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_072722_fc08d99e.png`
+
+### 2026-03-01_072844_f65399e8
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_072844_f65399e8/artifacts/eval_test.json`
+- `runs/2026-03-01_072844_f65399e8/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_072844_f65399e8/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_072844_f65399e8/artifacts/predictions_test_reconstructed.parquet`
+- figures:
+  - `doc/paper_assets/figures/residual_box_2026-03-01_072844_f65399e8.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_072844_f65399e8.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_072844_f65399e8.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_072844_f65399e8.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_072844_f65399e8.png`
+
+### 2026-03-01_075447_1cff3b05
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_075447_1cff3b05/artifacts/eval_test.json`
+- `runs/2026-03-01_075447_1cff3b05/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_075447_1cff3b05/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_075447_1cff3b05/artifacts/predictions_test_reconstructed.parquet`
+- figures:
+  - `doc/paper_assets/figures/residual_box_2026-03-01_075447_1cff3b05.png`
+  - `doc/paper_assets/figures/residual_hist_2026-03-01_075447_1cff3b05.png`
+  - `doc/paper_assets/figures/residual_qq_2026-03-01_075447_1cff3b05.png`
+  - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_075447_1cff3b05.png`
+  - `doc/paper_assets/figures/timeseries_2026-03-01_075447_1cff3b05.png`
 
 ### detached_verify_20260226__kan_train__physics_first_exogenous_only_cpu
 

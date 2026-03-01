@@ -62,7 +62,7 @@ def derivative_summaries(
     Returns:
       {var_name: DerivativeSummary.as_dict()}
     """
-    locals_map = {name: sp.Symbol(name) for name in feature_cols}
+    locals_map = {name: sp.Symbol(name, real=True) for name in feature_cols}
     vars_ = [locals_map[v] for v in var_names if v in locals_map]
     partials = compute_partials(expr, vars_)
 

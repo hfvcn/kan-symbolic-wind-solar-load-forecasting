@@ -102,16 +102,16 @@ def _load_scaler_for_features(scaler_params: dict[str, Any], feature_cols: list[
     return {"mean": means, "std": stds, "missing": missing}
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600)
-def extract_symbolic(
+def _extract_symbolic_impl(
     train_run_id: str,
     *,
-    run_id: str | None = None,
-    r2_threshold: float = 0.99,
-    weight_simple: float = 0.9,
-    fix_below_threshold_to_zero: bool = False,
-    sample_rows: int = 10_000,
-    lib: list[str] | None = None,
+    run_id: str | None,
+    r2_threshold: float,
+    weight_simple: float,
+    fix_below_threshold_to_zero: bool,
+    sample_rows: int,
+    lib: list[str] | None,
+    device_name: str,
 ) -> dict[str, Any]:
     import numpy as np
     import pandas as pd
@@ -121,6 +121,7 @@ def extract_symbolic(
 
     from src.data.split import load_splits_from_parquet
     from src.kan_sr.metrics import mae, r2, rmse
+    from src.kan_sr.separability import detect_separability
     from src.kan_sr.symbolic import (
         DEFAULT_SYMBOLIC_LIB,
         build_symbolic_formula,
@@ -128,7 +129,12 @@ def extract_symbolic(
         extract_symbolic_edges,
         sympy_complexity,
     )
-    from src.kan_sr.separability import detect_separability
+
+    device_s = str(device_name).strip().lower()
+    if device_s not in {"cpu", "cuda"}:
+        raise ValueError(f"device_name must be 'cpu' or 'cuda', got: {device_name!r}")
+    if device_s == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("Requested CUDA device but torch.cuda.is_available() is False")
 
     run_id = run_id or _utc_run_id()
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
@@ -192,7 +198,7 @@ def extract_symbolic(
         grid_range=[grid_range_min, grid_range_max],
         seed=int(cfg.get("seed", 1)),
         auto_save=False,
-        device="cpu",
+        device=device_s,
     )
     model.load_state_dict(ckpt["model_state"], strict=True)
 
@@ -204,7 +210,7 @@ def extract_symbolic(
         train_df = train_df.sample(n=sample_rows, random_state=1).sort_index()
 
     # Populate internal activations for symbolic fitting.
-    x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32))
+    x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32), device=device_s)
     _ = model(x_sample)
 
     # Per-edge suggestions + optional fixing.
@@ -296,11 +302,58 @@ def extract_symbolic(
         "eval_test": eval_metrics,
         "feature_cols": feature_cols,
         "target_col": payload["cfg"]["target_col"],
+        "device": device_s,
         "artifacts_dir": str(artifacts_dir),
     }
     _write_json(run_dir / "payload.json", out_payload)
     volume.commit()
     return out_payload
+
+
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600)
+def extract_symbolic(
+    train_run_id: str,
+    *,
+    run_id: str | None = None,
+    r2_threshold: float = 0.99,
+    weight_simple: float = 0.9,
+    fix_below_threshold_to_zero: bool = False,
+    sample_rows: int = 10_000,
+    lib: list[str] | None = None,
+) -> dict[str, Any]:
+    return _extract_symbolic_impl(
+        train_run_id,
+        run_id=run_id,
+        r2_threshold=r2_threshold,
+        weight_simple=weight_simple,
+        fix_below_threshold_to_zero=fix_below_threshold_to_zero,
+        sample_rows=sample_rows,
+        lib=lib,
+        device_name="cpu",
+    )
+
+
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600, gpu="T4")
+def extract_symbolic_gpu(
+    train_run_id: str,
+    *,
+    run_id: str | None = None,
+    r2_threshold: float = 0.99,
+    weight_simple: float = 0.9,
+    fix_below_threshold_to_zero: bool = False,
+    sample_rows: int = 10_000,
+    lib: list[str] | None = None,
+) -> dict[str, Any]:
+    return _extract_symbolic_impl(
+        train_run_id,
+        run_id=run_id,
+        r2_threshold=r2_threshold,
+        weight_simple=weight_simple,
+        fix_below_threshold_to_zero=fix_below_threshold_to_zero,
+        sample_rows=sample_rows,
+        lib=lib,
+        device_name="cuda",
+    )
 
 
 @app.local_entrypoint()
@@ -312,13 +365,15 @@ def main(
     fix_below_threshold_to_zero: bool = False,
     sample_rows: int = 10_000,
     lib: str = "default",
+    use_gpu: bool = False,
 ) -> None:
     lib_list = None
     lib_s = str(lib).strip().lower()
     if lib_s not in {"", "default"}:
         lib_list = [s.strip() for s in str(lib).split(",") if s.strip()]
     run_id_opt = run_id.strip() or None
-    result = extract_symbolic.remote(
+    fn = extract_symbolic_gpu if use_gpu else extract_symbolic
+    result = fn.remote(
         train_run_id,
         run_id=run_id_opt,
         r2_threshold=r2_threshold,

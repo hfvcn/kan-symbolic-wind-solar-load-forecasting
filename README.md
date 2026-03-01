@@ -68,6 +68,9 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.p
 
 # Phase 3: 符号提取（输出 formula.sympy.txt / formula.tex / predictions_test.parquet）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id>
+
+# （可选）使用 GPU T4 加速 Phase 3（若你的账号有 GPU 权限）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id> --use-gpu
 ```
 
 若训练/符号提取的目标是 `delta_load` / `delta_net_load`，可在本地将 test 预测重建回绝对序列（便于论文图表对比）：
@@ -90,6 +93,17 @@ python3 /Users/vfch/Documents/project/graduation-design/scripts/physics_mapping.
 # Torch 基线（MLP / LSTM）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py --data-run-id <data_run_id> --model-type mlp --target load
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py --data-run-id <data_run_id> --model-type lstm --target load
+
+# （可选）基线也可用 GPU T4，并将特征/训练预算对齐到某个 KAN 训练 run（避免“KAN 特调训练长度”造成不公平观感）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py \
+  --data-run-id <data_run_id> \
+  --model-type mlp \
+  --target load \
+  --use-gpu \
+  --match-kan-run-id <kan_train_run_id> \
+  --sync-kan-feature-cols \
+  --sync-kan-budget \
+  --patience 0
 
 # PySR 基线（可选：seed_from_symbolic_run 用于交叉验证）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/pysr_baseline.py --data-run-id <data_run_id> --target load

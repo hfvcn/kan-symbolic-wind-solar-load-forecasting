@@ -49,6 +49,10 @@ def main() -> None:
     args = ap.parse_args()
 
     sym_run = Path(args.symbolic_run)
+    print(
+        f"[sensitivity] start run={sym_run} out_dir={args.out_dir} vars={args.vars} max_samples={args.max_samples}",
+        flush=True,
+    )
     payload = json.loads((sym_run / "payload.json").read_text())
     feature_cols = payload.get("feature_cols")
     if not feature_cols:
@@ -68,7 +72,7 @@ def main() -> None:
         raise ValueError(f"target_col not found in test split: {target_col}")
 
     expr_str = (sym_run / "artifacts" / "formula.sympy.txt").read_text()
-    locals_map = {name: sp.Symbol(name) for name in feature_cols}
+    locals_map = {name: sp.Symbol(name, real=True) for name in feature_cols}
     expr = sp.sympify(expr_str, locals=locals_map)
 
     # Choose the correct input space for evaluating the extracted formula.
@@ -106,9 +110,11 @@ def main() -> None:
                 chosen_space = "original"
     except Exception:
         pass
+    print(f"[sensitivity] chosen_input_space={chosen_space} rmse_norm={rmse_norm:.6g} rmse_orig={rmse_orig:.6g}", flush=True)
 
     var_names = [v.strip() for v in args.vars.split(",") if v.strip()]
     vars_ = [locals_map[v] for v in var_names if v in locals_map]
+    print(f"[sensitivity] computing_partials n_vars={len(vars_)}", flush=True)
     partials = compute_partials(expr, vars_)
 
     out_dir = Path(args.out_dir)
@@ -126,6 +132,7 @@ def main() -> None:
     if args.max_samples is not None and len(input_df) > int(args.max_samples):
         input_df = input_df.iloc[: int(args.max_samples)].copy()
     for name, dexpr in partials.items():
+        print(f"[sensitivity] var={name} computing", flush=True)
         f = sp.lambdify(feature_cols, dexpr, modules="numpy")
         X = input_df[feature_cols].to_numpy(dtype=np.float64)
         args_arr = [X[:, i] for i in range(X.shape[1])]

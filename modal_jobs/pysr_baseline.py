@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -108,6 +108,22 @@ class PySRConfig:
     use_original_features: bool = True
 
 
+def _load_kan_payload(run_id: str) -> dict[str, Any]:
+    path = Path(VOLUME_MOUNT) / "runs" / run_id / "payload.json"
+    if not path.exists():
+        raise FileNotFoundError(f"KAN payload.json not found: {path}")
+    return json.loads(path.read_text())
+
+
+def _kan_total_steps(payload: dict[str, Any]) -> int:
+    cfg = payload.get("cfg") or {}
+    keys = ["warmup_steps", "sparsify_steps", "refine_steps"]
+    missing = [k for k in keys if k not in cfg]
+    if missing:
+        raise ValueError(f"KAN payload cfg missing steps keys: {missing}")
+    return int(cfg["warmup_steps"]) + int(cfg["sparsify_steps"]) + int(cfg["refine_steps"])
+
+
 @app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600)
 def run_pysr(
     data_run_id: str,
@@ -119,6 +135,9 @@ def run_pysr(
     max_train_rows: int | None = 10_000,
     seed_from_symbolic_run: str | None = None,
     seed_max_seeds: int = 8,
+    match_kan_run_id: str | None = None,
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
 ) -> dict[str, Any]:
     import numpy as np
     import pandas as pd
@@ -138,12 +157,40 @@ def run_pysr(
     processed_dir = Path(VOLUME_MOUNT) / "runs" / data_run_id / "processed"
     train_df, val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=data_timestamp)
 
+    kan_payload = None
+    if bool(sync_kan_feature_cols) or bool(sync_kan_budget):
+        if match_kan_run_id is None:
+            raise ValueError("sync_kan_feature_cols/sync_kan_budget requires match_kan_run_id")
+        kan_payload = _load_kan_payload(match_kan_run_id)
+        kan_data_run_id = kan_payload.get("data_run_id")
+        if kan_data_run_id is not None and str(kan_data_run_id) != str(data_run_id):
+            raise ValueError(f"KAN data_run_id mismatch: pysr={data_run_id} kan={kan_data_run_id}")
+        kan_target = (kan_payload.get("cfg") or {}).get("target_col")
+        if kan_target is not None and str(kan_target) != str(cfg.target_col):
+            raise ValueError(f"KAN target_col mismatch: pysr={cfg.target_col} kan={kan_target}")
+
+    if bool(sync_kan_budget):
+        assert kan_payload is not None
+        total_steps = _kan_total_steps(kan_payload)
+        cfg = replace(cfg, niterations=int(total_steps))
+
     if max_train_rows is not None and len(train_df) > max_train_rows:
         train_df = train_df.sample(n=max_train_rows, random_state=1).sort_index()
         logger.info(f"Downsampled train_df to {max_train_rows} sampled rows for PySR speed")
 
     lag_steps = lag_steps or [1, 12, 48]
     feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
+
+    if bool(sync_kan_feature_cols) and (not seed_from_symbolic_run):
+        assert kan_payload is not None
+        kan_feature_cols = kan_payload.get("feature_cols")
+        if not kan_feature_cols:
+            raise ValueError("KAN payload missing feature_cols")
+        missing_cols = [c for c in kan_feature_cols if c not in train_df.columns]
+        if missing_cols:
+            raise ValueError(f"KAN feature cols missing from dataset: {missing_cols[:10]}")
+        feature_cols = list(kan_feature_cols)
+        lag_steps = list(kan_payload.get("lag_steps") or [])
 
     # If seeded cross-validation is requested, align to the symbolic run feature set.
     seed_features_meta: dict[str, Any] | None = None
@@ -233,6 +280,9 @@ def run_pysr(
         "lag_steps": list(lag_steps),
         "seed_from_symbolic_run": seed_from_symbolic_run,
         "seed_features_meta": seed_features_meta,
+        "match_kan_run_id": match_kan_run_id,
+        "sync_kan_feature_cols": bool(sync_kan_feature_cols),
+        "sync_kan_budget": bool(sync_kan_budget),
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_json(run_dir / "payload.json", payload)
@@ -383,9 +433,47 @@ def main(
     data_run_id: str,
     target: str = "load",
     niterations: int = 200,
+    populations: int = 8,
+    population_size: int = 40,
+    maxsize: int = 20,
+    warm_start: bool = False,
+    use_original_features: bool = True,
+    lag_steps: str = "1,12,48",
+    max_train_rows: int = 10_000,
     seed_from_symbolic_run: str = "",
+    seed_max_seeds: int = 8,
+    match_kan_run_id: str = "",
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
+    data_timestamp: str = "",
 ) -> None:
-    cfg = PySRConfig(target_col=target, niterations=niterations)
+    lag_steps_list = [int(s.strip()) for s in str(lag_steps).split(",") if s.strip()]
+    max_train_rows_opt: int | None = int(max_train_rows)
+    if max_train_rows_opt <= 0:
+        max_train_rows_opt = None
     seed = seed_from_symbolic_run.strip() or None
-    result = run_pysr.remote(data_run_id, cfg=cfg, seed_from_symbolic_run=seed)
+    match = match_kan_run_id.strip() or None
+    ts_opt = data_timestamp.strip() or None
+
+    cfg = PySRConfig(
+        target_col=target,
+        niterations=int(niterations),
+        populations=int(populations),
+        population_size=int(population_size),
+        maxsize=int(maxsize),
+        warm_start=bool(warm_start),
+        use_original_features=bool(use_original_features),
+    )
+    result = run_pysr.remote(
+        data_run_id,
+        data_timestamp=ts_opt,
+        cfg=cfg,
+        lag_steps=lag_steps_list,
+        max_train_rows=max_train_rows_opt,
+        seed_from_symbolic_run=seed,
+        seed_max_seeds=int(seed_max_seeds),
+        match_kan_run_id=match,
+        sync_kan_feature_cols=bool(sync_kan_feature_cols),
+        sync_kan_budget=bool(sync_kan_budget),
+    )
     print(json.dumps(result, indent=2))

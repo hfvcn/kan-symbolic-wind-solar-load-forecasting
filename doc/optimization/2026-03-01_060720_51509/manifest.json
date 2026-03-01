@@ -1,0 +1,64 @@
+{
+  "session_id": "2026-03-01_060720_51509",
+  "created_at": "2026-03-01T06:07:20.942614+00:00",
+  "volume_name": "kan-sr",
+  "dry_run": true,
+  "source_data_run_id": "2026-02-27_111856_3d590023",
+  "data_run_id": "2026-02-27_111856_3d590023",
+  "runs": [],
+  "local_outputs": {
+    "out_dir": "doc/paper_assets"
+  },
+  "errors": [
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_130143_635744ad::sym_strict_r2_0.995",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_130143_635744ad::sym_strict_r2_0.999",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_130143_635744ad::sym_medium_r2_0.995",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_130143_635744ad::sym_medium_r2_0.999",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_163309_0420c80c::sym_strict_r2_0.995",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_163309_0420c80c::sym_strict_r2_0.999",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_163309_0420c80c::sym_medium_r2_0.995",
+      "returncode": 0
+    },
+    {
+      "stage": "kan_symbolic",
+      "name": "2026-02-27_163309_0420c80c::sym_medium_r2_0.999",
+      "returncode": 0
+    },
+    {
+      "stage": "baseline_pysr",
+      "returncode": 0,
+      "match_kan_run_id": "2026-02-27_130143_635744ad"
+    },
+    {
+      "stage": "baseline_pysr",
+      "returncode": 0,
+      "match_kan_run_id": "2026-02-27_163309_0420c80c"
+    }
+  ]
+}
