@@ -21,6 +21,32 @@ def compute_delta(current: pd.Series, previous: pd.Series) -> pd.Series:
     return current.astype(np.float64) - previous.astype(np.float64)
 
 
+def normalize_horizon_steps(
+    steps: list[int] | None,
+    *,
+    max_steps: int = 48,
+    include_1: bool = True,
+) -> list[int]:
+    """
+    Normalize a list of horizon steps:
+      - de-duplicate and sort
+      - validate 1 <= step <= max_steps
+      - optionally ensure step=1 is included (backward-compatible defaults)
+    """
+    if max_steps <= 0:
+        raise ValueError("max_steps must be positive")
+
+    raw = [] if steps is None else list(steps)
+    out = sorted({int(s) for s in raw})
+    if include_1 and 1 not in out:
+        out = [1, *out]
+
+    bad = [s for s in out if s < 1 or s > int(max_steps)]
+    if bad:
+        raise ValueError(f"horizon_steps out of range (1..{max_steps}): {bad}")
+    return out
+
+
 @dataclass(frozen=True)
 class ZScoreStats:
     mean: float
@@ -138,4 +164,3 @@ def extend_scaler_params(
         scale.append(float(stats.std))
 
     return out
-

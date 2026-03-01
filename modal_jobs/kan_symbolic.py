@@ -111,6 +111,8 @@ def _extract_symbolic_impl(
     fix_below_threshold_to_zero: bool,
     sample_rows: int,
     lib: list[str] | None,
+    safe_exp_clip: float | None,
+    eval_clip_quantiles: tuple[float, float] | None,
     device_name: str,
 ) -> dict[str, Any]:
     import numpy as np
@@ -230,32 +232,7 @@ def _extract_symbolic_impl(
         output_normalizer=output_norm,
     )
 
-    # Evaluate extracted formula on *original-scale* inputs.
-    # Note: `build_symbolic_formula(..., input_normalizer=...)` produces a formula
-    # that expects unnormalized feature values (same names as feature_cols).
-    from src.data.split import inverse_transform
-
-    test_x_orig = inverse_transform(test_df[feature_cols], scaler_params)
-    pred = evaluate_symbolic_formula(expr, feature_cols=feature_cols, x_df=test_x_orig)
-
-    # Hard constraint (PIKAN): nighttime PV must be 0 (for solar target).
-    if payload["cfg"]["target_col"] == "solar" and "is_night" in test_df.columns:
-        try:
-            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-            pred = pred.copy()
-            pred[is_night_orig > 0.5] = 0.0
-        except Exception:  # noqa: BLE001
-            pass
-
-    y_true = test_df[payload["cfg"]["target_col"]].to_numpy(dtype=np.float64)
-
-    mask = np.isfinite(pred)
-    pred = pred[mask]
-    y_true = y_true[mask]
-
-    eval_metrics = {"rmse": rmse(y_true, pred), "mae": mae(y_true, pred), "r2": r2(y_true, pred), "n_eval": int(len(y_true))}
-
-    # Save artifacts
+    # Save artifacts (before evaluation) so failures are debuggable.
     report_path = artifacts_dir / "edge_symbolic_report.csv"
     with open(report_path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(edge_fits[0].as_dict().keys()) if edge_fits else ["layer", "i", "j"])
@@ -266,27 +243,66 @@ def _extract_symbolic_impl(
     (artifacts_dir / "formula.sympy.txt").write_text(str(expr))
     (artifacts_dir / "formula.tex").write_text(sp.latex(expr))
     _write_json(artifacts_dir / "formula_metrics.json", sympy_complexity(expr))
-    _write_json(artifacts_dir / "formula_eval_test.json", eval_metrics)
     _write_json(artifacts_dir / "separability.json", detect_separability(expr).as_dict())
 
-    # Save full test prediction series (including NaN where evaluation is invalid)
-    pred_full = evaluate_symbolic_formula(expr, feature_cols=feature_cols, x_df=test_x_orig)
+    # Evaluate extracted formula on *original-scale* inputs.
+    # Note: `build_symbolic_formula(..., input_normalizer=...)` produces a formula
+    # that expects unnormalized feature values (same names as feature_cols).
+    from src.data.split import inverse_transform
+
+    clip_bounds: dict[str, tuple[float, float]] | None = None
+    if eval_clip_quantiles is not None:
+        q_low, q_high = float(eval_clip_quantiles[0]), float(eval_clip_quantiles[1])
+        if not (0.0 <= q_low < q_high <= 1.0):
+            raise ValueError(f"eval_clip_quantiles must satisfy 0<=low<high<=1, got: {eval_clip_quantiles}")
+        train_x_orig = inverse_transform(train_df[feature_cols], scaler_params).astype(np.float64)
+        lows = train_x_orig.quantile(q_low)
+        highs = train_x_orig.quantile(q_high)
+        clip_bounds = {c: (float(lows[c]), float(highs[c])) for c in feature_cols}
+        _write_json(
+            artifacts_dir / "eval_input_clip.json",
+            {
+                "quantiles": [q_low, q_high],
+                "bounds": {c: {"low": float(lows[c]), "high": float(highs[c])} for c in feature_cols},
+            },
+        )
+
+    test_x_orig = inverse_transform(test_df[feature_cols], scaler_params).astype(np.float64)
+    pred_full = evaluate_symbolic_formula(expr, feature_cols=feature_cols, x_df=test_x_orig, input_clip=clip_bounds, safe_exp_clip=safe_exp_clip)
     if payload["cfg"]["target_col"] == "solar" and "is_night" in test_df.columns:
-        try:
-            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-            pred_full = pred_full.copy()
-            pred_full[is_night_orig > 0.5] = 0.0
-        except Exception:  # noqa: BLE001
-            pass
+        is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+        pred_full = pred_full.copy()
+        pred_full[is_night_orig > 0.5] = 0.0
+
+    y_true_full = test_df[payload["cfg"]["target_col"]].to_numpy(dtype=np.float64)
     pred_df = pd.DataFrame(
         {
-            "y_true": test_df[payload["cfg"]["target_col"]].to_numpy(dtype=np.float64),
+            "y_true": y_true_full,
             "y_pred": pred_full,
         },
         index=test_df.index,
     )
     pred_df["residual"] = pred_df["y_pred"] - pred_df["y_true"]
     pred_df.to_parquet(artifacts_dir / "predictions_test.parquet", compression="snappy")
+
+    # Debug-first: do NOT silently drop NaN/inf; fail with diagnostics.
+    finite = np.isfinite(pred_full)
+    if not bool(np.all(finite)):
+        nonfinite_count = int(np.sum(~finite))
+        _write_json(
+            artifacts_dir / "formula_eval_nonfinite.json",
+            {"n_total": int(len(pred_full)), "nonfinite_count": nonfinite_count, "nonfinite_frac": float(nonfinite_count) / float(len(pred_full) or 1)},
+        )
+        volume.commit()
+        raise RuntimeError(f"Non-finite values in symbolic formula evaluation: nonfinite_count={nonfinite_count}")
+
+    eval_metrics = {"rmse": rmse(y_true_full, pred_full), "mae": mae(y_true_full, pred_full), "r2": r2(y_true_full, pred_full), "n_eval": int(len(y_true_full))}
+    if not all(np.isfinite([eval_metrics["rmse"], eval_metrics["mae"], eval_metrics["r2"]])):
+        _write_json(artifacts_dir / "formula_eval_nonfinite.json", {"eval_metrics": eval_metrics})
+        volume.commit()
+        raise RuntimeError(f"Non-finite metrics in symbolic formula evaluation: {eval_metrics}")
+
+    _write_json(artifacts_dir / "formula_eval_test.json", eval_metrics)
 
     out_payload = {
         "run_id": run_id,
@@ -299,6 +315,8 @@ def _extract_symbolic_impl(
         "fix_below_threshold_to_zero": bool(fix_below_threshold_to_zero),
         "sample_rows": int(sample_rows),
         "lib": list(lib or DEFAULT_SYMBOLIC_LIB),
+        "safe_exp_clip": None if safe_exp_clip is None else float(safe_exp_clip),
+        "eval_clip_quantiles": None if eval_clip_quantiles is None else [float(eval_clip_quantiles[0]), float(eval_clip_quantiles[1])],
         "eval_test": eval_metrics,
         "feature_cols": feature_cols,
         "target_col": payload["cfg"]["target_col"],
@@ -320,6 +338,8 @@ def extract_symbolic(
     fix_below_threshold_to_zero: bool = False,
     sample_rows: int = 10_000,
     lib: list[str] | None = None,
+    safe_exp_clip: float | None = None,
+    eval_clip_quantiles: tuple[float, float] | None = None,
 ) -> dict[str, Any]:
     return _extract_symbolic_impl(
         train_run_id,
@@ -329,6 +349,8 @@ def extract_symbolic(
         fix_below_threshold_to_zero=fix_below_threshold_to_zero,
         sample_rows=sample_rows,
         lib=lib,
+        safe_exp_clip=safe_exp_clip,
+        eval_clip_quantiles=eval_clip_quantiles,
         device_name="cpu",
     )
 
@@ -343,6 +365,8 @@ def extract_symbolic_gpu(
     fix_below_threshold_to_zero: bool = False,
     sample_rows: int = 10_000,
     lib: list[str] | None = None,
+    safe_exp_clip: float | None = None,
+    eval_clip_quantiles: tuple[float, float] | None = None,
 ) -> dict[str, Any]:
     return _extract_symbolic_impl(
         train_run_id,
@@ -352,6 +376,8 @@ def extract_symbolic_gpu(
         fix_below_threshold_to_zero=fix_below_threshold_to_zero,
         sample_rows=sample_rows,
         lib=lib,
+        safe_exp_clip=safe_exp_clip,
+        eval_clip_quantiles=eval_clip_quantiles,
         device_name="cuda",
     )
 
@@ -365,6 +391,8 @@ def main(
     fix_below_threshold_to_zero: bool = False,
     sample_rows: int = 10_000,
     lib: str = "default",
+    safe_exp_clip: float = 0.0,
+    eval_clip_quantiles: str = "",
     use_gpu: bool = False,
 ) -> None:
     lib_list = None
@@ -372,6 +400,17 @@ def main(
     if lib_s not in {"", "default"}:
         lib_list = [s.strip() for s in str(lib).split(",") if s.strip()]
     run_id_opt = run_id.strip() or None
+    safe_exp_opt: float | None = None
+    if float(safe_exp_clip) > 0:
+        safe_exp_opt = float(safe_exp_clip)
+
+    q_opt: tuple[float, float] | None = None
+    q_s = str(eval_clip_quantiles).strip()
+    if q_s:
+        parts = [p.strip() for p in q_s.split(",") if p.strip()]
+        if len(parts) != 2:
+            raise ValueError("eval_clip_quantiles must be 'low,high' (e.g. 0.01,0.99)")
+        q_opt = (float(parts[0]), float(parts[1]))
     fn = extract_symbolic_gpu if use_gpu else extract_symbolic
     result = fn.remote(
         train_run_id,
@@ -381,5 +420,7 @@ def main(
         fix_below_threshold_to_zero=fix_below_threshold_to_zero,
         sample_rows=sample_rows,
         lib=lib_list,
+        safe_exp_clip=safe_exp_opt,
+        eval_clip_quantiles=q_opt,
     )
     print(json.dumps(result, indent=2))

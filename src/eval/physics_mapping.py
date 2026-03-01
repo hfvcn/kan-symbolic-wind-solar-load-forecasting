@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+import re
 import sympy as sp
 
 from src.kan_sr.sensitivity import compute_partials, summarize_derivative
@@ -49,6 +50,11 @@ def power_counts(expr: sp.Expr, sym: sp.Symbol, *, max_power: int = 6) -> dict[i
     return {k: v for k, v in counts.items() if v > 0}
 
 
+def _unify_expr_symbols(expr: sp.Expr, locals_map: dict[str, sp.Symbol]) -> sp.Expr:
+    subs = {s: locals_map[s.name] for s in expr.free_symbols if s.name in locals_map and s != locals_map[s.name]}
+    return expr.xreplace(subs) if subs else expr
+
+
 def derivative_summaries(
     expr: sp.Expr,
     *,
@@ -63,6 +69,7 @@ def derivative_summaries(
       {var_name: DerivativeSummary.as_dict()}
     """
     locals_map = {name: sp.Symbol(name, real=True) for name in feature_cols}
+    expr = _unify_expr_symbols(expr, locals_map)
     vars_ = [locals_map[v] for v in var_names if v in locals_map]
     partials = compute_partials(expr, vars_)
 
@@ -71,12 +78,13 @@ def derivative_summaries(
 
     out: dict[str, dict[str, Any]] = {}
     for name, dexpr in partials.items():
+        f = sp.lambdify(feature_cols, dexpr, modules="numpy")
         try:
-            f = sp.lambdify(feature_cols, dexpr, modules="numpy")
-            vals = np.asarray(f(*args_arr), dtype=np.float64).reshape(-1)
-            out[name] = summarize_derivative(vals, var=name).as_dict()
-        except Exception:  # noqa: BLE001 - robustness for complex formulas
-            out[name] = summarize_derivative(np.asarray([], dtype=np.float64), var=name).as_dict()
+            vals_raw = f(*args_arr)
+        except Exception as e:  # noqa: BLE001
+            raise RuntimeError(f"Failed to evaluate partial derivative for var={name!r}") from e
+        vals = np.asarray(vals_raw, dtype=np.float64).reshape(-1)
+        out[name] = summarize_derivative(vals, var=name).as_dict()
     return out
 
 
@@ -95,7 +103,10 @@ def analyze_physics(
     """
     target = str(target_col)
     base_target = target[len("delta_") :] if target.startswith("delta_") else target
-    locals_map = {name: sp.Symbol(name) for name in feature_cols}
+    base_target = re.sub(r"_h\d+$", "", base_target)
+    locals_map = {name: sp.Symbol(name, real=True) for name in feature_cols}
+    expr = _unify_expr_symbols(expr, locals_map)
+    present = {s.name for s in expr.free_symbols}
 
     checks: list[PhysicsCheckResult] = []
 
@@ -135,7 +146,7 @@ def analyze_physics(
                 name="wind_speed_monotone_increasing",
                 passed=pct_pos >= 0.7,
                 score=min(1.0, pct_pos / 0.7) if np.isfinite(pct_pos) else 0.0,
-                details={"var": wind_var, "derivative_summary": summ, "present_in_expr": bool(expr.has(locals_map[wind_var]))},
+                details={"var": wind_var, "derivative_summary": summ, "present_in_expr": wind_var in present},
             )
 
     # Solar: irradiance should be non-decreasing; temperature often decreases efficiency.
@@ -150,7 +161,7 @@ def analyze_physics(
                 name="ghi_monotone_increasing",
                 passed=pct_pos >= 0.7,
                 score=min(1.0, pct_pos / 0.7) if np.isfinite(pct_pos) else 0.0,
-                details={"var": gname, "derivative_summary": summ, "present_in_expr": bool(expr.has(locals_map[gname]))},
+                details={"var": gname, "derivative_summary": summ, "present_in_expr": gname in present},
             )
 
         if tname in locals_map:
@@ -160,7 +171,7 @@ def analyze_physics(
                 name="temp_efficiency_decreasing",
                 passed=pct_neg >= 0.6,
                 score=min(1.0, pct_neg / 0.6) if np.isfinite(pct_neg) else 0.0,
-                details={"var": tname, "derivative_summary": summ, "present_in_expr": bool(expr.has(locals_map[tname]))},
+                details={"var": tname, "derivative_summary": summ, "present_in_expr": tname in present},
             )
 
     # Load: temperature sensitivity should not be pathological; cyclic features matter.
@@ -198,7 +209,7 @@ def analyze_physics(
                 name="wind_proxy_monotone_decreasing",
                 passed=pct_neg >= 0.7,
                 score=min(1.0, pct_neg / 0.7) if np.isfinite(pct_neg) else 0.0,
-                details={"var": wv, "derivative_summary": summ, "present_in_expr": bool(expr.has(locals_map[wv]))},
+                details={"var": wv, "derivative_summary": summ, "present_in_expr": wv in present},
             )
 
         if gv is not None:
@@ -208,7 +219,7 @@ def analyze_physics(
                 name="ghi_proxy_monotone_decreasing",
                 passed=pct_neg >= 0.7,
                 score=min(1.0, pct_neg / 0.7) if np.isfinite(pct_neg) else 0.0,
-                details={"var": gv, "derivative_summary": summ, "present_in_expr": bool(expr.has(locals_map[gv]))},
+                details={"var": gv, "derivative_summary": summ, "present_in_expr": gv in present},
             )
 
     score = float(np.mean([c.score for c in checks])) if checks else float("nan")

@@ -214,7 +214,7 @@ def _compute_feature_importance(model: Any, feature_cols: list[str]) -> list[dic
     total_hidden = int(active.shape[1])
 
     rows: list[dict[str, Any]] = []
-    for name, cnt in zip(feature_cols, per_feature, strict=False):
+    for name, cnt in zip(feature_cols, per_feature):
         rows.append(
             {
                 "feature": name,
@@ -233,6 +233,7 @@ class TrainConfig:
     grid_range_min: float = -5.0
     grid_range_max: float = 5.0
     hidden_width: int = 10
+    hidden_layers: tuple[int, ...] | None = None
     grid: int = 5
     k: int = 3
     seed: int = 1
@@ -287,8 +288,10 @@ def _fit_in_chunks(
     """
     Run `KAN.fit()` in chunks so we can checkpoint + commit regularly.
     """
-    import torch
     import math
+    import time
+
+    import torch
 
     if total_steps <= 0:
         return
@@ -303,11 +306,16 @@ def _fit_in_chunks(
         fit_kwargs_chunk["steps"] = steps
         fit_kwargs_chunk["log"] = max(1, steps // 5)
 
+        t0 = time.time()
         hist = model.fit(dataset, **fit_kwargs_chunk)
-        for i, (tl, vl, reg) in enumerate(zip(hist["train_loss"], hist["test_loss"], hist["reg"], strict=False)):
+        dt_s = float(time.time() - t0)
+
+        last_metrics: tuple[float, float, float] | None = None
+        for i, (tl, vl, reg) in enumerate(zip(hist["train_loss"], hist["test_loss"], hist["reg"])):
             tl_f = float(tl)
             vl_f = float(vl)
             reg_f = float(reg)
+            last_metrics = (tl_f, vl_f, reg_f)
             if not (math.isfinite(tl_f) and math.isfinite(vl_f) and math.isfinite(reg_f)):
                 torch.save({"model_state": model.state_dict()}, save_ckpt_path.with_name(f"model_{stage}_nonfinite.pt"))
                 vol.commit()
@@ -334,6 +342,17 @@ def _fit_in_chunks(
         torch.save({"model_state": model.state_dict()}, snap_path)
         vol.commit()
 
+        if last_metrics is not None:
+            tl_f, vl_f, reg_f = last_metrics
+            print(
+                (
+                    f"[kan_fit] stage={stage} done={done}/{total_steps} "
+                    f"chunk_steps={steps} chunk_s={dt_s:.1f} "
+                    f"train_loss={tl_f:.6g} val_loss={vl_f:.6g} reg={reg_f:.6g}"
+                ),
+                flush=True,
+            )
+
 def _train_kan_impl(
     data_run_id: str,
     *,
@@ -347,6 +366,7 @@ def _train_kan_impl(
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
+    warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
     """
     Train a KAN model and prune to high sparsity.
@@ -418,9 +438,17 @@ def _train_kan_impl(
     dataset, ds_meta = build_kan_dataset(train_df, val_df, target_col=cfg.target_col, feature_cols=feature_cols, scale_target=True)
     target_scaler = ds_meta.get("target_scaler")
 
+    def hidden_sizes() -> list[int]:
+        if cfg.hidden_layers:
+            hs = [int(x) for x in cfg.hidden_layers]
+            if not hs or any(h <= 0 for h in hs):
+                raise ValueError(f"hidden_layers must be positive ints, got: {cfg.hidden_layers}")
+            return hs
+        return [int(cfg.hidden_width)]
+
     # Build model
     in_dim = len(feature_cols)
-    width = [[in_dim, 0], [cfg.hidden_width, cfg.hidden_mult], [1, 0]]
+    width = [[in_dim, 0], *[[h, int(cfg.hidden_mult)] for h in hidden_sizes()], [1, 0]]
     model = KAN(
         width=width,
         grid=cfg.grid,
@@ -485,7 +513,7 @@ def _train_kan_impl(
             "opt": "Adam",
             "lr": cfg.warmup_lr,
             "lamb": 0.0,
-            "update_grid": True,
+            "update_grid": bool(warmup_update_grid),
             "grid_update_num": 10,
             "stop_grid_update_step": cfg.warmup_steps,
         },
@@ -670,18 +698,17 @@ def _train_kan_impl(
 
     # Hard constraint (PIKAN): nighttime PV must be 0 (for solar target).
     if cfg.target_col == "solar" and "is_night" in test_df.columns:
-        try:
-            from src.data.split import inverse_transform
+        from src.data.split import inverse_transform
 
-            scaler_params = json.loads(
-                (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
-            )
-            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-            night_mask = is_night_orig > 0.5
-            pred = pred.copy()
-            pred[night_mask] = 0.0
-        except Exception:  # noqa: BLE001
-            pass
+        scaler_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+        if not scaler_path.exists():
+            raise FileNotFoundError(f"scaler_params.json not found for solar nighttime constraint: {scaler_path}")
+        scaler_params = json.loads(scaler_path.read_text())
+
+        is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+        night_mask = is_night_orig > 0.5
+        pred = pred.copy()
+        pred[night_mask] = 0.0
 
     pred_df = pd.DataFrame({"y_true": y_true, "y_pred": pred, "residual": pred - y_true}, index=test_df.index)
     pred_df.to_parquet(artifacts_dir / "predictions_test.parquet", compression="snappy")
@@ -712,6 +739,7 @@ def train_kan_cpu(
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
+    warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
     return _train_kan_impl(
         data_run_id,
@@ -725,6 +753,7 @@ def train_kan_cpu(
         lag_series=lag_series,
         lag_steps=lag_steps,
         max_train_rows=max_train_rows,
+        warmup_update_grid=bool(warmup_update_grid),
     )
 
 
@@ -741,6 +770,7 @@ def train_kan_gpu(
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
     max_train_rows: Optional[int] = 50_000,
+    warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
     return _train_kan_impl(
         data_run_id,
@@ -754,6 +784,7 @@ def train_kan_gpu(
         lag_series=lag_series,
         lag_steps=lag_steps,
         max_train_rows=max_train_rows,
+        warmup_update_grid=bool(warmup_update_grid),
     )
 
 
@@ -763,6 +794,7 @@ def main(
     data_timestamp: Optional[str] = None,
     target: str = "load",
     hidden_width: int = 10,
+    hidden_layers: str = "",
     max_train_rows: int = 50_000,
     include_groups: str = "meteorology,solar,cyclic",
     lag_series: str = "load,wind,solar",
@@ -778,6 +810,7 @@ def main(
     sparsify_lamb_coefdiff: float = 0.0,
     hidden_mult: int = 0,
     mult_arity: int = 2,
+    warmup_update_grid: bool = True,
     use_gpu: bool = False,
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
@@ -785,11 +818,17 @@ def main(
     """
     Example:
       modal run modal_jobs/kan_train.py --data-run-id <phase1_run_id> --target load --hidden-width 10
+      modal run modal_jobs/kan_train.py --data-run-id <phase1_run_id> --hidden-layers 32,32
       modal run modal_jobs/kan_train.py --data-run-id <phase1_run_id> --use-gpu
     """
+    hidden_layers_s = str(hidden_layers).strip()
+    hidden_layers_tuple = None
+    if hidden_layers_s and hidden_layers_s.lower() not in {"none", "null", "no"}:
+        hidden_layers_tuple = tuple(int(x.strip()) for x in hidden_layers_s.split(",") if x.strip())
     cfg = TrainConfig(
         target_col=target,
         hidden_width=hidden_width,
+        hidden_layers=hidden_layers_tuple,
         hidden_mult=hidden_mult,
         mult_arity=mult_arity,
         warmup_steps=warmup_steps,
@@ -834,5 +873,6 @@ def main(
         lag_series=lag_series_list,
         lag_steps=lag_steps_list,
         max_train_rows=max_train_rows_opt,
+        warmup_update_grid=bool(warmup_update_grid),
     )
     print(json.dumps(result, indent=2))

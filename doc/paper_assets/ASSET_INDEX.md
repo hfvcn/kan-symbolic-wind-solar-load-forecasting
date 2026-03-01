@@ -11,6 +11,11 @@
 - `doc/paper_assets/transfer_gaps.csv`
 - `doc/paper_assets/transfer_gap_ratio.png`
 - `doc/paper_assets/pareto_rmse_vs_complexity.png`
+- `doc/thesis_sweeps/2026-03-01_142726_9ab14f0b/manifest.json`
+- `doc/thesis_sweeps/2026-03-02_s0s3_t4/manifest.json`
+- `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/manifest.json`
+- `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/paper_assets/comparison_table.csv`
+- `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/paper_assets/pareto_rmse_vs_complexity.png`
 - `doc/paper_assets/kan_pysr_cross_validation_2026-02-26_064508_3e631069.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_041718_5579aeeb.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_090620_1fc7d27a.md`
@@ -559,6 +564,577 @@
   - `doc/paper_assets/figures/residual_qq_2026-03-01_075447_1cff3b05.png`
   - `doc/paper_assets/figures/seasonal_rmse_2026-03-01_075447_1cff3b05.png`
   - `doc/paper_assets/figures/timeseries_2026-03-01_075447_1cff3b05.png`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__baseline_mlp_match_main
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mlp_match_main/artifacts/eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mlp_match_main/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mlp_match_main/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mlp_match_main/artifacts/predictions_test_reconstructed.parquet`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__baseline_mscnn_attn_match_main
+
+- phase: `04-baselines-torch`
+- kind: `mscnn_attn`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mscnn_attn_match_main/artifacts/eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mscnn_attn_match_main/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mscnn_attn_match_main/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__baseline_mscnn_attn_match_main/artifacts/predictions_test_reconstructed.parquet`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__derived_h1_6_12_24
+
+- phase: `01.5-derived-dataset`
+- kind: `unknown`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6
+
+- phase: `02-kan-training`
+- kind: `fullflow_main`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase
+
+- phase: `02-kan-training`
+- kind: `fullflow_main_nobase`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid
+
+- phase: `02-kan-training`
+- kind: `fullflow_main_nobase_nogrid`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/eval_pruned.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/feature_importance.csv`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__kan_delta_net_load_h6_nobase_nogrid/artifacts/sparsity.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__s3_combo_net_load_h6
+
+- phase: `05-structured-combination`
+- kind: `net_load_from_components`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_combo_net_load_h6/artifacts/eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_combo_net_load_h6/artifacts/predictions_test.parquet`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_load`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/eval_pruned.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/feature_importance.csv`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_load_delta_load_h6/artifacts/sparsity.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_solar_delta_solar_h6`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/eval_pruned.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/feature_importance.csv`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_solar_delta_solar_h6/artifacts/sparsity.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_wind`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/eval_pruned.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/feature_importance.csv`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__s3_comp_wind_delta_wind_h6/artifacts/sparsity.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/formula_metrics.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_995/artifacts/separability.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/formula_metrics.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_medium_r2_0_999/artifacts/separability.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/formula_metrics.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_995/artifacts/separability.json`
+
+### 2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/formula_metrics.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/physics_mapping.json`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_105353_fullflow_t4_1e551b__sym_strict_r2_0_999/artifacts/separability.json`
+
+### 2026-03-01_135354_030f529b
+
+- phase: `01.5-derived-dataset`
+- kind: `unknown`
+
+### 2026-03-01_135923_c1efe231
+
+- phase: `02-kan-training`
+- kind: `kan`
+
+### 2026-03-01_140101_bee69845
+
+- phase: `02-kan-training`
+- kind: `kan`
+- `runs/2026-03-01_140101_bee69845/artifacts/eval_pruned.json`
+- `runs/2026-03-01_140101_bee69845/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_140101_bee69845/artifacts/feature_importance.csv`
+- `runs/2026-03-01_140101_bee69845/artifacts/sparsity.json`
+
+### 2026-03-01_140121_8177bb88
+
+- phase: `03-symbolic`
+- kind: `unknown`
+- `runs/2026-03-01_140121_8177bb88/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_140121_8177bb88/artifacts/formula.tex`
+- `runs/2026-03-01_140121_8177bb88/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_140121_8177bb88/artifacts/formula_metrics.json`
+- `runs/2026-03-01_140121_8177bb88/artifacts/predictions_test.parquet`
+
+### 2026-03-01_143200_deep8_gpu_nogrid
+
+- phase: `02-kan-training`
+- kind: `debug_deep8_gpu_nogrid`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/eval_pruned.json`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/feature_importance.csv`
+- `runs/2026-03-01_143200_deep8_gpu_nogrid/artifacts/sparsity.json`
+
+### 2026-03-01_143900_baseline_mlp_gpu
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_143900_baseline_mlp_gpu/artifacts/eval_test.json`
+- `runs/2026-03-01_143900_baseline_mlp_gpu/artifacts/predictions_test.parquet`
+
+### 2026-03-01_144500_sym_strict_r2_0.995
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula.tex`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/formula_metrics.json`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_144500_sym_strict_r2_0.995/artifacts/separability.json`
+
+### 2026-03-01_150000_baseline_mlp_gpu
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_150000_baseline_mlp_gpu/artifacts/eval_test.json`
+- `runs/2026-03-01_150000_baseline_mlp_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_150000_baseline_mlp_gpu/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_150000_baseline_mlp_gpu/artifacts/predictions_test_reconstructed.parquet`
+
+### 2026-03-01_151000_kan_nobase_nogrid_gpu
+
+- phase: `02-kan-training`
+- kind: `fullflow_nobase_nogrid_gpu`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/eval_pruned.json`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/feature_importance.csv`
+- `runs/2026-03-01_151000_kan_nobase_nogrid_gpu/artifacts/sparsity.json`
+
+### 2026-03-01_155600_baseline_mlp_match_kan151000
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/2026-03-01_155600_baseline_mlp_match_kan151000/artifacts/eval_test.json`
+- `runs/2026-03-01_155600_baseline_mlp_match_kan151000/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_155600_baseline_mlp_match_kan151000/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_155600_baseline_mlp_match_kan151000/artifacts/predictions_test_reconstructed.parquet`
+
+### 2026-03-01_160200_sym_strict_r2_0_995__kan151000
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula_eval_test.json`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula.tex`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula_reconstructed.tex`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula.sympy.txt`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/formula_metrics.json`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/predictions_test.parquet`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000/artifacts/separability.json`
+
+### 2026_03_01_142726_9ab14f0b__derived_h1_6_12_24
+
+- phase: `01.5-derived-dataset`
+- kind: `unknown`
+
+### 2026_03_02_s0s3_t4__s3_comp_load_delta_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_load_delta_h6`
+
+### 2026_03_02_s0s3_t4_nogrid__s3_combo_net_load
+
+- phase: `05-structured-combination`
+- kind: `net_load_from_components`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_combo_net_load/artifacts/eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_combo_net_load/artifacts/predictions_test.parquet`
+
+### 2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_load_delta_h6`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/eval_pruned.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/feature_importance.csv`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_load_delta_h6/artifacts/sparsity.json`
+
+### 2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_solar_delta_h6`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/eval_pruned.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/feature_importance.csv`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_solar_delta_h6/artifacts/sparsity.json`
+
+### 2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6
+
+- phase: `02-kan-training`
+- kind: `s3_comp_wind_delta_h6`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/eval_pruned.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/feature_importance.csv`
+- `runs/2026_03_02_s0s3_t4_nogrid__s3_comp_wind_delta_h6/artifacts/sparsity.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_medium_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_999_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_poly4_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_98_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_995_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_999_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_01_151000_kan_nobase_nogrid_gpu/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_load_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### 2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/separability.json`
 
 ### detached_verify_20260226__kan_train__physics_first_exogenous_only_cpu
 

@@ -106,6 +106,20 @@ def _pick_lstm_hidden_for_param_target(input_dim: int, target_params: int, max_h
     return int(best_h)
 
 
+def _load_processed_splits(processed_dir: Path, *, timestamp: str | None) -> tuple[Any, Any, Any, str]:
+    from src.data.split import load_splits_from_parquet
+
+    train, val, test = load_splits_from_parquet(processed_dir, timestamp=timestamp)
+    if timestamp is not None:
+        return train, val, test, str(timestamp)
+
+    train_files = sorted(processed_dir.glob("train_*.parquet"))
+    if not train_files:
+        raise FileNotFoundError(f"No train_*.parquet found under processed_dir: {processed_dir}")
+    inferred = train_files[-1].stem.replace("train_", "")
+    return train, val, test, inferred
+
+
 @dataclass(frozen=True)
 class BaselineConfig:
     model_type: str = "mlp"  # mlp | lstm
@@ -147,12 +161,13 @@ def _run_baseline_impl(
     max_train_rows: int | None = 200_000,
     device_name: str | None = None,
 ) -> dict[str, Any]:
+    import math
+
     import numpy as np
     import torch
 
     from src.baselines.torch_models import LSTMRegressor, MLPRegressor
     from src.baselines.torch_training import make_lstm_sequences, train_mlp_regressor
-    from src.data.split import load_splits_from_parquet
     from src.kan_sr.dataset import pick_feature_columns
 
     run_id = run_id or _utc_run_id()
@@ -167,9 +182,10 @@ def _run_baseline_impl(
     payload_path = run_dir / "payload.json"
 
     processed_dir = Path(VOLUME_MOUNT) / "runs" / data_run_id / "processed"
-    train_df, val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=data_timestamp)
+    train_df, val_df, test_df, resolved_ts = _load_processed_splits(processed_dir, timestamp=data_timestamp)
 
     kan_payload = None
+    kan_total_steps: int | None = None
     if bool(sync_kan_feature_cols) or bool(sync_kan_budget):
         if match_kan_run_id is None:
             raise ValueError("sync_kan_feature_cols/sync_kan_budget requires match_kan_run_id")
@@ -183,14 +199,31 @@ def _run_baseline_impl(
 
     if bool(sync_kan_budget):
         assert kan_payload is not None
-        total_steps = _kan_total_steps(kan_payload)
-        cfg = replace(cfg, epochs=int(total_steps))
+        kan_total_steps = int(_kan_total_steps(kan_payload))
         kan_max = kan_payload.get("max_train_rows")
         max_train_rows = int(kan_max) if kan_max is not None else None
 
     if max_train_rows is not None and len(train_df) > max_train_rows:
         train_df = train_df.iloc[:max_train_rows].copy()
         logger.info(f"Downsampled train_df to first {max_train_rows} rows for baseline speed")
+
+    if bool(sync_kan_budget):
+        assert kan_total_steps is not None
+        if str(cfg.model_type).strip().lower() == "mlp":
+            bs = int(cfg.batch_size)
+            if bs <= 0:
+                raise ValueError(f"batch_size must be positive, got: {cfg.batch_size}")
+            batches_per_epoch = int(math.ceil(len(train_df) / bs))
+        else:
+            n_seq = int(len(train_df) - (int(cfg.seq_len) - 1))
+            if n_seq <= 0:
+                raise ValueError(f"Not enough train rows for seq_len={cfg.seq_len}: n_train={len(train_df)}")
+            bs = int(cfg.lstm_batch_size)
+            if bs <= 0:
+                raise ValueError(f"lstm_batch_size must be positive, got: {cfg.lstm_batch_size}")
+            batches_per_epoch = int(math.ceil(n_seq / bs))
+        epochs = int(math.ceil(float(kan_total_steps) / float(batches_per_epoch)))
+        cfg = replace(cfg, epochs=epochs)
 
     if bool(sync_kan_feature_cols):
         assert kan_payload is not None
@@ -238,7 +271,7 @@ def _run_baseline_impl(
         "phase": "04-baselines-torch",
         "cfg": asdict(cfg),
         "data_run_id": data_run_id,
-        "data_timestamp": data_timestamp,
+        "data_timestamp": resolved_ts,
         "feature_cols": feature_cols,
         "lag_steps": list(lag_steps),
         "match_kan_run_id": match_kan_run_id,
@@ -246,6 +279,17 @@ def _run_baseline_impl(
         "sync_kan_budget": bool(sync_kan_budget),
         "target_param_count": target_param_count,
         "device": device,
+        "budget_sync": (
+            None
+            if not bool(sync_kan_budget)
+            else {
+                "kan_total_steps": int(kan_total_steps or 0),
+                "batches_per_epoch": int(batches_per_epoch),
+                "epochs": int(cfg.epochs),
+                "optimizer_updates_target": int(kan_total_steps or 0),
+                "optimizer_updates_planned": int(cfg.epochs) * int(batches_per_epoch),
+            }
+        ),
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_json(payload_path, payload)
@@ -289,17 +333,16 @@ def _run_baseline_impl(
 
         # Hard constraint (PIKAN): nighttime PV must be 0 (for solar target).
         if cfg.target_col == "solar" and "is_night" in test_df.columns:
-            try:
-                from src.data.split import inverse_transform
+            from src.data.split import inverse_transform
 
-                scaler_params = json.loads(
-                    (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
-                )
-                is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-                pred = pred.copy()
-                pred[is_night_orig > 0.5] = 0.0
-            except Exception:  # noqa: BLE001
-                pass
+            scaler_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+            if not scaler_path.exists():
+                raise FileNotFoundError(f"scaler_params.json not found for solar nighttime constraint: {scaler_path}")
+            scaler_params = json.loads(scaler_path.read_text())
+
+            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+            pred = pred.copy()
+            pred[is_night_orig > 0.5] = 0.0
         import pandas as pd
 
         pd.DataFrame(
@@ -420,18 +463,17 @@ def _run_baseline_impl(
 
         ts_index = test_df.index[cfg.seq_len - 1 :]
         if cfg.target_col == "solar" and "is_night" in test_df.columns:
-            try:
-                from src.data.split import inverse_transform
+            from src.data.split import inverse_transform
 
-                scaler_params = json.loads(
-                    (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
-                )
-                is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-                night_mask = is_night_orig[cfg.seq_len - 1 :] > 0.5
-                pred = pred.copy()
-                pred[night_mask] = 0.0
-            except Exception:  # noqa: BLE001
-                pass
+            scaler_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+            if not scaler_path.exists():
+                raise FileNotFoundError(f"scaler_params.json not found for solar nighttime constraint: {scaler_path}")
+            scaler_params = json.loads(scaler_path.read_text())
+
+            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+            night_mask = is_night_orig[cfg.seq_len - 1 :] > 0.5
+            pred = pred.copy()
+            pred[night_mask] = 0.0
         pd.DataFrame(
             {"y_true": y_true, "y_pred": pred, "residual": pred - y_true},
             index=ts_index,
@@ -510,6 +552,7 @@ def main(
     sync_kan_feature_cols: bool = False,
     sync_kan_budget: bool = False,
     data_timestamp: str = "",
+    run_id: str = "",
     seq_len: int = 48,
     epochs: int = 50,
     lr: float = 1e-3,
@@ -525,6 +568,7 @@ def main(
     if max_train_rows_opt <= 0:
         max_train_rows_opt = None
     ts_opt = data_timestamp.strip() or None
+    run_id_opt = run_id.strip() or None
 
     cfg = BaselineConfig(
         model_type=model_type,
@@ -540,6 +584,7 @@ def main(
     result = fn.remote(
         data_run_id,
         data_timestamp=ts_opt,
+        run_id=run_id_opt,
         cfg=cfg,
         match_kan_run_id=match_kan_run_id,
         sync_kan_feature_cols=bool(sync_kan_feature_cols),

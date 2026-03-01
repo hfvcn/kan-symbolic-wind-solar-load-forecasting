@@ -80,6 +80,28 @@ class TestRunSummarizerInference(unittest.TestCase):
             self.assertAlmostEqual(float(s.rmse_persistence or 0.0), 1.0, places=12)
             self.assertAlmostEqual(float(s.skill_score or 0.0), 1.0, places=12)
 
+    def test_skill_score_vs_persistence_horizon_h2(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "kan_train_h2"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "kan_train_h2", "phase": "02-kan-training", "kind": "kan", "cfg": {"target_col": "delta_load_h2"}}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            pd.DataFrame(
+                {"y_true": [0.0, 1.0, 2.0, 3.0, 4.0], "y_pred": [0.0, 1.0, 2.0, 3.0, 4.0], "residual": [0.0, 0.0, 0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertAlmostEqual(float(s.rmse_persistence or 0.0), 2.0, places=12)
+            self.assertAlmostEqual(float(s.skill_score or 0.0), 1.0, places=12)
+
     def test_symbolic_phase_inferred_when_payload_phase_is_null(self) -> None:
         from src.eval.runs import summarize_run
 

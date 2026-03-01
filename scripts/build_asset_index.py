@@ -6,11 +6,8 @@ import json
 from pathlib import Path
 
 
-def _safe_read_json(path: Path) -> dict:
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {}
+def _read_json(path: Path) -> dict:
+    return json.loads(path.read_text())
 
 
 def _infer_phase_and_kind(run_dir: Path, payload: dict) -> tuple[str, str]:
@@ -93,6 +90,19 @@ def main() -> None:
             if p.exists():
                 md.append(f"- `{p}`")
 
+        # Thesis-oriented sweep sessions (per-session outputs live under doc/thesis_sweeps/<session>/).
+        sweeps_root = Path("doc") / "thesis_sweeps"
+        if sweeps_root.exists():
+            for sess in sorted([p for p in sweeps_root.iterdir() if p.is_dir()], key=lambda p: p.name):
+                manifest = sess / "manifest.json"
+                if manifest.exists():
+                    md.append(f"- `{manifest}`")
+                sess_assets = sess / "paper_assets"
+                for name in ["comparison_table.csv", "pareto_rmse_vs_complexity.png", "transfer_gaps.csv", "transfer_gap_ratio.png"]:
+                    p = sess_assets / name
+                    if p.exists():
+                        md.append(f"- `{p}`")
+
         # Reports / interpretability assets (dynamic names).
         for p in sorted(paper_assets_dir.glob("kan_pysr_cross_validation_*.md")):
             md.append(f"- `{p}`")
@@ -109,7 +119,7 @@ def main() -> None:
         md.append("_No runs found._")
     else:
         for run_dir in run_dirs:
-            payload = _safe_read_json(run_dir / "payload.json")
+            payload = _read_json(run_dir / "payload.json")
             phase, kind = _infer_phase_and_kind(run_dir, payload)
             md.append(f"### {run_dir.name}")
             md.append("")

@@ -4,6 +4,28 @@ import pandas as pd
 
 
 class TestPickFeatureColumns(unittest.TestCase):
+    def test_feature_groups_include_fine_grained_groups(self) -> None:
+        from src.data.features import get_feature_groups
+
+        groups = get_feature_groups()
+        for k in [
+            "cyclic",
+            "solar",
+            "meteorology",
+            "lag_pattern",
+            "solar_geom",
+            "solar_flag",
+            "meteo_irradiance",
+            "meteo_wind",
+            "meteo_temp",
+            "meteo_degree",
+        ]:
+            self.assertIn(k, groups)
+
+        self.assertTrue(set(groups["solar"]).issuperset(set(groups["solar_geom"])))
+        self.assertTrue(set(groups["solar"]).issuperset(set(groups["solar_flag"])))
+        self.assertTrue(set(groups["meteorology"]).issuperset(set(groups["meteo_irradiance"])))
+
     def test_can_disable_groups_and_lags(self) -> None:
         from src.kan_sr.dataset import pick_feature_columns
 
@@ -47,4 +69,3 @@ class TestPickFeatureColumns(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

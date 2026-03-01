@@ -46,4 +46,3 @@ class LSTMRegressor(nn.Module):
         out, _ = self.lstm(x)
         last = out[:, -1, :]
         return self.head(last)
-

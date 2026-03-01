@@ -5,6 +5,18 @@ import pandas as pd
 
 
 class TestSymbolicExtraction(unittest.TestCase):
+    def test_evaluate_symbolic_formula_broadcasts_scalar(self) -> None:
+        import sympy as sp
+
+        from src.kan_sr.symbolic import evaluate_symbolic_formula
+
+        df = pd.DataFrame({"x0": [1.0, 2.0, 3.0], "x1": [0.0, 0.0, 0.0]})
+        expr = sp.Integer(7)
+
+        pred = evaluate_symbolic_formula(expr, feature_cols=["x0", "x1"], x_df=df)
+        self.assertEqual(pred.shape, (3,))
+        self.assertTrue(np.allclose(pred, 7.0))
+
     def test_extracts_reasonable_formula_on_linear(self) -> None:
         import torch
         from kan import KAN
@@ -44,4 +56,3 @@ class TestSymbolicExtraction(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -27,6 +27,10 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/data_pipeli
 
 - 定义：`net_load = load - wind - solar`（耦合负荷/净负荷）
 - 残差/变化量建模：`delta_load = load - load_lag_1`，`delta_net_load = net_load - net_load_lag_1`
+- 多步 horizon（推荐用于让外生物理因子更“有胜算”）：可生成 `delta_*_h{n}` 目标列，例如：
+  - `delta_load_h6 = load - load_lag_6`
+  - `delta_net_load_h12 = net_load - net_load_lag_12`
+  - `delta_wind_h24 = wind - wind_lag_24`，`delta_solar_h24 = solar - solar_lag_24`
 - 工程物理代理特征（自动归一化并写入 scaler_params）：
   - `wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c`
 
@@ -34,6 +38,7 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/data_pipeli
 # 从已有 Phase-1 data_run 派生出一个新 data_run（不重新下载原始数据）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/derive_dataset.py \
   --source-data-run-id <data_run_id> \
+  --horizon-steps 1,6,12,24 \
   --add-physics-proxies \
   --net-load-lag-steps 1,12,48 \
   --degree-base-c 18
@@ -66,6 +71,9 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/smoke_test.
 # Phase 2: KAN 训练（输出 checkpoint/model.pt + predictions_test.parquet）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id <data_run_id> --target load
 
+# （可选）使用 GPU T4 加速 Phase 2（若你的账号有 GPU 权限）
+modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id <data_run_id> --target load --use-gpu
+
 # Phase 3: 符号提取（输出 formula.sympy.txt / formula.tex / predictions_test.parquet）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id>
 
@@ -73,7 +81,7 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symboli
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id <kan_train_run_id> --use-gpu
 ```
 
-若训练/符号提取的目标是 `delta_load` / `delta_net_load`，可在本地将 test 预测重建回绝对序列（便于论文图表对比）：
+若训练/符号提取的目标是 `delta_*` 或 `delta_*_h{n}`（含 `delta_wind_h{n}` / `delta_solar_h{n}`），可在本地将 test 预测重建回绝对序列（便于论文图表对比）：
 
 ```bash
 python3 /Users/vfch/Documents/project/graduation-design/scripts/reconstruct_predictions.py --run runs/<run_id>
@@ -97,6 +105,7 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_to
 # （可选）基线也可用 GPU T4，并将特征/训练预算对齐到某个 KAN 训练 run（避免“KAN 特调训练长度”造成不公平观感）
 modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py \
   --data-run-id <data_run_id> \
+  --run-id <deterministic_run_id> \
   --model-type mlp \
   --target load \
   --use-gpu \
@@ -114,6 +123,14 @@ modal run /Users/vfch/Documents/project/graduation-design/modal_jobs/pysr_baseli
 ```bash
 # 对比表 + Pareto 简图 + seasonal breakdown + transfer gap（如包含 transfer run）
 python3 /Users/vfch/Documents/project/graduation-design/scripts/evaluate_runs.py --run runs/<id1> --run runs/<id2> ...
+
+# 结构化分解（S3）：将 load/wind/solar 三条子模型预测组合为 net_load run（phase=05）
+python3 /Users/vfch/Documents/project/graduation-design/scripts/combine_net_load_runs.py \
+  --load-run runs/<load_run_id> \
+  --wind-run runs/<wind_run_id> \
+  --solar-run runs/<solar_run_id> \
+  --out-run-id <combo_run_id> \
+  --out-runs-dir runs
 
 # PySR 方程集 vs KAN symbolic 点（复杂度 vs RMSE）
 python3 /Users/vfch/Documents/project/graduation-design/scripts/plot_pareto_frontier.py --pysr-run runs/<pysr_id> --kan-symbolic-run runs/<sym_id>
@@ -144,4 +161,17 @@ python3 scripts/experiment_driver.py --dry-run
 
 # 真正执行：Modal 训练/符号提取 -> 同步 runs/ -> 本地评估与绘图 -> 生成 ASSET_INDEX
 python3 scripts/experiment_driver.py --execute
+```
+
+另：论文导向的 sweep driver `scripts/thesis_sweep_driver.py` 覆盖 S0–S3（horizon sweep / 消融 / 结构化分解 / 符号提取），并支持 detached+sync：
+
+```bash
+# dry-run（只写 manifest + 打印命令）
+python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_run_id> --dry-run --sweeps s1
+
+# 执行（可选 GPU）
+python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_run_id> --execute --use-gpu
+
+# detached：远端继续跑，本地稍后手动 sync
+python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_run_id> --execute --use-gpu --detached-remote
 ```

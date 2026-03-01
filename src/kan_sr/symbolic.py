@@ -193,12 +193,46 @@ def evaluate_symbolic_formula(
     *,
     feature_cols: list[str],
     x_df,
+    input_clip: dict[str, tuple[float, float]] | None = None,
+    safe_exp_clip: float | None = None,
 ) -> np.ndarray:
     """
     Vectorized evaluation of a SymPy expression on a DataFrame.
     """
-    f = sp.lambdify(feature_cols, expr, modules="numpy")
-    args = [np.asarray(x_df[c].to_numpy()) for c in feature_cols]
-    pred = f(*args)
-    return np.asarray(pred, dtype=np.float64).reshape(-1)
+    safe_exp_clip_f: float | None = None
+    if safe_exp_clip is not None:
+        safe_exp_clip_f = float(safe_exp_clip)
+        if safe_exp_clip_f <= 0:
+            safe_exp_clip_f = None
 
+    def safe_exp(x):
+        x = np.asarray(x, dtype=np.float64)
+        if safe_exp_clip_f is not None:
+            x = np.clip(x, -safe_exp_clip_f, safe_exp_clip_f)
+        return np.exp(x)
+
+    modules: Any = "numpy"
+    if safe_exp_clip_f is not None:
+        modules = [{"exp": safe_exp}, "numpy"]
+
+    f = sp.lambdify(feature_cols, expr, modules=modules)
+
+    args = []
+    for c in feature_cols:
+        arr = np.asarray(x_df[c].to_numpy())
+        if input_clip is not None and c in input_clip:
+            lo, hi = input_clip[c]
+            arr = np.clip(arr, float(lo), float(hi))
+        args.append(arr)
+    pred = f(*args)
+    arr = np.asarray(pred, dtype=np.float64)
+
+    n = int(len(x_df))
+    if arr.ndim == 0:
+        return np.full(n, float(arr))
+    arr = arr.reshape(-1)
+    if arr.size == 1 and n != 1:
+        return np.full(n, float(arr.item()))
+    if arr.size != n:
+        raise ValueError(f"Symbolic formula eval length mismatch: got={arr.size} expected={n}")
+    return arr

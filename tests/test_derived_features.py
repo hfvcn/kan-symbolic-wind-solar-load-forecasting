@@ -44,7 +44,24 @@ class TestDerivedFeatures(unittest.TestCase):
         out = add_daylight_ghi_feature(df)
         self.assertTrue(np.allclose(out["ghi_day_w_m2"].to_numpy(dtype=np.float64), np.asarray([0.0, 100.0], dtype=np.float64)))
 
+    def test_normalize_horizon_steps_default_includes_1(self) -> None:
+        from src.data.derived import normalize_horizon_steps
+
+        self.assertEqual(normalize_horizon_steps(None), [1])
+
+    def test_normalize_horizon_steps_dedup_sort_and_include_1(self) -> None:
+        from src.data.derived import normalize_horizon_steps
+
+        self.assertEqual(normalize_horizon_steps([12, 6, 6]), [1, 6, 12])
+
+    def test_normalize_horizon_steps_validation(self) -> None:
+        from src.data.derived import normalize_horizon_steps
+
+        with self.assertRaises(ValueError):
+            normalize_horizon_steps([0])
+        with self.assertRaises(ValueError):
+            normalize_horizon_steps([49], max_steps=48)
+
 
 if __name__ == "__main__":
     unittest.main()
-

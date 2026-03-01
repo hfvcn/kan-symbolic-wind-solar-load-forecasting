@@ -1,21 +1,9 @@
 """
 Derived dataset builder (Phase 1.5) as a Modal job.
 
-Why this exists:
-  - For 5-minute load forecasting, `load_lag_1` (persistence) dominates and
-    symbolic formulas degenerate into trivial autoregressive expressions.
-  - To better match the thesis goal (discover *physical* factors), we often
-    want to model *changes* (delta/residual) and/or net load, and add a few
-    physics-oriented proxy features.
-
 This job takes an existing Phase-1 `data_run_id` (processed splits + scaler_params)
-and produces a new data run with extra target columns and engineered features.
-
-Outputs:
-  /vol/runs/<run_id>/
-    payload.json
-    processed/{train,val,test}_<timestamp>.parquet
-    artifacts/scaler_params.json   (extended with newly-normalized engineered features)
+and produces a new data run with extra target columns + engineered features
+for delta/net-load/horizon experiments.
 """
 
 from __future__ import annotations
@@ -56,6 +44,7 @@ image = (
         "numpy>=1.24",
         "pandas>=2.0",
         "pyarrow>=14.0",
+        "scikit-learn>=1.3",
     )
     .env({"PYTHONPATH": "/root/project"})
     .add_local_dir(SRC_DIR, remote_path="/root/project/src")
@@ -91,6 +80,7 @@ def derive_dataset(
     source_timestamp: str | None = None,
     run_id: str | None = None,
     degree_base_c: float = 18.0,
+    horizon_steps: list[int] | None = None,
     net_load_lag_steps: list[int] | None = None,
     add_physics_proxies: bool = True,
 ) -> dict[str, Any]:
@@ -106,6 +96,7 @@ def derive_dataset(
         compute_net_load,
         extend_scaler_params,
         fit_zscore,
+        normalize_horizon_steps,
     )
     from src.data.split import inverse_transform, load_splits_from_parquet, save_splits_to_parquet
 
@@ -129,6 +120,8 @@ def derive_dataset(
 
     train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=source_timestamp)
 
+    horizons = normalize_horizon_steps(horizon_steps, max_steps=48, include_1=True)
+
     # Base series (may be normalized or raw depending on source run); inverse_transform
     # makes this robust by only touching columns present in scaler_params.feature_names.
     def base_raw(df: pd.DataFrame) -> pd.DataFrame:
@@ -148,19 +141,21 @@ def derive_dataset(
                 cols.append(name)
         return inverse_transform(df[cols], scaler_params)
 
-    # Ensure we always have lag-1 available for delta targets.
-    net_steps = sorted({1, *(net_load_lag_steps or [1, 12, 48])})
+    net_steps = sorted({*horizons, *(net_load_lag_steps or [1, 12, 48])})
 
     def add_targets(df: pd.DataFrame) -> pd.DataFrame:
         b = base_raw(df)
-        lags = lag_raw(df, steps=[1])
+        lags = lag_raw(df, steps=horizons)
         out = df.copy()
         out["net_load"] = compute_net_load(b["load"], b["wind"], b["solar"])
-        out["delta_load"] = compute_delta(b["load"], lags["load_lag_1"])
-        out["delta_net_load"] = compute_delta(
-            out["net_load"],
-            compute_net_load(lags["load_lag_1"], lags["wind_lag_1"], lags["solar_lag_1"]),
-        )
+        for h in horizons:
+            out[f"delta_load_h{h}"] = compute_delta(b["load"], lags[f"load_lag_{h}"])
+            out[f"delta_wind_h{h}"] = compute_delta(b["wind"], lags[f"wind_lag_{h}"])
+            out[f"delta_solar_h{h}"] = compute_delta(b["solar"], lags[f"solar_lag_{h}"])
+            nl_lag_h = compute_net_load(lags[f"load_lag_{h}"], lags[f"wind_lag_{h}"], lags[f"solar_lag_{h}"])
+            out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], nl_lag_h)
+        out["delta_load"] = out["delta_load_h1"]
+        out["delta_net_load"] = out["delta_net_load_h1"]
         return out
 
     train_df2 = add_targets(train_df)
@@ -239,6 +234,10 @@ def derive_dataset(
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
     paths = save_splits_to_parquet(train_df4, val_df4, test_df4, processed_dir, timestamp)
 
+    target_cols = ["net_load", "delta_load", "delta_net_load"]
+    for h in horizons:
+        target_cols.extend([f"delta_load_h{h}", f"delta_net_load_h{h}", f"delta_wind_h{h}", f"delta_solar_h{h}"])
+
     out_payload = {
         "run_id": run_id,
         "phase": "01.5-derived-dataset",
@@ -246,12 +245,13 @@ def derive_dataset(
         "source_data_run_id": source_data_run_id,
         "source_timestamp": source_timestamp,
         "degree_base_c": float(degree_base_c),
+        "horizon_steps": list(horizons),
         "net_load_lag_steps": list(net_steps),
         "add_physics_proxies": bool(add_physics_proxies),
         "timestamp": timestamp,
         "rows": {"train": int(len(train_df4)), "val": int(len(val_df4)), "test": int(len(test_df4))},
         "added_columns": {
-            "targets": ["net_load", "delta_load", "delta_net_load"],
+            "targets": sorted(set(target_cols)),
             "net_load_lags": [f"net_load_lag_{k}" for k in net_steps],
             "engineered_features": list(eng_stats.keys()),
         },
@@ -271,17 +271,20 @@ def main(
     source_timestamp: str = "",
     run_id: str = "",
     degree_base_c: float = 18.0,
+    horizon_steps: str = "1",
     net_load_lag_steps: str = "1,12,48",
     add_physics_proxies: bool = True,
 ) -> None:
     run_id_opt = run_id.strip() or None
     ts_opt = source_timestamp.strip() or None
+    horizons = _parse_csv_ints(horizon_steps, name="horizon_steps")
     steps = _parse_csv_ints(net_load_lag_steps, name="net_load_lag_steps")
     result = derive_dataset.remote(
         source_data_run_id,
         source_timestamp=ts_opt,
         run_id=run_id_opt,
         degree_base_c=float(degree_base_c),
+        horizon_steps=horizons,
         net_load_lag_steps=steps,
         add_physics_proxies=bool(add_physics_proxies),
     )

@@ -18,6 +18,7 @@ This script writes:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -33,11 +34,11 @@ from src.data.split import inverse_transform
 from src.kan_sr.metrics import mae, r2, rmse
 
 
-def _safe_read_json(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {}
+_DELTA_TARGET_RE = re.compile(r"^delta_(load|net_load|wind|solar)(?:_h(\d+))?$")
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
 
 
 def _infer_target_col(payload: dict[str, Any]) -> str | None:
@@ -55,20 +56,35 @@ def _infer_data_ref(payload: dict[str, Any]) -> tuple[str | None, str | None]:
     return (str(data_run_id) if data_run_id else None, str(data_ts) if data_ts else None)
 
 
+def _delta_reconstruction_spec(target_col: str) -> tuple[str, str] | None:
+    m = _DELTA_TARGET_RE.match(str(target_col))
+    if not m:
+        return None
+    base = str(m.group(1))
+    h = int(m.group(2) or "1")
+    if h < 1:
+        raise ValueError(f"Invalid horizon in target_col: {target_col!r}")
+    if base == "load":
+        return ("load", f"load_lag_{h}")
+    if base == "net_load":
+        return ("net_load", f"net_load_lag_{h}")
+    if base == "wind":
+        return ("wind", f"wind_lag_{h}")
+    if base == "solar":
+        return ("solar", f"solar_lag_{h}")
+    return None
+
+
 def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, data_timestamp: str) -> bool:
     artifacts = run_dir / "artifacts"
     pred_path = artifacts / "predictions_test.parquet"
     if not pred_path.exists():
         return False
 
-    if target_col == "delta_load":
-        base_name = "load"
-        lag_col = "load_lag_1"
-    elif target_col == "delta_net_load":
-        base_name = "net_load"
-        lag_col = "net_load_lag_1"
-    else:
+    spec = _delta_reconstruction_spec(target_col)
+    if spec is None:
         return False
+    base_name, lag_col = spec
 
     data_run = REPO_ROOT / "runs" / data_run_id
     test_path = data_run / "processed" / f"test_{data_timestamp}.parquet"
@@ -115,16 +131,13 @@ def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, 
     # Optional: formula reconstruction for symbolic runs
     sym_path = artifacts / "formula.sympy.txt"
     if sym_path.exists():
-        try:
-            import sympy as sp
+        import sympy as sp
 
-            expr_delta = sp.sympify(sym_path.read_text().strip())
-            base_sym = sp.Symbol(lag_col)
-            expr_full = base_sym + expr_delta
-            (artifacts / "formula_reconstructed.sympy.txt").write_text(str(expr_full))
-            (artifacts / "formula_reconstructed.tex").write_text(sp.latex(expr_full))
-        except Exception:
-            pass
+        expr_delta = sp.sympify(sym_path.read_text().strip())
+        base_sym = sp.Symbol(lag_col)
+        expr_full = base_sym + expr_delta
+        (artifacts / "formula_reconstructed.sympy.txt").write_text(str(expr_full))
+        (artifacts / "formula_reconstructed.tex").write_text(sp.latex(expr_full))
 
     return True
 
@@ -142,25 +155,20 @@ def main() -> None:
         if not payload_path.exists():
             skipped += 1
             continue
-        payload = _safe_read_json(payload_path)
+        payload = _read_json(payload_path)
         target_col = _infer_target_col(payload)
         data_run_id, data_ts = _infer_data_ref(payload)
         if not target_col or not data_run_id or not data_ts:
             skipped += 1
             continue
-        if target_col not in {"delta_load", "delta_net_load"}:
+        if _delta_reconstruction_spec(target_col) is None:
             skipped += 1
             continue
-        try:
-            did = _reconstruct_delta_run(run_dir, target_col=target_col, data_run_id=data_run_id, data_timestamp=data_ts)
-            ok += int(bool(did))
-        except Exception as e:
-            print(f"[WARN] Reconstruction failed for {run_dir}: {e}")
-            continue
+        did = _reconstruct_delta_run(run_dir, target_col=target_col, data_run_id=data_run_id, data_timestamp=data_ts)
+        ok += int(bool(did))
 
     print(f"[reconstruct] done: ok={ok} skipped={skipped}")
 
 
 if __name__ == "__main__":
     main()
-
