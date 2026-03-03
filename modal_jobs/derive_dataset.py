@@ -83,6 +83,9 @@ def derive_dataset(
     horizon_steps: list[int] | None = None,
     net_load_lag_steps: list[int] | None = None,
     add_physics_proxies: bool = True,
+    add_hub_wind: bool = True,
+    add_temp_ghi: bool = True,
+    add_absolute_targets: bool = True,
 ) -> dict[str, Any]:
     import pandas as pd
 
@@ -90,7 +93,9 @@ def derive_dataset(
         ZScoreStats,
         add_daylight_ghi_feature,
         add_degree_features,
+        add_ghi_temp_corrected_feature,
         add_wind_cubic_feature,
+        add_wind_hub_feature,
         apply_zscore,
         compute_delta,
         compute_net_load,
@@ -154,6 +159,10 @@ def derive_dataset(
             out[f"delta_solar_h{h}"] = compute_delta(b["solar"], lags[f"solar_lag_{h}"])
             nl_lag_h = compute_net_load(lags[f"load_lag_{h}"], lags[f"wind_lag_{h}"], lags[f"solar_lag_{h}"])
             out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], nl_lag_h)
+            if add_absolute_targets:
+                out[f"wind_h{h}"] = b["wind"]
+                out[f"solar_h{h}"] = b["solar"]
+                out[f"net_load_h{h}"] = out["net_load"]
         out["delta_load"] = out["delta_load_h1"]
         out["delta_net_load"] = out["delta_net_load_h1"]
         return out
@@ -206,8 +215,16 @@ def derive_dataset(
         work = add_wind_cubic_feature(work)
         work = add_daylight_ghi_feature(work)
         work = add_degree_features(work, base_c=float(degree_base_c))
+        if add_hub_wind:
+            work = add_wind_hub_feature(work)
+        if add_temp_ghi:
+            work = add_ghi_temp_corrected_feature(work)
 
         engineered_cols = ["wind_speed_10m_m_s_cubed", "ghi_day_w_m2", "cdd_18c", "hdd_18c"]
+        if add_hub_wind:
+            engineered_cols.append("wind_speed_hub_est")
+        if add_temp_ghi:
+            engineered_cols.append("ghi_temp_corr_w_m2")
         new_stats: dict[str, ZScoreStats] = {}
         for col in engineered_cols:
             raw = work[col]
@@ -237,6 +254,8 @@ def derive_dataset(
     target_cols = ["net_load", "delta_load", "delta_net_load"]
     for h in horizons:
         target_cols.extend([f"delta_load_h{h}", f"delta_net_load_h{h}", f"delta_wind_h{h}", f"delta_solar_h{h}"])
+        if add_absolute_targets:
+            target_cols.extend([f"wind_h{h}", f"solar_h{h}", f"net_load_h{h}"])
 
     out_payload = {
         "run_id": run_id,
@@ -248,6 +267,9 @@ def derive_dataset(
         "horizon_steps": list(horizons),
         "net_load_lag_steps": list(net_steps),
         "add_physics_proxies": bool(add_physics_proxies),
+        "add_hub_wind": bool(add_hub_wind),
+        "add_temp_ghi": bool(add_temp_ghi),
+        "add_absolute_targets": bool(add_absolute_targets),
         "timestamp": timestamp,
         "rows": {"train": int(len(train_df4)), "val": int(len(val_df4)), "test": int(len(test_df4))},
         "added_columns": {
@@ -274,6 +296,9 @@ def main(
     horizon_steps: str = "1",
     net_load_lag_steps: str = "1,12,48",
     add_physics_proxies: bool = True,
+    add_hub_wind: bool = True,
+    add_temp_ghi: bool = True,
+    add_absolute_targets: bool = True,
 ) -> None:
     run_id_opt = run_id.strip() or None
     ts_opt = source_timestamp.strip() or None
@@ -287,5 +312,8 @@ def main(
         horizon_steps=horizons,
         net_load_lag_steps=steps,
         add_physics_proxies=bool(add_physics_proxies),
+        add_hub_wind=bool(add_hub_wind),
+        add_temp_ghi=bool(add_temp_ghi),
+        add_absolute_targets=bool(add_absolute_targets),
     )
     print(json.dumps(result, indent=2))

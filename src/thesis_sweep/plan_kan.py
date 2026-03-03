@@ -18,8 +18,16 @@ def _plan_kan_train_cmd(
     lag_steps: str,
     include_base: bool,
     lag_series: str,
+    sparsify_lamb: float | None = None,
+    sparsify_lamb_entropy: float | None = None,
+    hidden_width_override: int | None = None,
+    force_no_warmup_update_grid: bool = False,
 ) -> list[str]:
     hidden_layers = str(args.kan_hidden_layers).strip()
+    # Use caller-supplied lamb override; fall back to CLI arg; fall back to modal default (0.01).
+    lamb = sparsify_lamb if sparsify_lamb is not None else getattr(args, "sparsify_lamb", None)
+    lamb_entropy = sparsify_lamb_entropy if sparsify_lamb_entropy is not None else getattr(args, "sparsify_lamb_entropy", None)
+    hw = str(hidden_width_override) if hidden_width_override is not None else (str(args.kan_hidden_width).strip() or "10")
     cmd_args = [
         "--data-run-id",
         derived_id,
@@ -30,7 +38,7 @@ def _plan_kan_train_cmd(
         "--target",
         target_col,
         "--hidden-width",
-        str(args.kan_hidden_width).strip() or "10",
+        hw,
         "--max-train-rows",
         "50000",
         "--include-groups",
@@ -46,11 +54,15 @@ def _plan_kan_train_cmd(
         "--refine-steps",
         str(KAN_STEPS["refine_steps"]),
     ]
+    if lamb is not None:
+        cmd_args += ["--sparsify-lamb", str(float(lamb))]
+    if lamb_entropy is not None:
+        cmd_args += ["--sparsify-lamb-entropy", str(float(lamb_entropy))]
     if hidden_layers:
         cmd_args += ["--hidden-layers", hidden_layers]
     if not include_base:
         cmd_args.append("--no-include-base")
-    if bool(args.no_warmup_update_grid):
+    if bool(args.no_warmup_update_grid) or force_no_warmup_update_grid:
         cmd_args.append("--no-warmup-update-grid")
     if bool(args.use_gpu):
         cmd_args.append("--use-gpu")
@@ -72,6 +84,10 @@ def _plan_kan_train(
     lag_steps: str,
     include_base: bool,
     lag_series: str,
+    sparsify_lamb: float | None = None,
+    sparsify_lamb_entropy: float | None = None,
+    hidden_width_override: int | None = None,
+    force_no_warmup_update_grid: bool = False,
 ) -> tuple[PlannedCmd, str]:
     run_id = det_run_id(session_id, name)
     cmd = _plan_kan_train_cmd(
@@ -85,6 +101,10 @@ def _plan_kan_train(
         lag_steps=lag_steps,
         include_base=include_base,
         lag_series=lag_series,
+        sparsify_lamb=sparsify_lamb,
+        sparsify_lamb_entropy=sparsify_lamb_entropy,
+        hidden_width_override=hidden_width_override,
+        force_no_warmup_update_grid=force_no_warmup_update_grid,
     )
     return PlannedCmd(name="kan_train", run_id=run_id, cmd=cmd), run_id
 
@@ -192,6 +212,169 @@ def plan_s3(args: argparse.Namespace, *, session_id: str, detached: bool, derive
     return planned, mapping, comp_runs
 
 
+def plan_s0_physics(
+    args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str
+) -> tuple[list[PlannedCmd], dict[str, str], dict[str, str]]:
+    """物理因子专用实验（S0-physics）：松正则 lambda=0.005，直接预测风光分量增量。
+
+    目的：让 wind_speed_hub_est / ghi_temp_corr_w_m2 等物理量保住激活边，
+    进而显式进入符号回归公式。
+    """
+    planned: list[PlannedCmd] = []
+    mapping: dict[str, str] = {}
+    comp_runs: dict[str, str] = {}
+
+    configs = [
+        # (comp_key, name_suffix, target, groups, lag_steps_str, lag_series)
+        (
+            "physics_wind",
+            "s0p_wind_delta_h6",
+            "delta_wind_h6",
+            "cyclic,meteo_wind,meteo_irradiance,meteo_temp,solar_flag",
+            "12,24,48",
+            "wind",
+        ),
+        (
+            "physics_solar",
+            "s0p_solar_delta_h6",
+            "delta_solar_h6",
+            "cyclic,solar_geom,solar_flag,meteo_irradiance,meteo_temp",
+            "12,24,48",
+            "solar",
+        ),
+    ]
+    for comp_key, name, target_col, groups, lag_steps, lag_series in configs:
+        cmd, run_id = _plan_kan_train(
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            name=name,
+            target_col=target_col,
+            include_groups=groups,
+            lag_steps=lag_steps,
+            include_base=False,
+            lag_series=lag_series,
+            sparsify_lamb=0.005,          # 关键：松正则，防止物理量被剪
+            sparsify_lamb_entropy=1.5,    # 关键：降低熵惩罚
+        )
+        planned.append(cmd)
+        mapping[run_id] = target_col
+        comp_runs[comp_key] = run_id
+
+    return planned, mapping, comp_runs
+
+
+def plan_s4_pure(
+    args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str
+) -> tuple[list[PlannedCmd], dict[str, str], dict[str, str]]:
+    """方案 B — 纯物理（S4-Pure）：去掉所有 lag，切换到绝对值目标，强制模型从物理量学习。
+
+    hidden_width=15, include_base=False, sparsify_lamb=0.001, sparsify_lamb_entropy=1.0
+    """
+    planned: list[PlannedCmd] = []
+    mapping: dict[str, str] = {}
+    comp_runs: dict[str, str] = {}
+
+    configs = [
+        # (comp_key, name, target, groups)
+        (
+            "s4_wind",
+            "s4_pure_wind_abs_h6",
+            "wind_h6",
+            "cyclic,meteo_wind,meteo_irradiance,meteo_temp",
+        ),
+        (
+            "s4_solar",
+            "s4_pure_solar_abs_h6",
+            "solar_h6",
+            "cyclic,solar_geom,solar_flag,meteo_irradiance,meteo_temp",
+        ),
+        (
+            "s4_load",
+            "s4_pure_load_abs_h6",
+            "net_load_h6",
+            "cyclic,meteo_temp,meteo_degree,meteo_pressure,meteo_wind,meteo_irradiance,solar_flag",
+        ),
+    ]
+    for comp_key, name, target_col, groups in configs:
+        cmd, run_id = _plan_kan_train(
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            name=name,
+            target_col=target_col,
+            include_groups=groups,
+            lag_steps="none",
+            include_base=False,
+            lag_series="none",
+            sparsify_lamb=0.001,
+            sparsify_lamb_entropy=1.0,
+            hidden_width_override=15,
+            force_no_warmup_update_grid=True,
+        )
+        planned.append(cmd)
+        mapping[run_id] = target_col
+        comp_runs[comp_key] = run_id
+
+    return planned, mapping, comp_runs
+
+
+def plan_s0a_physics(
+    args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str
+) -> tuple[list[PlannedCmd], dict[str, str], dict[str, str]]:
+    """方案 A — 松正则 + lag（S0A）：保留 lag，进一步降低正则到 0.001，看物理量能否存活。
+
+    hidden_width=15, include_base=False, sparsify_lamb=0.001, sparsify_lamb_entropy=1.0
+    """
+    planned: list[PlannedCmd] = []
+    mapping: dict[str, str] = {}
+    comp_runs: dict[str, str] = {}
+
+    configs = [
+        # (comp_key, name, target, groups, lag_steps, lag_series)
+        (
+            "s0a_wind",
+            "s0a_wind_delta_h6",
+            "delta_wind_h6",
+            "cyclic,meteo_wind,meteo_irradiance,meteo_temp,solar_flag",
+            "12,24,48",
+            "wind",
+        ),
+        (
+            "s0a_solar",
+            "s0a_solar_delta_h6",
+            "delta_solar_h6",
+            "cyclic,solar_geom,solar_flag,meteo_irradiance,meteo_temp",
+            "12,24,48",
+            "solar",
+        ),
+    ]
+    for comp_key, name, target_col, groups, lag_steps, lag_series in configs:
+        cmd, run_id = _plan_kan_train(
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            name=name,
+            target_col=target_col,
+            include_groups=groups,
+            lag_steps=lag_steps,
+            include_base=False,
+            lag_series=lag_series,
+            sparsify_lamb=0.001,
+            sparsify_lamb_entropy=1.0,
+            hidden_width_override=15,
+            force_no_warmup_update_grid=True,
+        )
+        planned.append(cmd)
+        mapping[run_id] = target_col
+        comp_runs[comp_key] = run_id
+
+    return planned, mapping, comp_runs
+
+
 def plan_kan_sweeps(args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str) -> tuple[list[PlannedCmd], dict[str, str], dict[str, str]]:
     sweeps = {s.strip().lower() for s in str(args.sweeps).split(",") if s.strip()}
     planned: list[PlannedCmd] = []
@@ -211,6 +394,20 @@ def plan_kan_sweeps(args: argparse.Namespace, *, session_id: str, detached: bool
         planned += cmds
         mapping.update(m)
         comp_runs.update(cr)
+        # S0-physics always runs alongside S3 to get physical factor formulas
+        cmds, m, cr = plan_s0_physics(args, session_id=session_id, detached=detached, derived_id=derived_id)
+        planned += cmds
+        mapping.update(m)
+        comp_runs.update(cr)
+    if "s4" in sweeps:
+        cmds, m, cr = plan_s4_pure(args, session_id=session_id, detached=detached, derived_id=derived_id)
+        planned += cmds
+        mapping.update(m)
+        comp_runs.update(cr)
+    if "s0a" in sweeps:
+        cmds, m, cr = plan_s0a_physics(args, session_id=session_id, detached=detached, derived_id=derived_id)
+        planned += cmds
+        mapping.update(m)
+        comp_runs.update(cr)
 
     return planned, mapping, comp_runs
-

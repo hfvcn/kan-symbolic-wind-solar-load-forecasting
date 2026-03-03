@@ -42,6 +42,8 @@ def plan_symbolic(
     detached: bool,
     kan_train_run_ids: list[str],
 ) -> tuple[list[PlannedCmd], list[str], list[str]]:
+    if bool(getattr(args, "no_symbolic", False)):
+        return [], [], []
     sweeps = {s.strip().lower() for s in str(args.sweeps).split(",") if s.strip()}
     if "s0" not in sweeps:
         return [], [], []

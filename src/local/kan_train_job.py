@@ -84,7 +84,9 @@ def _init_context(
     return KanTrainContext(run_id=rid, device=device, dirs=dirs, prepared=prepared, model=model, payload=payload, test_df=test_df)
 
 
-def _warmup_and_sparsify(ctx: KanTrainContext, *, cfg: TrainConfig, warmup_update_grid: bool) -> tuple[dict[str, float], Path]:
+def _warmup_and_sparsify(
+    ctx: KanTrainContext, *, cfg: TrainConfig, warmup_update_grid: bool
+) -> tuple[dict[str, float], dict[str, float], Path]:
     metrics_path = Path(ctx.dirs.run_dir) / "metrics.csv"
     fit_in_chunks(
         ctx.model,
@@ -126,7 +128,13 @@ def _warmup_and_sparsify(ctx: KanTrainContext, *, cfg: TrainConfig, warmup_updat
         },
         save_ckpt_path=Path(ctx.dirs.checkpoint_dir) / "model_sparsify.pt",
     )
-    return eval_unpruned, metrics_path
+    eval_sparsify = evaluate(ctx.model, ctx.prepared.dataset["test_input"], ctx.prepared.dataset["test_label"], target_scaler=ctx.prepared.target_scaler)
+    write_json(Path(ctx.dirs.artifacts_dir) / "eval_sparsify.json", eval_sparsify)
+    write_feature_importance_csv(
+        Path(ctx.dirs.artifacts_dir) / "feature_importance_sparsify.csv",
+        compute_feature_importance(ctx.model, ctx.prepared.feature_cols),
+    )
+    return eval_unpruned, eval_sparsify, metrics_path
 
 
 def _prune_and_refine(
@@ -134,9 +142,15 @@ def _prune_and_refine(
     *,
     cfg: TrainConfig,
     metrics_path: Path,
-    eval_unpruned: dict[str, float],
+    eval_sparsify: dict[str, float],
 ) -> tuple[Any, Any, dict[str, float | int], list[list[int]]]:
-    best = search_best_prune(ctx.model, ctx.prepared.dataset, target_scaler=ctx.prepared.target_scaler, baseline_rmse=float(eval_unpruned["rmse"]), cfg=cfg)
+    best = search_best_prune(
+        ctx.model,
+        ctx.prepared.dataset,
+        target_scaler=ctx.prepared.target_scaler,
+        baseline_rmse=float(eval_sparsify["rmse"]),
+        cfg=cfg,
+    )
     model = apply_prune(ctx.model, ctx.prepared.dataset, record=best)
     sparsity_final = compute_edge_sparsity(model).as_dict()
     write_json(Path(ctx.dirs.artifacts_dir) / "sparsity.json", {"best_candidate": best.candidate, **sparsity_final})
@@ -163,13 +177,20 @@ def _finalize(
     model,
     best,
     eval_unpruned: dict[str, float],
+    eval_sparsify: dict[str, float],
     sparsity: dict[str, float | int],
     model_width: list[list[int]],
 ) -> dict[str, Any]:
     payload = dict(ctx.payload)
     payload["model_width"] = model_width
     payload["completed_at"] = datetime.now(timezone.utc).isoformat()
-    payload["results"] = {"eval_unpruned": eval_unpruned, "eval_pruned": best.eval_val, "sparsity": sparsity, "prune_candidate": best.candidate}
+    payload["results"] = {
+        "eval_unpruned": eval_unpruned,
+        "eval_sparsify": eval_sparsify,
+        "eval_pruned": best.eval_val,
+        "sparsity": sparsity,
+        "prune_candidate": best.candidate,
+    }
     write_json(Path(ctx.dirs.run_dir) / "payload.json", payload)
 
     write_checkpoint(
@@ -225,7 +246,14 @@ def train_kan_local(
         lag_steps=lag_steps,
         max_train_rows=max_train_rows,
     )
-    eval_unpruned, metrics_path = _warmup_and_sparsify(ctx, cfg=cfg, warmup_update_grid=warmup_update_grid)
-    model, best, sparsity, model_width = _prune_and_refine(ctx, cfg=cfg, metrics_path=metrics_path, eval_unpruned=eval_unpruned)
-    return _finalize(ctx, model=model, best=best, eval_unpruned=eval_unpruned, sparsity=sparsity, model_width=model_width)
-
+    eval_unpruned, eval_sparsify, metrics_path = _warmup_and_sparsify(ctx, cfg=cfg, warmup_update_grid=warmup_update_grid)
+    model, best, sparsity, model_width = _prune_and_refine(ctx, cfg=cfg, metrics_path=metrics_path, eval_sparsify=eval_sparsify)
+    return _finalize(
+        ctx,
+        model=model,
+        best=best,
+        eval_unpruned=eval_unpruned,
+        eval_sparsify=eval_sparsify,
+        sparsity=sparsity,
+        model_width=model_width,
+    )

@@ -35,9 +35,13 @@ class TrainConfig:
 
 
 DEFAULT_PRUNE_CANDIDATES: tuple[dict[str, float], ...] = (
+    {"node_th": 0.01, "edge_th": 0.002},
+    {"node_th": 0.01, "edge_th": 0.005},
     {"node_th": 0.01, "edge_th": 0.01},
     {"node_th": 0.01, "edge_th": 0.03},
     {"node_th": 0.01, "edge_th": 0.05},
     {"node_th": 0.01, "edge_th": 0.08},
     {"node_th": 0.02, "edge_th": 0.10},
+    {"node_th": 0.02, "edge_th": 0.15},
+    {"node_th": 0.03, "edge_th": 0.20},
 )

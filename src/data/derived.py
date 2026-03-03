@@ -138,6 +138,69 @@ def add_daylight_ghi_feature(
     return out
 
 
+def add_wind_hub_feature(
+    df: pd.DataFrame,
+    *,
+    wind_col: str = "wind_speed_10m_m_s",
+    hub_height: float = 100.0,
+    meas_height: float = 10.0,
+    alpha: float = 0.14,
+    out_col: str = "wind_speed_hub_est",
+) -> pd.DataFrame:
+    """
+    Estimate hub-height wind speed via the power-law wind profile:
+
+        v_hub = v_10m * (hub_height / meas_height) ** alpha
+
+    ERCOT wind farms typically have hub heights ~100 m.
+    The Hellman exponent alpha=0.14 is the standard open-terrain default.
+    This feature is much more correlated with actual ERCOT wind generation
+    than the 10 m measurement.
+    """
+    if wind_col not in df.columns:
+        raise ValueError(f"wind_col not found: {wind_col}")
+    v = pd.to_numeric(df[wind_col], errors="coerce").astype(np.float64)
+    ratio = float(hub_height) / float(meas_height)
+    out = df.copy()
+    out[out_col] = v * (ratio ** float(alpha))
+    return out
+
+
+def add_ghi_temp_corrected_feature(
+    df: pd.DataFrame,
+    *,
+    ghi_col: str = "ghi_w_m2",
+    temp_col: str = "temp_2m_c",
+    is_night_col: str = "is_night",
+    temp_coeff: float = 0.004,
+    temp_ref_c: float = 25.0,
+    out_col: str = "ghi_temp_corr_w_m2",
+) -> pd.DataFrame:
+    """
+    Temperature-corrected GHI proxy for PV output:
+
+        ghi_corr = ghi * (1 - temp_coeff * (temp - temp_ref)) * (1 - is_night)
+
+    temp_coeff=0.004 /°C is the standard crystalline silicon efficiency loss.
+    This captures both irradiance and temperature effects on PV generation.
+    """
+    if ghi_col not in df.columns:
+        raise ValueError(f"ghi_col not found: {ghi_col}")
+    if temp_col not in df.columns:
+        raise ValueError(f"temp_col not found: {temp_col}")
+    ghi = pd.to_numeric(df[ghi_col], errors="coerce").astype(np.float64)
+    temp = pd.to_numeric(df[temp_col], errors="coerce").astype(np.float64)
+    correction = 1.0 - float(temp_coeff) * (temp - float(temp_ref_c))
+    correction = correction.clip(lower=0.0)  # physically must be non-negative
+    out = df.copy()
+    if is_night_col in df.columns:
+        night = df[is_night_col].astype(bool)
+        out[out_col] = ghi * correction * (~night).astype(np.float64)
+    else:
+        out[out_col] = ghi * correction
+    return out
+
+
 def extend_scaler_params(
     scaler_params: dict[str, Any],
     new_stats: dict[str, ZScoreStats],

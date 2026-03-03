@@ -516,7 +516,7 @@ def run_baseline(
     )
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600, gpu="T4")
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600, gpu="L4")
 def run_baseline_gpu(
     data_run_id: str,
     *,

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+import logging
+from typing import Any
 
 import torch
 
@@ -9,6 +10,8 @@ from src.kan_sr.prune import prune_kan_model
 from src.kan_sr.sparsity import compute_edge_sparsity
 from src.local.kan_train_config import DEFAULT_PRUNE_CANDIDATES, TrainConfig
 from src.local.kan_train_core import evaluate
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -27,26 +30,6 @@ class PruneRecord:
             "rmse_ok": bool(self.rmse_ok),
             "sparse_ok": bool(self.sparse_ok),
         }
-
-
-def _is_better(best: PruneRecord, rec: PruneRecord) -> bool:
-    best_good = bool(best.rmse_ok and best.sparse_ok)
-    rec_good = bool(rec.rmse_ok and rec.sparse_ok)
-    if rec_good and not best_good:
-        return True
-    if rec_good and best_good:
-        if float(rec.sparsity["pruned_ratio"]) > float(best.sparsity["pruned_ratio"]):
-            return True
-        if float(rec.sparsity["pruned_ratio"]) == float(best.sparsity["pruned_ratio"]) and float(rec.eval_val["rmse"]) < float(best.eval_val["rmse"]):
-            return True
-        return False
-    if (not rec_good) and (not best_good):
-        if float(rec.sparsity["pruned_ratio"]) > float(best.sparsity["pruned_ratio"]):
-            return True
-        if float(rec.sparsity["pruned_ratio"]) == float(best.sparsity["pruned_ratio"]) and float(rec.eval_val["rmse"]) < float(best.eval_val["rmse"]):
-            return True
-        return False
-    return False
 
 
 def _eval_candidate(
@@ -73,6 +56,34 @@ def _eval_candidate(
     )
 
 
+def _pick_best_prune_record(records: list[PruneRecord]) -> tuple[PruneRecord, str]:
+    """
+    Match Modal pruning selection semantics:
+    - If both constraints satisfied: prefer lowest RMSE, then higher sparsity.
+    - If only RMSE satisfied: prefer higher sparsity, then lower RMSE.
+    - If only sparsity satisfied: pick lowest RMSE among those.
+    - Else: pick lowest RMSE overall.
+    """
+    if not records:
+        raise ValueError("records must be non-empty")
+
+    good = [r for r in records if r.rmse_ok and r.sparse_ok]
+    rmse_only = [r for r in records if r.rmse_ok and (not r.sparse_ok)]
+    sparse_only = [r for r in records if (not r.rmse_ok) and r.sparse_ok]
+
+    if good:
+        best = min(good, key=lambda r: (float(r.eval_val["rmse"]), -float(r.sparsity["pruned_ratio"])))
+        return best, "both_ok"
+    if rmse_only:
+        best = max(rmse_only, key=lambda r: (float(r.sparsity["pruned_ratio"]), -float(r.eval_val["rmse"])))
+        return best, "rmse_ok_only"
+    if sparse_only:
+        best = min(sparse_only, key=lambda r: float(r.eval_val["rmse"]))
+        return best, "sparse_ok_only"
+    best = min(records, key=lambda r: float(r.eval_val["rmse"]))
+    return best, "min_rmse"
+
+
 def search_best_prune(
     model: Any,
     dataset: dict[str, torch.Tensor],
@@ -85,22 +96,26 @@ def search_best_prune(
     state_before = {k: v.detach().clone() for k, v in model.state_dict().items()}
     _ = model(dataset["train_input"])
 
-    best: Optional[PruneRecord] = None
+    prune_records: list[PruneRecord] = []
     for cand in candidates:
         model.load_state_dict(state_before, strict=True)
-        rec = _eval_candidate(
-            model,
-            dataset,
-            target_scaler=target_scaler,
-            baseline_rmse=float(baseline_rmse),
-            cfg=cfg,
-            cand=dict(cand),
-        )
-        if best is None or _is_better(best, rec):
-            best = rec
+        try:
+            rec = _eval_candidate(
+                model,
+                dataset,
+                target_scaler=target_scaler,
+                baseline_rmse=float(baseline_rmse),
+                cfg=cfg,
+                cand=dict(cand),
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Prune candidate failed (node_th=%s edge_th=%s): %s", cand.get("node_th"), cand.get("edge_th"), e)
+            continue
+        prune_records.append(rec)
 
-    if best is None:
+    if not prune_records:
         raise RuntimeError("No prune candidate succeeded")
+    best, _mode = _pick_best_prune_record(prune_records)
     return best
 
 
@@ -112,4 +127,3 @@ def apply_prune(model: Any, dataset: dict[str, torch.Tensor], *, record: PruneRe
         node_th=float(record.candidate["node_th"]),
         edge_th=float(record.candidate["edge_th"]),
     )
-

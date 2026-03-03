@@ -9,13 +9,17 @@ Outputs (per MODAL.md contract) to:
     artifacts/
       sparsity.json
       feature_importance.csv
+      feature_importance_sparsify.csv
       eval_unpruned.json
+      eval_sparsify.json
       eval_pruned.json
+      prune_search.json
 """
 
 from __future__ import annotations
 
 import csv
+import fnmatch
 import json
 import logging
 import os
@@ -227,6 +231,29 @@ def _compute_feature_importance(model: Any, feature_cols: list[str]) -> list[dic
     return rows
 
 
+def _validate_required_feature_patterns(feature_cols: list[str], patterns: tuple[str, ...]) -> None:
+    missing = [p for p in patterns if not any(fnmatch.fnmatch(c, p) for c in feature_cols)]
+    if missing:
+        raise ValueError(f"Required prune feature patterns did not match any feature columns: {missing}")
+
+
+def _check_required_feature_patterns(
+    feature_cols: list[str],
+    active_edges_by_feature: dict[str, int],
+    patterns: tuple[str, ...],
+) -> dict[str, Any]:
+    details: list[dict[str, Any]] = []
+    ok = True
+    for pat in patterns:
+        matched = [c for c in feature_cols if fnmatch.fnmatch(c, pat)]
+        active = [c for c in matched if int(active_edges_by_feature.get(c, 0)) > 0]
+        pat_ok = len(active) > 0
+        details.append({"pattern": pat, "matched": matched, "active": active, "ok": bool(pat_ok)})
+        ok = ok and pat_ok
+    missing = [d["pattern"] for d in details if not d["ok"]]
+    return {"ok": bool(ok), "missing": missing, "details": details}
+
+
 @dataclass(frozen=True)
 class TrainConfig:
     target_col: str = "load"
@@ -259,6 +286,8 @@ class TrainConfig:
     # pruning targets
     target_pruned_ratio: float = 0.8
     max_rmse_degrade_ratio: float = 1.1  # within 10%
+    prune_require_features: tuple[str, ...] = ()
+    prune_require_strict: bool = False
 
 
 def _move_dataset_to_device(dataset: dict[str, Any], device: str) -> dict[str, Any]:
@@ -434,6 +463,8 @@ def _train_kan_impl(
         lag_steps=lag_steps,
         lag_series=lag_series,
     )
+    if cfg.prune_require_features:
+        _validate_required_feature_patterns(feature_cols, cfg.prune_require_features)
 
     dataset, ds_meta = build_kan_dataset(train_df, val_df, target_col=cfg.target_col, feature_cols=feature_cols, scale_target=True)
     target_scaler = ds_meta.get("target_scaler")
@@ -449,16 +480,7 @@ def _train_kan_impl(
     # Build model
     in_dim = len(feature_cols)
     width = [[in_dim, 0], *[[h, int(cfg.hidden_mult)] for h in hidden_sizes()], [1, 0]]
-    model = KAN(
-        width=width,
-        grid=cfg.grid,
-        k=cfg.k,
-        mult_arity=cfg.mult_arity,
-        grid_range=[cfg.grid_range_min, cfg.grid_range_max],
-        seed=cfg.seed,
-        auto_save=False,
-        device=device_name,
-    )
+
     dataset = _move_dataset_to_device(dataset, device_name)
 
     # Persist payload
@@ -481,25 +503,33 @@ def _train_kan_impl(
         "env": _torch_env_info(),
     }
     _write_json(payload_path, payload)
-    volume.commit()
 
-    # Preflight: ensure dataset/model forward are finite (fail fast with artifacts).
+    # Preflight: ensure dataset is finite.
     _write_json(
         artifacts_dir / "dataset_stats.json",
         {k: _tensor_stats(v) for k, v in dataset.items()},
     )
     _assert_finite_dataset(dataset)
-    with torch.no_grad():
-        y0 = model(dataset["train_input"][: min(512, dataset["train_input"].shape[0])])
-        if not torch.isfinite(y0).all().item():
-            _write_json(artifacts_dir / "preflight_output_stats.json", {"y0": _tensor_stats(y0)})
-            volume.commit()
-            raise RuntimeError("Model forward produced non-finite values at initialization")
 
     # Quick input range report
     x_np = train_df[feature_cols].to_numpy()
     out_of_range = float(np.mean((x_np < cfg.grid_range_min) | (x_np > cfg.grid_range_max)))
     _write_json(artifacts_dir / "input_range_report.json", {"grid_range": [cfg.grid_range_min, cfg.grid_range_max], "out_of_range_fraction": out_of_range})
+    volume.commit()
+
+    model = KAN(
+        width=width,
+        grid=cfg.grid,
+        k=cfg.k,
+        mult_arity=cfg.mult_arity,
+        grid_range=[cfg.grid_range_min, cfg.grid_range_max],
+        seed=cfg.seed,
+        auto_save=False,
+        device=device_name,
+    )
+    # Enable efficiency mode by disabling the symbolic branch during training.
+    # This can speed up training by 5-10x without affecting spline learning.
+    model.speed()
 
     # Stage A: warmup (fit) with chunked checkpointing
     _fit_in_chunks(
@@ -521,7 +551,7 @@ def _train_kan_impl(
         vol=volume,
     )
 
-    # Eval unpruned on val
+    # Eval after warmup (pre-sparsify)
     eval_unpruned = _evaluate(
         model,
         dataset["test_input"],
@@ -531,6 +561,10 @@ def _train_kan_impl(
     _write_json(artifacts_dir / "eval_unpruned.json", eval_unpruned)
 
     # Stage B: sparsify
+    # Re-enable save_act so that lamb (regularisation) is actually applied.
+    # model.speed() disables save_act during warmup for performance, but
+    # KAN.fit() silently sets lamb=0 when save_act is False.
+    model.save_act = True
     _fit_in_chunks(
         model,
         dataset,
@@ -552,16 +586,41 @@ def _train_kan_impl(
         vol=volume,
     )
 
+    # Eval after sparsify (pre-prune): this is the correct baseline for pruning
+    # degradation, since pruning happens after sparsify.
+    eval_sparsify = _evaluate(
+        model,
+        dataset["test_input"],
+        dataset["test_label"],
+        target_scaler=target_scaler,
+    )
+    _write_json(artifacts_dir / "eval_sparsify.json", eval_sparsify)
+
+    # Feature importance before pruning (helps diagnose "prune killed feature")
+    importance_sparsify = _compute_feature_importance(model, feature_cols)
+    imp_sparsify_path = artifacts_dir / "feature_importance_sparsify.csv"
+    with open(imp_sparsify_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["feature", "active_edges", "active_ratio"])
+        w.writeheader()
+        for row in importance_sparsify:
+            w.writerow(row)
+
+    volume.commit()
+
     # Prune search
-    baseline_rmse = float(eval_unpruned["rmse"])
-    best: Optional[dict[str, Any]] = None
+    baseline_rmse = float(eval_sparsify["rmse"])
+    prune_records: list[dict[str, Any]] = []
 
     candidates = [
+        {"node_th": 0.01, "edge_th": 0.002},
+        {"node_th": 0.01, "edge_th": 0.005},
         {"node_th": 0.01, "edge_th": 0.01},
         {"node_th": 0.01, "edge_th": 0.03},
         {"node_th": 0.01, "edge_th": 0.05},
         {"node_th": 0.01, "edge_th": 0.08},
         {"node_th": 0.02, "edge_th": 0.10},
+        {"node_th": 0.02, "edge_th": 0.15},
+        {"node_th": 0.03, "edge_th": 0.20},
     ]
 
     state_before_prune = {k: v.clone() for k, v in model.state_dict().items()}
@@ -580,6 +639,13 @@ def _train_kan_impl(
             )
             sparsity = compute_edge_sparsity(pruned)
             eval_pruned = _evaluate(pruned, dataset["test_input"], dataset["test_label"], target_scaler=target_scaler)
+            imp_pruned = _compute_feature_importance(pruned, feature_cols)
+            active_edges = {r["feature"]: int(r["active_edges"]) for r in imp_pruned}
+            required = (
+                _check_required_feature_patterns(feature_cols, active_edges, cfg.prune_require_features)
+                if cfg.prune_require_features
+                else {"ok": True, "missing": [], "details": []}
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning(f"Prune candidate failed (node_th={cand['node_th']} edge_th={cand['edge_th']}): {e}")
             continue
@@ -593,28 +659,83 @@ def _train_kan_impl(
             "eval_val": eval_pruned,
             "rmse_ok": bool(rmse_ok),
             "sparse_ok": bool(sparse_ok),
+            "required": required,
         }
-        if best is None:
-            best = record
-        else:
-            # Prefer satisfying both constraints; then higher sparsity; then lower rmse.
-            best_good = best["rmse_ok"] and best["sparse_ok"]
-            rec_good = rmse_ok and sparse_ok
-            if rec_good and not best_good:
-                best = record
-            elif rec_good and best_good:
-                if record["sparsity"]["pruned_ratio"] > best["sparsity"]["pruned_ratio"]:
-                    best = record
-                elif record["sparsity"]["pruned_ratio"] == best["sparsity"]["pruned_ratio"] and record["eval_val"]["rmse"] < best["eval_val"]["rmse"]:
-                    best = record
-            elif (not rec_good) and (not best_good):
-                # If neither meets constraints, keep one with higher sparsity first, then rmse.
-                if record["sparsity"]["pruned_ratio"] > best["sparsity"]["pruned_ratio"]:
-                    best = record
-                elif record["sparsity"]["pruned_ratio"] == best["sparsity"]["pruned_ratio"] and record["eval_val"]["rmse"] < best["eval_val"]["rmse"]:
-                    best = record
+        prune_records.append(record)
 
-    assert best is not None
+    if not prune_records:
+        raise RuntimeError("All prune candidates failed; see logs for details.")
+
+    def _pick_sparse_then_rmse(records: list[dict[str, Any]]) -> dict[str, Any]:
+        return max(records, key=lambda r: (float(r["sparsity"]["pruned_ratio"]), -float(r["eval_val"]["rmse"])))
+
+    def _pick_rmse_then_sparse(records: list[dict[str, Any]]) -> dict[str, Any]:
+        return min(records, key=lambda r: (float(r["eval_val"]["rmse"]), -float(r["sparsity"]["pruned_ratio"])))
+
+    selection_pool = list(prune_records)
+    required_filter_mode = "not_requested"
+    if cfg.prune_require_features:
+        required_ok = [r for r in prune_records if bool(r["required"]["ok"])]
+        if required_ok:
+            selection_pool = required_ok
+            required_filter_mode = "filtered"
+        else:
+            required_filter_mode = "none_ok"
+
+    if cfg.prune_require_features and required_filter_mode == "none_ok" and cfg.prune_require_strict:
+        _write_json(
+            artifacts_dir / "prune_search.json",
+            {
+                "baseline_eval": eval_sparsify,
+                "baseline_rmse": baseline_rmse,
+                "target_pruned_ratio": float(cfg.target_pruned_ratio),
+                "max_rmse_degrade_ratio": float(cfg.max_rmse_degrade_ratio),
+                "required_features": list(cfg.prune_require_features),
+                "required_filter_mode": required_filter_mode,
+                "selection_mode": "no_required_ok_strict",
+                "records": prune_records,
+            },
+        )
+        volume.commit()
+        raise RuntimeError(
+            "No prune candidate satisfied required feature patterns; see artifacts/prune_search.json for details."
+        )
+
+    good = [r for r in selection_pool if r["rmse_ok"] and r["sparse_ok"]]
+    rmse_only = [r for r in selection_pool if r["rmse_ok"] and (not r["sparse_ok"])]
+    sparse_only = [r for r in selection_pool if (not r["rmse_ok"]) and r["sparse_ok"]]
+
+    selection_mode = ""
+    if good:
+        best = _pick_rmse_then_sparse(good)
+        selection_mode = "both_ok"
+    elif rmse_only:
+        best = _pick_sparse_then_rmse(rmse_only)
+        selection_mode = "rmse_ok_only"
+    elif sparse_only:
+        best = min(sparse_only, key=lambda r: float(r["eval_val"]["rmse"]))
+        selection_mode = "sparse_ok_only"
+    else:
+        best = min(selection_pool, key=lambda r: float(r["eval_val"]["rmse"]))
+        selection_mode = "min_rmse"
+
+    if cfg.prune_require_features and required_filter_mode == "none_ok" and (not cfg.prune_require_strict):
+        selection_mode = f"fallback_no_required_ok::{selection_mode}"
+
+    _write_json(
+        artifacts_dir / "prune_search.json",
+        {
+            "baseline_eval": eval_sparsify,
+            "baseline_rmse": baseline_rmse,
+            "target_pruned_ratio": float(cfg.target_pruned_ratio),
+            "max_rmse_degrade_ratio": float(cfg.max_rmse_degrade_ratio),
+            "required_features": list(cfg.prune_require_features),
+            "required_filter_mode": required_filter_mode,
+            "selection_mode": selection_mode,
+            "records": prune_records,
+        },
+    )
+    volume.commit()
 
     # Apply best prune permanently
     model.load_state_dict(state_before_prune, strict=True)
@@ -641,6 +762,10 @@ def _train_kan_impl(
             "opt": "LBFGS",
             "lr": cfg.refine_lr,
             "lamb": 0.0,
+            "lamb_l1": 0.0,
+            "lamb_entropy": 0.0,
+            "lamb_coef": 0.0,
+            "lamb_coefdiff": 0.0,
             "update_grid": False,
         },
         save_ckpt_path=checkpoint_dir / "model_refine.pt",
@@ -676,12 +801,15 @@ def _train_kan_impl(
     }
     torch.save(ckpt, checkpoint_dir / "model.pt")
 
+    eval_pruned_final = best["eval_val"]
+    prune_candidate_final = best["candidate"]
     payload["completed_at"] = datetime.now(timezone.utc).isoformat()
     payload["results"] = {
         "eval_unpruned": eval_unpruned,
-        "eval_pruned": best["eval_val"],
+        "eval_sparsify": eval_sparsify,
+        "eval_pruned": eval_pruned_final,
         "sparsity": sparsity_final.as_dict(),
-        "prune_candidate": best["candidate"],
+        "prune_candidate": prune_candidate_final,
     }
     _write_json(payload_path, payload)
 
@@ -757,7 +885,7 @@ def train_kan_cpu(
     )
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600, gpu="T4")
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600, gpu="L4")
 def train_kan_gpu(
     data_run_id: str,
     *,
@@ -795,6 +923,11 @@ def main(
     target: str = "load",
     hidden_width: int = 10,
     hidden_layers: str = "",
+    grid_range_min: float = -5.0,
+    grid_range_max: float = 5.0,
+    grid: int = 5,
+    k: int = 3,
+    seed: int = 1,
     max_train_rows: int = 50_000,
     include_groups: str = "meteorology,solar,cyclic",
     lag_series: str = "load,wind,solar",
@@ -803,15 +936,23 @@ def main(
     warmup_steps: int = 200,
     sparsify_steps: int = 800,
     refine_steps: int = 200,
+    warmup_lr: float = 0.01,
+    sparsify_lr: float = 0.005,
+    refine_lr: float = 0.5,
     sparsify_lamb: float = 0.01,
     sparsify_lamb_l1: float = 1.0,
     sparsify_lamb_entropy: float = 2.0,
     sparsify_lamb_coef: float = 0.0,
     sparsify_lamb_coefdiff: float = 0.0,
+    target_pruned_ratio: float = 0.8,
+    max_rmse_degrade_ratio: float = 1.1,
+    prune_require_features: str = "",
+    prune_require_strict: bool = False,
     hidden_mult: int = 0,
     mult_arity: int = 2,
     warmup_update_grid: bool = True,
     use_gpu: bool = False,
+    submit_only: bool = False,
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
 ) -> None:
@@ -821,47 +962,60 @@ def main(
       modal run modal_jobs/kan_train.py --data-run-id <phase1_run_id> --hidden-layers 32,32
       modal run modal_jobs/kan_train.py --data-run-id <phase1_run_id> --use-gpu
     """
-    hidden_layers_s = str(hidden_layers).strip()
-    hidden_layers_tuple = None
-    if hidden_layers_s and hidden_layers_s.lower() not in {"none", "null", "no"}:
-        hidden_layers_tuple = tuple(int(x.strip()) for x in hidden_layers_s.split(",") if x.strip())
+    hidden_layers_tuple = _parse_hidden_layers(hidden_layers)
     cfg = TrainConfig(
         target_col=target,
+        grid_range_min=float(grid_range_min),
+        grid_range_max=float(grid_range_max),
         hidden_width=hidden_width,
         hidden_layers=hidden_layers_tuple,
+        grid=int(grid),
+        k=int(k),
+        seed=int(seed),
         hidden_mult=hidden_mult,
         mult_arity=mult_arity,
         warmup_steps=warmup_steps,
         sparsify_steps=sparsify_steps,
         refine_steps=refine_steps,
+        warmup_lr=float(warmup_lr),
+        sparsify_lr=float(sparsify_lr),
+        refine_lr=float(refine_lr),
         sparsify_lamb=sparsify_lamb,
         sparsify_lamb_l1=sparsify_lamb_l1,
         sparsify_lamb_entropy=sparsify_lamb_entropy,
         sparsify_lamb_coef=sparsify_lamb_coef,
         sparsify_lamb_coefdiff=sparsify_lamb_coefdiff,
+        target_pruned_ratio=float(target_pruned_ratio),
+        max_rmse_degrade_ratio=float(max_rmse_degrade_ratio),
+        prune_require_features=tuple(_parse_csv_strs(prune_require_features)),
+        prune_require_strict=bool(prune_require_strict),
     )
-    include_groups_s = str(include_groups).strip()
-    if include_groups_s.lower() in {"none", "null", "no"}:
-        include_groups_list = []
-    else:
-        include_groups_list = [s.strip() for s in include_groups_s.split(",") if s.strip()]
 
-    lag_series_s = str(lag_series).strip()
-    if lag_series_s.lower() in {"none", "null", "no"}:
-        lag_series_list = []
-    else:
-        lag_series_list = [s.strip() for s in lag_series_s.split(",") if s.strip()]
-
-    lag_steps_s = str(lag_steps).strip()
-    if lag_steps_s.lower() in {"none", "null", "no"}:
-        lag_steps_list = []
-    else:
-        lag_steps_list = [int(s.strip()) for s in lag_steps_s.split(",") if s.strip()]
+    include_groups_list = _parse_csv_strs(include_groups)
+    lag_series_list = _parse_csv_strs(lag_series)
+    lag_steps_list = _parse_csv_ints(lag_steps)
     max_train_rows_opt: Optional[int] = int(max_train_rows)
     if max_train_rows_opt <= 0:
         max_train_rows_opt = None
 
     fn = train_kan_gpu if use_gpu else train_kan_cpu
+    if submit_only:
+        call = fn.spawn(
+            data_run_id,
+            data_timestamp=data_timestamp,
+            run_id=run_id,
+            kind=kind,
+            cfg=cfg,
+            include_base=include_base,
+            include_groups=include_groups_list,
+            lag_series=lag_series_list,
+            lag_steps=lag_steps_list,
+            max_train_rows=max_train_rows_opt,
+            warmup_update_grid=bool(warmup_update_grid),
+        )
+        print(json.dumps({"run_id": run_id, "status": "submitted", "call": str(call)}, indent=2))
+        return
+
     result = fn.remote(
         data_run_id,
         data_timestamp=data_timestamp,
@@ -876,3 +1030,26 @@ def main(
         warmup_update_grid=bool(warmup_update_grid),
     )
     print(json.dumps(result, indent=2))
+
+
+def _is_noneish(s: str) -> bool:
+    return (not str(s).strip()) or (str(s).strip().lower() in {"none", "null", "no"})
+
+
+def _parse_hidden_layers(s: str) -> tuple[int, ...] | None:
+    if _is_noneish(s):
+        return None
+    vals = tuple(int(x.strip()) for x in str(s).split(",") if x.strip())
+    return vals or None
+
+
+def _parse_csv_strs(s: str) -> list[str]:
+    if _is_noneish(s):
+        return []
+    return [p.strip() for p in str(s).split(",") if p.strip()]
+
+
+def _parse_csv_ints(s: str) -> list[int]:
+    if _is_noneish(s):
+        return []
+    return [int(p.strip()) for p in str(s).split(",") if p.strip()]

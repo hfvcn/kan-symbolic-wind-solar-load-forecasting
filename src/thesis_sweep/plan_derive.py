@@ -25,9 +25,11 @@ def plan_derive_dataset(args: argparse.Namespace, *, session_id: str, detached: 
             "1,6,12,24",
             "--net-load-lag-steps",
             "1,12,48",
+            "--add-hub-wind",
+            "--add-temp-ghi",
+            "--add-absolute-targets",
         ]
         + (["--source-timestamp", ts_opt] if ts_opt else []),
         detached=detached,
     )
     return [PlannedCmd(name="derive_dataset", run_id=derived_id, cmd=cmd)], [derived_id], derived_id
-

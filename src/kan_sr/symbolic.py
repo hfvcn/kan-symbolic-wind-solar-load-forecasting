@@ -185,7 +185,10 @@ def build_symbolic_formula(
     if not formula_list:
         raise ValueError("symbolic_formula returned empty output list")
     expr = formula_list[0]
-    return sp.simplify(expr)
+    # NOTE: Avoid sp.simplify() here: it can hang indefinitely on large multi-variable
+    # KAN expressions (e.g. trigsimp blow-ups). Keep the raw SymPy expression and let
+    # callers decide if/when to simplify.
+    return expr
 
 
 def evaluate_symbolic_formula(

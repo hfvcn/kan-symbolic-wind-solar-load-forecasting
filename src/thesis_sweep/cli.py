@@ -16,7 +16,7 @@ from src.thesis_sweep.utils import REPO_ROOT, VOLUME_NAME, run_cmd, sync_run, ut
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Thesis-oriented sweep driver (S0–S3).")
+    ap = argparse.ArgumentParser(description="Thesis-oriented sweep driver (S0–S4).")
     ap.add_argument("--source-data-run-id", required=True, help="Synced Phase-1 run_id under runs/.")
     ap.add_argument("--source-timestamp", default="", help="Optional processed parquet timestamp.")
     ap.add_argument("--derived-data-run-id", default="", help="Optional existing Phase-1.5 derived run_id (skip derive).")
@@ -29,7 +29,8 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--kan-hidden-width", default="10", help="KAN hidden width (single-layer fallback).")
     ap.add_argument("--kan-hidden-layers", default="", help="Optional CSV ints for deep KAN, e.g. 32,32.")
     ap.add_argument("--no-warmup-update-grid", action="store_true", help="Disable KAN warmup grid update.")
-    ap.add_argument("--sweeps", default="s0,s1,s2,s3", help="Subset: s0,s1,s2,s3 (comma-separated).")
+    ap.add_argument("--no-symbolic", action="store_true", help="Skip Phase-3 symbolic extraction jobs.")
+    ap.add_argument("--sweeps", default="s0,s1,s2,s3", help="Subset: s0,s1,s2,s3,s4,s0a (comma-separated). s0=symbolic, s4=pure-physics, s0a=loose-reg+lag.")
     ap.add_argument("--symbolic-train-run-id", action="append", default=[], help="Extra Phase-2 train run_id for S0 (repeatable).")
     ap.add_argument(
         "--symbolic-grid-mode",
@@ -38,7 +39,10 @@ def parse_args() -> argparse.Namespace:
         help="S0 symbolic grid: full for all train runs, or full only for explicit --symbolic-train-run-id and reduced for auto runs.",
     )
     ap.add_argument("--session-id", default="", help="Optional fixed session id (folder under doc/thesis_sweeps/).")
+    ap.add_argument("--sparsify-lamb", default=None, type=float, help="Override KAN sparsify lambda (default: 0.01). S0-physics always uses 0.005 regardless.")
+    ap.add_argument("--sparsify-lamb-entropy", default=None, type=float, help="Override KAN sparsify lambda_entropy (default: 2.0).")
     return ap.parse_args()
+
 
 
 def _session_dir(session_id: str) -> Path:

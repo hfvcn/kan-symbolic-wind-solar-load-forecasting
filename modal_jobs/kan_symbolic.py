@@ -61,7 +61,10 @@ image = (
         "matplotlib>=3.8",
         "sympy>=1.13.3",
     )
-    .env({"PYTHONPATH": "/root/project"})
+    .env({
+        "PYTHONPATH": "/root/project",
+        "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+    })
     .add_local_dir(SRC_DIR, remote_path="/root/project/src")
 )
 
@@ -212,10 +215,24 @@ def _extract_symbolic_impl(
         train_df = train_df.sample(n=sample_rows, random_state=1).sort_index()
 
     # Populate internal activations for symbolic fitting.
+    # Note: pykan symbolic fitting is CPU-bound + Branch-intensive, so move to CPU after forward.
     x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32), device=device_s)
-    _ = model(x_sample)
+
+    if device_s == "cuda":
+        logger.info("Running forward on GPU to get activations...")
+        with torch.no_grad():
+            _ = model(x_sample)
+        
+        logger.info("Moving model to CPU for symbolic extraction (SymPy / fitting is CPU-only and slow on GPU)...")
+        model = model.to("cpu")
+        x_sample = x_sample.to("cpu")
+    else:
+        # Running on CPU already
+        with torch.no_grad():
+            _ = model(x_sample)
 
     # Per-edge suggestions + optional fixing.
+    # Standard official-style extraction (using our wrapper to capture fits for reporting)
     edge_fits = extract_symbolic_edges(
         model,
         lib=lib or DEFAULT_SYMBOLIC_LIB,
@@ -225,6 +242,7 @@ def _extract_symbolic_impl(
     )
 
     # Build final formula (SymPy) with de-normalization.
+    # This calls model.symbolic_formula() internally.
     expr = build_symbolic_formula(
         model,
         feature_cols=feature_cols,
@@ -355,7 +373,7 @@ def extract_symbolic(
     )
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600, gpu="T4")
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600, gpu="L4")
 def extract_symbolic_gpu(
     train_run_id: str,
     *,

@@ -275,9 +275,9 @@ def get_feature_groups() -> dict[str, list[str]]:
     solar_geom = ["solar_altitude", "solar_azimuth"]
     solar_flag = ["is_night"]
     meteo_temp = ["temp_2m_c"]
-    meteo_wind = ["wind_speed_10m_m_s", "wind_speed_10m_m_s_cubed"]
+    meteo_wind = ["wind_speed_10m_m_s", "wind_speed_10m_m_s_cubed", "wind_speed_hub_est"]
     meteo_pressure = ["surface_pressure_hpa"]
-    meteo_irradiance = ["ghi_w_m2", "ghi_day_w_m2"]
+    meteo_irradiance = ["ghi_w_m2", "ghi_day_w_m2", "ghi_temp_corr_w_m2"]
     meteo_degree = ["cdd_18c", "hdd_18c"]
 
     return {
