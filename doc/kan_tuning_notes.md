@@ -1,6 +1,6 @@
 # KAN 物理因子调参经验（定位阶段）
 
-> 最后更新：2026-03-03  
+> 最后更新：2026-03-04  
 > 目标：**物理特征最终出现在符号公式里**，且公式精度可用。  
 > 当前阶段：研究定位（优先跑 Phase2 来快速判断“物理特征是否保留 + 剪枝后精度上限”）。
 
@@ -19,6 +19,7 @@
 - **Solar 的“少边但丢温度”仍存在**：`tune6_20260303_solar_hw60_g5_k3_l002_e2_nwug` 能把 `total_edges` 压到 28（`active_edges_total=10`）且 `R²(pruned)=0.8078`，但 `temp_2m_c=0`。
 - **Wind（`wind_h6` / 无 lag）结论更新**：在纯物理场景里，`wind_speed_*` **可以进入**（例如 `tune6_20260303_wind_pure_windonly_hw30_g5_k3_l0002_e2_nwug` 的 `wind_speed_10m_m_s(_cubed)` 均有 `active_edges>0`），但当前 `R²(pruned)` 仍偏低（约 0.15）。
 - **Wind 额外调参（tune9/tune10）效果不佳**：多数配置出现 `R²(pruned)<0` 或风速特征被剪到 0，Wind 更像是“结构/seed 敏感 + 物理特征解释力不足”的组合问题（见第 5.2 节）。
+- **Wind（`delta_wind` 多 horizon）补充观察**：短期出现 `R²≈0.995`（重建后的绝对 wind）并不意外；在保留 `wind_lag_24/48` 的情况下，`wind_speed_*` 是否存活主要由 prune 的“可替代性”决定，且随 horizon **非单调**（例如 `h=72/288/576` 被剪到 0，但 `h=144` 仍能存活；见第 5.3 节）。
 - **关键诊断点**：Wind 的主要问题更像是 **sparsify 阶段就开始崩/退化**（`eval_sparsify.json` 会直接暴露），而不只是 prune 选错阈值。
 - **实现侧更新（用于减少“温度/风速被剪没”的伪失败）**：`modal_jobs/kan_train.py` 已支持 `--prune-require-features`（支持 `ghi_*` 通配符）把“关键物理特征存活”纳入 prune 候选过滤；并修复了一个 `min_rmse` 分支会绕过过滤的选择 bug；同时 refine 阶段显式置零各类正则项，避免 refine 意外改动 mask。
 
@@ -52,6 +53,9 @@
 - `eval_sparsify.json`：sparsify 后、prune 前的测试集评估（**prune 的正确基线**）。
 - `feature_importance_sparsify.csv`：sparsify 后的输入边活跃情况（用于判定“物理量是否在 prune 前就已死掉”）。
 - `prune_search.json`：记录所有 prune candidates 的阈值、sparsity、eval 以及最终选择模式（`selection_mode`）。
+
+**注意（口径澄清）**：
+- 当前实现的 `feature_importance*.csv` 统计的是输入层 **mask 是否被 prune 掉**（活跃边数量），因此在多数 run 里 `feature_importance_sparsify.csv` 会接近“全边”；真正的“边变为 0”主要发生在 prune 之后（见 `feature_importance.csv`）。
 
 ---
 
@@ -93,6 +97,10 @@
 
 - `data_run_id`: `2026_03_02_physics_s3_t4__derived_h1_6_12_24`
 - `data_timestamp`: `2026-03-02_054521`
+
+Wind 的多 horizon 对比实验使用另一份 derived 数据（便于复现表 5.3）：
+- `data_run_id`: `2026-03-03_182340_cb0b379c`（source: `2026-02-26_032058_1957fda1`, `source_timestamp=2026-02-26_032155`）
+- `horizon_steps`: `6,72,144,288,576`（5min 分辨率下对应 0.5h/6h/12h/24h/48h）
 
 ---
 
@@ -156,6 +164,67 @@
 - `tune9/tune10` 的额外尝试（更宽网络、改 grid/k、加入气压/温度组）大多带来 **R² 变负或风速特征归零**，当前阶段不建议继续在纯物理 `wind_h6` 上堆结构容量；更像需要改变建模策略（见第 7.2）。
 
 ---
+
+### 5.3 Wind（`delta_wind` 多 horizon，对比实验：30min→48h）
+
+实验目的：对比不同预测步长下（短期→中长期）`wind_speed_*` 是否更容易在稀疏结构中存活，并解释“短期 `R²≈0.995` 但长期没边”的现象。
+
+**实验设置（本地 runs，5min 分辨率）**：
+- 训练目标：`delta_wind_h{6,72,144,288,576}`
+- 特征：`include_groups=cyclic,meteo_wind` + `lag_series=wind`（`lag_steps=24,48`），`include_base=false`
+- KAN：`hidden_width=15`，`warmup/sparsify/refine=200/600/100`，`sparsify_lamb=0.005`，`--no-warmup-update-grid`
+- 评估口径：
+  - **绝对 wind（重建后）**：对 `predictions_test_reconstructed.parquet` 计算 RMSE / `R²` / skill（persistence baseline：`y_true.shift(h)`）。
+  - **delta_wind（原差分）**：`artifacts/eval_pruned.json` 的 `R²`（与上面的“绝对 wind”不是一个口径）。
+
+**结果（Test，重建后的绝对 wind）**：
+
+| h (steps) | lead time | run_id | RMSE | RMSE(persist) | skill | R² | `wind_speed_*` edges（pruned） |
+|---:|---:|---|---:|---:|---:|---:|---:|
+| 6 | 0.5h | `2026-03-03_182435_d7339689` | 821.66 | 942.14 | 0.128 | 0.9949 | 11 |
+| 72 | 6h | `2026-03-03_183052_4888ee22` | 3423.07 | 8312.03 | 0.588 | 0.9115 | 0 |
+| 144 | 12h | `2026-03-03_183731_c56e2dad` | 8135.07 | 12599.81 | 0.354 | 0.5023 | 9 |
+| 288 | 24h | `2026-03-03_184352_2f87ed99` | 11669.31 | 14462.23 | 0.193 | -0.0143 | 0 |
+| 576 | 48h | `2026-03-03_185031_6242fd21` | 12218.17 | 15320.94 | 0.203 | -0.0985 | 0 |
+
+**delta 任务对照（`eval_pruned.json` 的 `R²`）**：
+
+| h (steps) | `R²(delta_wind_h*)` |
+|---:|---:|
+| 6 | 0.2787 |
+| 72 | -0.0043 |
+| 144 | 0.5051 |
+| 288 | -5.6885 |
+| 576 | -0.2784 |
+
+**解释要点（与论文推论的关系）**：
+- 短期出现 `R²≈0.995` 主要来自 wind 的 persistence（绝对序列方差被“lag 基线”主导），不能直接说明风速物理量一定“更显著”。
+- 长期出现 `wind_speed_*` 被剪到 0，本质是 prune 阶段在 `wind_lag_24/48` 存在时更偏好“可替代的 AR 代理”；但该现象随 horizon **非单调**（`h=144` 仍可存活），因此不能用“有没有边”或单次 `R²` 直接否定推论。
+
+### 5.4 Solar（`delta_solar` 多 horizon，对比实验：30min→48h）
+
+实验目的：在“差分目标 + 多 horizon + 含 lag”的设定下，观察 Solar 的可预测性变化，以及 `ghi_* / temp_2m_c / solar_lag_*` 在稀疏结构中的进入/退出。
+
+**实验设置（Modal runs，5min 分辨率）**：
+- 训练目标：`delta_solar_h{6,72,144,288,576}`
+- 特征：`include_groups=cyclic,solar_geom,solar_flag,meteo_irradiance,meteo_temp` + `lag_series=solar`（`lag_steps=24,48`），`include_base=false`
+- KAN：`hidden_width=15, grid=5, k=3, seed=1`；`warmup/sparsify/refine=200/600/100`；`sparsify_lamb=0.005`；`target_pruned_ratio=0.8`；`max_rmse_degrade_ratio=1.1`；`--no-warmup-update-grid`；`--max-train-rows 30000`
+- 数据：derived `run_id=2026-03-04_101610_9a2d9cf4`（source: `2026-02-26_032058_1957fda1`, `source_timestamp=2026-02-26_032155`）
+
+**结果（Test，重建后的绝对 solar；persistence baseline：`y_true.shift(h)`）**：
+
+| h (steps) | lead time | run_id | RMSE | RMSE(persist) | skill | R²(abs) | `R²(delta)`（val） | `ghi_*` edges（pruned） | `solar_lag_24` edges（pruned） |
+|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 0.5h | `2026-03-04_101610_a83af0bc` | 1173.14 | 2417.58 | 0.515 | 0.9883 | 0.0938 | 0 | 2 |
+| 72 | 6h | `2026-03-04_101610_d45e8e2f` | 6430.55 | 15683.20 | 0.590 | 0.6490 | 0.6079 | 0 | 0 |
+| 144 | 12h | `2026-03-04_101610_ca0cff43` | 8473.83 | 18652.09 | 0.546 | 0.3896 | 0.7234 | 0 | 0 |
+| 288 | 24h | `2026-03-04_101610_37271ac2` | 45568.69 | 5281.47 | -7.628 | -16.5596 | -0.6468 | 2 | 1 |
+| 576 | 48h | `2026-03-04_101610_8ff99665` | 5494.66 | 7089.80 | 0.225 | 0.7466 | -0.5986 | 2 | 3 |
+
+**结构观察（pruned）**：
+- `temp_2m_c` 在上述 5 个 horizon 上均为 `active_edges=0`（未进入结构）。
+- `ghi_*` 在短中期（h=6/72/144）为 0，但在长 horizon（h=288/576）开始进入结构（非单调）。
+- `h=288` 这一组出现明显失败：在 Solar 的 24h 尺度下 persistence 很强（`RMSE(persist)=5281`），但该 run 的重建绝对表现远差于 persistence（`skill=-7.63`），应视为“崩坏/不收敛”的失败样本，而不是可用于论文结论的证据点。
 
 ## 6. 离论文闭环还差什么（量化口径）
 

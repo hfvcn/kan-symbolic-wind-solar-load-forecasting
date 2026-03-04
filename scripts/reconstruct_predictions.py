@@ -20,6 +20,7 @@ import argparse
 import json
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.split import inverse_transform
+from src.data.derived import compute_net_load
+from src.data.split import inverse_transform, load_splits_from_parquet
 from src.kan_sr.metrics import mae, r2, rmse
 
 
@@ -55,8 +57,14 @@ def _infer_data_ref(payload: dict[str, Any]) -> tuple[str | None, str | None]:
     data_ts = payload.get("data_timestamp")
     return (str(data_run_id) if data_run_id else None, str(data_ts) if data_ts else None)
 
+@dataclass(frozen=True)
+class DeltaReconSpec:
+    base: str
+    horizon_steps: int
+    lag_col: str
 
-def _delta_reconstruction_spec(target_col: str) -> tuple[str, str] | None:
+
+def _delta_reconstruction_spec(target_col: str) -> DeltaReconSpec | None:
     m = _DELTA_TARGET_RE.match(str(target_col))
     if not m:
         return None
@@ -65,14 +73,40 @@ def _delta_reconstruction_spec(target_col: str) -> tuple[str, str] | None:
     if h < 1:
         raise ValueError(f"Invalid horizon in target_col: {target_col!r}")
     if base == "load":
-        return ("load", f"load_lag_{h}")
+        return DeltaReconSpec(base="load", horizon_steps=h, lag_col=f"load_lag_{h}")
     if base == "net_load":
-        return ("net_load", f"net_load_lag_{h}")
+        return DeltaReconSpec(base="net_load", horizon_steps=h, lag_col=f"net_load_lag_{h}")
     if base == "wind":
-        return ("wind", f"wind_lag_{h}")
+        return DeltaReconSpec(base="wind", horizon_steps=h, lag_col=f"wind_lag_{h}")
     if base == "solar":
-        return ("solar", f"solar_lag_{h}")
+        return DeltaReconSpec(base="solar", horizon_steps=h, lag_col=f"solar_lag_{h}")
     return None
+
+
+def _resolve_source_data_ref(data_run_dir: Path, *, fallback_timestamp: str) -> tuple[str, str]:
+    payload_path = data_run_dir / "payload.json"
+    if not payload_path.exists():
+        return (data_run_dir.name, str(fallback_timestamp))
+    payload = _read_json(payload_path)
+    source_run_id = payload.get("source_data_run_id")
+    source_ts = payload.get("source_timestamp")
+    if source_run_id and source_ts:
+        return (str(source_run_id), str(source_ts))
+    return (data_run_dir.name, str(fallback_timestamp))
+
+
+def _base_raw_series(test_df: pd.DataFrame, *, base: str, scaler_params: dict[str, Any]) -> pd.Series:
+    if base == "net_load":
+        required = ["load", "wind", "solar"]
+        missing = [c for c in required if c not in test_df.columns]
+        if missing:
+            raise ValueError(f"Missing columns for net_load reconstruction: {missing}")
+        b = inverse_transform(test_df[required], scaler_params)
+        return compute_net_load(b["load"], b["wind"], b["solar"]).astype(np.float64)
+
+    if base not in test_df.columns:
+        raise ValueError(f"Missing base column for reconstruction: {base}")
+    return inverse_transform(test_df[[base]], scaler_params)[base].astype(np.float64)
 
 
 def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, data_timestamp: str) -> bool:
@@ -81,34 +115,38 @@ def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, 
     if not pred_path.exists():
         return False
 
-    spec = _delta_reconstruction_spec(target_col)
-    if spec is None:
+    recon = _delta_reconstruction_spec(target_col)
+    if recon is None:
         return False
-    base_name, lag_col = spec
+    base_name = recon.base
+    lag_col = recon.lag_col
+    horizon_steps = int(recon.horizon_steps)
 
-    data_run = REPO_ROOT / "runs" / data_run_id
-    test_path = data_run / "processed" / f"test_{data_timestamp}.parquet"
-    scaler_path = data_run / "artifacts" / "scaler_params.json"
-    if not test_path.exists():
-        raise FileNotFoundError(f"Processed test split not found for reconstruction: {test_path}")
+    data_run_dir = REPO_ROOT / "runs" / data_run_id
+    source_run_id, source_ts = _resolve_source_data_ref(data_run_dir, fallback_timestamp=data_timestamp)
+    source_run_dir = REPO_ROOT / "runs" / source_run_id
+    source_processed = source_run_dir / "processed"
+    scaler_path = source_run_dir / "artifacts" / "scaler_params.json"
+    if not source_processed.exists():
+        raise FileNotFoundError(f"Processed dir not found for reconstruction: {source_processed}")
     if not scaler_path.exists():
         raise FileNotFoundError(f"scaler_params.json not found for reconstruction: {scaler_path}")
 
-    test_df = pd.read_parquet(test_path)
-    if lag_col not in test_df.columns:
-        raise ValueError(f"Required lag column missing for reconstruction: {lag_col} (in {test_path})")
-
+    _, _, test_df = load_splits_from_parquet(source_processed, timestamp=source_ts)
     scaler_params = json.loads(scaler_path.read_text())
-    lag_raw = inverse_transform(test_df[[lag_col]], scaler_params)[lag_col].astype(np.float64)
+    base_raw = _base_raw_series(test_df, base=base_name, scaler_params=scaler_params)
+    lag_raw = base_raw.shift(horizon_steps)
 
     pred_df = pd.read_parquet(pred_path)
     if "y_true" not in pred_df.columns or "y_pred" not in pred_df.columns:
         raise ValueError(f"Invalid predictions file (missing y_true/y_pred): {pred_path}")
 
     # Align on index (symbolic predictions may include NaN; keep full index for plots).
-    joined = pred_df[["y_true", "y_pred"]].join(lag_raw.rename("_base_lag"), how="inner")
+    joined = pred_df[["y_true", "y_pred"]].join(lag_raw.rename("_base_lag"), how="left")
     if len(joined) == 0:
         raise ValueError(f"No overlapping index between predictions and processed test split for {run_dir.name}")
+    if not np.isfinite(joined["_base_lag"].to_numpy(dtype=np.float64)).any():
+        raise ValueError(f"Reconstruction base lag is all-NaN for {run_dir.name} (target={target_col})")
 
     y_true_base = joined["_base_lag"] + joined["y_true"].astype(np.float64)
     y_pred_base = joined["_base_lag"] + joined["y_pred"].astype(np.float64)
@@ -121,7 +159,13 @@ def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, 
 
     # Metrics on finite subset.
     finite = np.isfinite(out_df["y_true"].to_numpy(dtype=np.float64)) & np.isfinite(out_df["y_pred"].to_numpy(dtype=np.float64))
-    m: dict[str, Any] = {"reconstructed_from": target_col, "reconstructed_target": base_name}
+    m: dict[str, Any] = {
+        "reconstructed_from": target_col,
+        "reconstructed_target": base_name,
+        "base_run_id": source_run_id,
+        "base_timestamp": source_ts,
+        "horizon_steps": int(horizon_steps),
+    }
     if int(np.sum(finite)) > 0:
         y_t = out_df["y_true"].to_numpy(dtype=np.float64)[finite]
         y_p = out_df["y_pred"].to_numpy(dtype=np.float64)[finite]

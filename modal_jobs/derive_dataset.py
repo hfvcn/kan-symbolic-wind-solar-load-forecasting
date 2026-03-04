@@ -104,6 +104,7 @@ def derive_dataset(
         normalize_horizon_steps,
     )
     from src.data.split import inverse_transform, load_splits_from_parquet, save_splits_to_parquet
+    from src.config import MAX_HORIZON_STEPS
 
     run_id = run_id or _utc_run_id()
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
@@ -123,9 +124,15 @@ def derive_dataset(
         raise FileNotFoundError(f"Source scaler_params.json not found: {scaler_path}")
     scaler_params = json.loads(scaler_path.read_text())
 
-    train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=source_timestamp)
+    resolved_source_ts = source_timestamp
+    if resolved_source_ts is None:
+        train_files = sorted(src_processed.glob("train_*.parquet"))
+        if not train_files:
+            raise FileNotFoundError(f"No train parquet files found in: {src_processed}")
+        resolved_source_ts = train_files[-1].stem.replace("train_", "")
+    train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=resolved_source_ts)
 
-    horizons = normalize_horizon_steps(horizon_steps, max_steps=48, include_1=True)
+    horizons = normalize_horizon_steps(horizon_steps, max_steps=MAX_HORIZON_STEPS, include_1=True)
 
     # Base series (may be normalized or raw depending on source run); inverse_transform
     # makes this robust by only touching columns present in scaler_params.feature_names.
@@ -136,29 +143,17 @@ def derive_dataset(
             raise ValueError(f"Missing required base columns in processed split: {missing}")
         return inverse_transform(df[cols], scaler_params)
 
-    def lag_raw(df: pd.DataFrame, steps: list[int]) -> pd.DataFrame:
-        cols: list[str] = []
-        for series in ("load", "wind", "solar"):
-            for k in steps:
-                name = f"{series}_lag_{k}"
-                if name not in df.columns:
-                    raise ValueError(f"Missing required lag column in processed split: {name}")
-                cols.append(name)
-        return inverse_transform(df[cols], scaler_params)
-
     net_steps = sorted({*horizons, *(net_load_lag_steps or [1, 12, 48])})
 
     def add_targets(df: pd.DataFrame) -> pd.DataFrame:
         b = base_raw(df)
-        lags = lag_raw(df, steps=horizons)
         out = df.copy()
         out["net_load"] = compute_net_load(b["load"], b["wind"], b["solar"])
         for h in horizons:
-            out[f"delta_load_h{h}"] = compute_delta(b["load"], lags[f"load_lag_{h}"])
-            out[f"delta_wind_h{h}"] = compute_delta(b["wind"], lags[f"wind_lag_{h}"])
-            out[f"delta_solar_h{h}"] = compute_delta(b["solar"], lags[f"solar_lag_{h}"])
-            nl_lag_h = compute_net_load(lags[f"load_lag_{h}"], lags[f"wind_lag_{h}"], lags[f"solar_lag_{h}"])
-            out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], nl_lag_h)
+            out[f"delta_load_h{h}"] = compute_delta(b["load"], b["load"].shift(h))
+            out[f"delta_wind_h{h}"] = compute_delta(b["wind"], b["wind"].shift(h))
+            out[f"delta_solar_h{h}"] = compute_delta(b["solar"], b["solar"].shift(h))
+            out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], out["net_load"].shift(h))
             if add_absolute_targets:
                 out[f"wind_h{h}"] = b["wind"]
                 out[f"solar_h{h}"] = b["solar"]
@@ -173,13 +168,9 @@ def derive_dataset(
 
     # Optional: derived lag features for net_load (small subset, normalized).
     def add_net_load_lags(df: pd.DataFrame, *, stats: dict[str, ZScoreStats] | None = None) -> tuple[pd.DataFrame, dict[str, ZScoreStats]]:
-        lags = lag_raw(df, steps=net_steps)
-
-        raw_cols: dict[str, pd.Series] = {}
-        for k in net_steps:
-            nl = compute_net_load(lags[f"load_lag_{k}"], lags[f"wind_lag_{k}"], lags[f"solar_lag_{k}"])
-            raw_cols[f"net_load_lag_{k}"] = nl
-
+        if "net_load" not in df.columns:
+            raise ValueError("Missing required column for net_load lags: net_load")
+        raw_cols: dict[str, pd.Series] = {f"net_load_lag_{k}": df["net_load"].shift(int(k)) for k in net_steps}
         out = df.copy()
         new_stats: dict[str, ZScoreStats] = {}
         for name, raw in raw_cols.items():
@@ -238,6 +229,15 @@ def derive_dataset(
     val_df3, _ = add_net_load_lags(val_df2, stats=nl_stats)
     test_df3, _ = add_net_load_lags(test_df2, stats=nl_stats)
 
+    # Remove initial rows where shift-based targets/lags are undefined (avoids cross-split leakage).
+    nan_cols = ["delta_load", "delta_net_load"]
+    for h in horizons:
+        nan_cols += [f"delta_load_h{h}", f"delta_net_load_h{h}", f"delta_wind_h{h}", f"delta_solar_h{h}"]
+    nan_cols += [f"net_load_lag_{k}" for k in net_steps]
+    train_df3 = train_df3.dropna(subset=nan_cols).copy()
+    val_df3 = val_df3.dropna(subset=nan_cols).copy()
+    test_df3 = test_df3.dropna(subset=nan_cols).copy()
+
     train_df4, eng_stats = add_engineered_features(train_df3, stats=None)
     val_df4, _ = add_engineered_features(val_df3, stats=eng_stats)
     test_df4, _ = add_engineered_features(test_df3, stats=eng_stats)
@@ -262,7 +262,7 @@ def derive_dataset(
         "phase": "01.5-derived-dataset",
         "status": "completed",
         "source_data_run_id": source_data_run_id,
-        "source_timestamp": source_timestamp,
+        "source_timestamp": resolved_source_ts,
         "degree_base_c": float(degree_base_c),
         "horizon_steps": list(horizons),
         "net_load_lag_steps": list(net_steps),

@@ -23,6 +23,7 @@ from src.data.derived import (
     normalize_horizon_steps,
 )
 from src.data.split import inverse_transform, load_splits_from_parquet, save_splits_to_parquet
+from src.config import MAX_HORIZON_STEPS
 from src.local.run_contract import ensure_run_dirs, utc_run_id, write_json
 
 
@@ -50,27 +51,27 @@ def _require_cols(df: pd.DataFrame, cols: list[str], *, context: str) -> None:
         raise ValueError(f"Missing required columns in {context}: {missing}")
 
 
+def _resolve_processed_timestamp(processed_dir: Path, timestamp: str | None) -> str:
+    if timestamp:
+        return str(timestamp)
+    train_files = sorted(Path(processed_dir).glob("train_*.parquet"))
+    if not train_files:
+        raise FileNotFoundError(f"No train parquet files found in: {processed_dir}")
+    return train_files[-1].stem.replace("train_", "")
+
+
 def _base_raw(df: pd.DataFrame, *, scaler_params: dict[str, Any]) -> pd.DataFrame:
     return inverse_transform(df[["load", "wind", "solar"]], scaler_params)
 
-
-def _lag_raw(df: pd.DataFrame, *, steps: list[int], scaler_params: dict[str, Any]) -> pd.DataFrame:
-    cols = [f"{s}_lag_{k}" for s in ("load", "wind", "solar") for k in steps]
-    _require_cols(df, cols, context="lag columns")
-    return inverse_transform(df[cols], scaler_params)
-
-
 def add_targets(df: pd.DataFrame, *, horizons: list[int], scaler_params: dict[str, Any], add_absolute: bool = False) -> pd.DataFrame:
     b = _base_raw(df, scaler_params=scaler_params)
-    lags = _lag_raw(df, steps=horizons, scaler_params=scaler_params)
     out = df.copy()
     out["net_load"] = compute_net_load(b["load"], b["wind"], b["solar"])
     for h in horizons:
-        out[f"delta_load_h{h}"] = compute_delta(b["load"], lags[f"load_lag_{h}"])
-        out[f"delta_wind_h{h}"] = compute_delta(b["wind"], lags[f"wind_lag_{h}"])
-        out[f"delta_solar_h{h}"] = compute_delta(b["solar"], lags[f"solar_lag_{h}"])
-        nl_lag_h = compute_net_load(lags[f"load_lag_{h}"], lags[f"wind_lag_{h}"], lags[f"solar_lag_{h}"])
-        out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], nl_lag_h)
+        out[f"delta_load_h{h}"] = compute_delta(b["load"], b["load"].shift(h))
+        out[f"delta_wind_h{h}"] = compute_delta(b["wind"], b["wind"].shift(h))
+        out[f"delta_solar_h{h}"] = compute_delta(b["solar"], b["solar"].shift(h))
+        out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], out["net_load"].shift(h))
         # Absolute-level targets: actual generation at time t (i.e. t-h lagged = current, non-differenced)
         if add_absolute:
             out[f"wind_h{h}"] = b["wind"]          # wind power at t (MW)
@@ -85,14 +86,14 @@ def add_net_load_lags(
     df: pd.DataFrame,
     *,
     net_steps: list[int],
-    scaler_params: dict[str, Any],
     stats: dict[str, ZScoreStats] | None,
 ) -> tuple[pd.DataFrame, dict[str, ZScoreStats]]:
-    lags = _lag_raw(df, steps=net_steps, scaler_params=scaler_params)
+    if "net_load" not in df.columns:
+        raise ValueError("Missing required column for net_load lags: net_load")
     out = df.copy()
     new_stats: dict[str, ZScoreStats] = {}
     for k in net_steps:
-        raw = compute_net_load(lags[f"load_lag_{k}"], lags[f"wind_lag_{k}"], lags[f"solar_lag_{k}"])
+        raw = out["net_load"].shift(int(k))
         name = f"net_load_lag_{k}"
         s = stats[name] if stats and name in stats else fit_zscore(raw)
         new_stats[name] = s
@@ -204,9 +205,10 @@ def derive_dataset_local(
         raise FileNotFoundError(f"Source processed dir not found: {src_processed}")
 
     scaler_params = _load_scaler_params(Path(runs_root), str(source_data_run_id))
-    train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=source_timestamp)
+    resolved_source_ts = _resolve_processed_timestamp(src_processed, source_timestamp)
+    train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=resolved_source_ts)
 
-    horizons = normalize_horizon_steps(cfg.horizon_steps, max_steps=48, include_1=True)
+    horizons = normalize_horizon_steps(cfg.horizon_steps, max_steps=MAX_HORIZON_STEPS, include_1=True)
     net_steps = sorted({*horizons, *(cfg.net_load_lag_steps or [1, 12, 48])})
 
     _require_cols(train_df, ["load", "wind", "solar"], context="processed splits")
@@ -217,9 +219,18 @@ def derive_dataset_local(
     val_df2 = add_targets(val_df, horizons=horizons, scaler_params=scaler_params, add_absolute=bool(cfg.add_absolute_targets))
     test_df2 = add_targets(test_df, horizons=horizons, scaler_params=scaler_params, add_absolute=bool(cfg.add_absolute_targets))
 
-    train_df3, nl_stats = add_net_load_lags(train_df2, net_steps=net_steps, scaler_params=scaler_params, stats=None)
-    val_df3, _ = add_net_load_lags(val_df2, net_steps=net_steps, scaler_params=scaler_params, stats=nl_stats)
-    test_df3, _ = add_net_load_lags(test_df2, net_steps=net_steps, scaler_params=scaler_params, stats=nl_stats)
+    train_df3, nl_stats = add_net_load_lags(train_df2, net_steps=net_steps, stats=None)
+    val_df3, _ = add_net_load_lags(val_df2, net_steps=net_steps, stats=nl_stats)
+    test_df3, _ = add_net_load_lags(test_df2, net_steps=net_steps, stats=nl_stats)
+
+    # Remove initial rows where shift-based targets/lags are undefined (avoids cross-split leakage).
+    nan_cols = ["delta_load", "delta_net_load"]
+    for h in horizons:
+        nan_cols += [f"delta_load_h{h}", f"delta_net_load_h{h}", f"delta_wind_h{h}", f"delta_solar_h{h}"]
+    nan_cols += [f"net_load_lag_{k}" for k in net_steps]
+    train_df3 = train_df3.dropna(subset=nan_cols).copy()
+    val_df3 = val_df3.dropna(subset=nan_cols).copy()
+    test_df3 = test_df3.dropna(subset=nan_cols).copy()
 
     train_df4, eng_stats = add_engineered_features(train_df3, scaler_params=scaler_params, cfg=cfg, stats=None)
     val_df4, _ = add_engineered_features(val_df3, scaler_params=scaler_params, cfg=cfg, stats=eng_stats)
@@ -232,6 +243,6 @@ def derive_dataset_local(
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
     paths = save_splits_to_parquet(train_df4, val_df4, test_df4, dirs.processed_dir, timestamp)
 
-    payload = _build_payload(run_id=run_id, source_data_run_id=str(source_data_run_id), source_timestamp=source_timestamp, cfg=cfg, horizons=horizons, net_steps=net_steps, timestamp=timestamp, train_rows=len(train_df4), val_rows=len(val_df4), test_rows=len(test_df4), engineered_feature_cols=list(eng_stats.keys()), paths=paths, artifacts_dir=dirs.artifacts_dir)
+    payload = _build_payload(run_id=run_id, source_data_run_id=str(source_data_run_id), source_timestamp=resolved_source_ts, cfg=cfg, horizons=horizons, net_steps=net_steps, timestamp=timestamp, train_rows=len(train_df4), val_rows=len(val_df4), test_rows=len(test_df4), engineered_feature_cols=list(eng_stats.keys()), paths=paths, artifacts_dir=dirs.artifacts_dir)
     write_json(dirs.run_dir / "payload.json", payload)
     return payload
