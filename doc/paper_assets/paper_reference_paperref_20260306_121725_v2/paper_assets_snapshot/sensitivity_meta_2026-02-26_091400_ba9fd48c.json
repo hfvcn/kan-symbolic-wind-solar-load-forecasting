@@ -1,0 +1,7 @@
+{
+  "symbolic_run": "2026-02-26_091400_ba9fd48c",
+  "data_run": "2026-02-26_032058_1957fda1",
+  "chosen_input_space": "original",
+  "rmse_normalized": 16845.411316254955,
+  "rmse_original": 2446.4153479124293
+}

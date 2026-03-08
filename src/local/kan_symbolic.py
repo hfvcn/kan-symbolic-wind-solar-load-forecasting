@@ -15,6 +15,7 @@ from src.kan_sr.symbolic import (
     build_symbolic_formula,
     evaluate_symbolic_formula,
     extract_symbolic_edges,
+    prime_symbolic_activations,
     sympy_complexity,
 )
 from src.local.run_contract import ensure_run_dirs, utc_run_id, write_json
@@ -206,7 +207,7 @@ def extract_symbolic_local(
         train_df = train_df.sample(n=int(cfg.sample_rows), random_state=1).sort_index()
 
     x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32), device=device_s)
-    _ = model(x_sample)
+    model, x_sample = prime_symbolic_activations(model, x_sample, device_name=device_s, torch_mod=torch)
 
     edge_fits = extract_symbolic_edges(model, lib=cfg.lib or DEFAULT_SYMBOLIC_LIB, r2_threshold=float(cfg.r2_threshold), weight_simple=float(cfg.weight_simple), fix_below_threshold_to_zero=bool(cfg.fix_below_threshold_to_zero))
     expr = build_symbolic_formula(model, feature_cols=feature_cols, input_normalizer=input_norm, output_normalizer=output_norm)

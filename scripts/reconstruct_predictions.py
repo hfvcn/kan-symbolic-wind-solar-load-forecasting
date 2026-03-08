@@ -32,7 +32,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.data.derived import compute_net_load
-from src.data.split import inverse_transform, load_splits_from_parquet
+from src.data.split import inverse_transform
 from src.kan_sr.metrics import mae, r2, rmse
 
 
@@ -95,6 +95,21 @@ def _resolve_source_data_ref(data_run_dir: Path, *, fallback_timestamp: str) -> 
     return (data_run_dir.name, str(fallback_timestamp))
 
 
+def _load_processed_split(processed_dir: Path, *, split: str, timestamp: str) -> pd.DataFrame:
+    parquet_path = processed_dir / f"{split}_{timestamp}.parquet"
+    if not parquet_path.exists():
+        raise FileNotFoundError(f"Split file not found: {parquet_path}")
+    return pd.read_parquet(parquet_path)
+
+
+def _resolve_reconstruction_source(data_run_dir: Path, *, data_timestamp: str) -> tuple[str, str]:
+    aligned_test = data_run_dir / "processed" / f"test_{data_timestamp}.parquet"
+    aligned_scaler = data_run_dir / "artifacts" / "scaler_params.json"
+    if aligned_test.exists() and aligned_scaler.exists():
+        return (data_run_dir.name, str(data_timestamp))
+    return _resolve_source_data_ref(data_run_dir, fallback_timestamp=data_timestamp)
+
+
 def _base_raw_series(test_df: pd.DataFrame, *, base: str, scaler_params: dict[str, Any]) -> pd.Series:
     if base == "net_load":
         required = ["load", "wind", "solar"]
@@ -123,7 +138,7 @@ def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, 
     horizon_steps = int(recon.horizon_steps)
 
     data_run_dir = REPO_ROOT / "runs" / data_run_id
-    source_run_id, source_ts = _resolve_source_data_ref(data_run_dir, fallback_timestamp=data_timestamp)
+    source_run_id, source_ts = _resolve_reconstruction_source(data_run_dir, data_timestamp=data_timestamp)
     source_run_dir = REPO_ROOT / "runs" / source_run_id
     source_processed = source_run_dir / "processed"
     scaler_path = source_run_dir / "artifacts" / "scaler_params.json"
@@ -132,7 +147,7 @@ def _reconstruct_delta_run(run_dir: Path, *, target_col: str, data_run_id: str, 
     if not scaler_path.exists():
         raise FileNotFoundError(f"scaler_params.json not found for reconstruction: {scaler_path}")
 
-    _, _, test_df = load_splits_from_parquet(source_processed, timestamp=source_ts)
+    test_df = _load_processed_split(source_processed, split="test", timestamp=source_ts)
     scaler_params = json.loads(scaler_path.read_text())
     base_raw = _base_raw_series(test_df, base=base_name, scaler_params=scaler_params)
     lag_raw = base_raw.shift(horizon_steps)

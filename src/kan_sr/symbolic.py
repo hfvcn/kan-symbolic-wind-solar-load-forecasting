@@ -29,6 +29,38 @@ DEFAULT_SYMBOLIC_LIB: tuple[str, ...] = (
 )
 
 
+def prime_symbolic_activations(
+    model: Any,
+    x_sample: Any,
+    *,
+    device_name: str,
+    torch_mod: Any,
+    logger_obj: logging.Logger | None = None,
+) -> tuple[Any, Any]:
+    device_s = str(device_name).strip().lower()
+    if device_s not in {"cpu", "cuda"}:
+        raise ValueError(f"device_name must be 'cpu' or 'cuda', got: {device_name!r}")
+    if device_s == "cuda":
+        if logger_obj is not None:
+            logger_obj.info("Running forward on GPU to get activations...")
+        with torch_mod.no_grad():
+            _ = model(x_sample)
+        if logger_obj is not None:
+            logger_obj.info("Moving model to CPU for symbolic extraction (SymPy / fitting is CPU-only and slow on GPU)...")
+        model = model.to("cpu")
+        if hasattr(model, "device"):
+            model.device = "cpu"
+        for layer in getattr(model, "symbolic_fun", []):
+            if hasattr(layer, "to"):
+                layer.to("cpu")
+            if hasattr(layer, "device"):
+                layer.device = "cpu"
+        x_sample = x_sample.to("cpu")
+    with torch_mod.no_grad():
+        _ = model(x_sample)
+    return model, x_sample
+
+
 @dataclass(frozen=True)
 class SymbolicEdgeFit:
     layer: int

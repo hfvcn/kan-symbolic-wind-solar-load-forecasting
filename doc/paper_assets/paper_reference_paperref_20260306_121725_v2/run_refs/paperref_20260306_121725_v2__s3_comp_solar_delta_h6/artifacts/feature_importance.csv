@@ -1,0 +1,16 @@
+feature,active_edges,active_ratio
+hour_cos,2,1.0
+solar_altitude,2,1.0
+ghi_w_m2,2,1.0
+ghi_day_w_m2,2,1.0
+ghi_temp_corr_w_m2,2,1.0
+solar_lag_24,2,1.0
+hour_sin,1,0.5
+is_night,1,0.5
+temp_2m_c,1,0.5
+dow_sin,0,0.0
+dow_cos,0,0.0
+month_sin,0,0.0
+month_cos,0,0.0
+solar_azimuth,0,0.0
+solar_lag_48,0,0.0

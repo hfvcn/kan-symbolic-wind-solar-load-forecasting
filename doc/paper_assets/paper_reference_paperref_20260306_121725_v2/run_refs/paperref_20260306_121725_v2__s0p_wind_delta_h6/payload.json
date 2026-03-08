@@ -1,0 +1,132 @@
+{
+  "run_id": "paperref_20260306_121725_v2__s0p_wind_delta_h6",
+  "phase": "02-kan-training",
+  "kind": "s0p_wind_delta_h6",
+  "data_run_id": "paperref_20260306_121725__derived_h1_6",
+  "data_timestamp": "2026-03-06_043036",
+  "started_at": "2026-03-06T04:43:22.145765+00:00",
+  "cfg": {
+    "target_col": "delta_wind_h6",
+    "grid_range_min": -5.0,
+    "grid_range_max": 5.0,
+    "hidden_width": 10,
+    "hidden_layers": null,
+    "grid": 5,
+    "k": 3,
+    "seed": 1,
+    "hidden_mult": 0,
+    "mult_arity": 2,
+    "warmup_steps": 200,
+    "sparsify_steps": 800,
+    "refine_steps": 200,
+    "warmup_lr": 0.01,
+    "sparsify_lr": 0.005,
+    "refine_lr": 0.5,
+    "sparsify_lamb": 0.005,
+    "sparsify_lamb_l1": 1.0,
+    "sparsify_lamb_entropy": 1.5,
+    "sparsify_lamb_coef": 0.0,
+    "sparsify_lamb_coefdiff": 0.0,
+    "target_pruned_ratio": 0.8,
+    "max_rmse_degrade_ratio": 1.1,
+    "prune_require_features": [],
+    "prune_require_strict": false,
+    "hidden_width_final": 5,
+    "hidden_mult_final": 0
+  },
+  "feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "wind_speed_10m_m_s",
+    "wind_speed_10m_m_s_cubed",
+    "wind_speed_hub_est",
+    "ghi_w_m2",
+    "ghi_day_w_m2",
+    "ghi_temp_corr_w_m2",
+    "temp_2m_c",
+    "is_night",
+    "wind_lag_12",
+    "wind_lag_24",
+    "wind_lag_48"
+  ],
+  "target_scaler": {
+    "mean": 0.017304948656425404,
+    "std": 1123.20056610968
+  },
+  "lag_steps": [
+    12,
+    24,
+    48
+  ],
+  "lag_series": [
+    "wind"
+  ],
+  "include_groups": [
+    "cyclic",
+    "meteo_wind",
+    "meteo_irradiance",
+    "meteo_temp",
+    "solar_flag"
+  ],
+  "include_base": false,
+  "max_train_rows": 50000,
+  "device": "cuda",
+  "env": {
+    "python": "3.11.12",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "torch_version": "2.10.0+cu128",
+    "torch_cuda_available": true,
+    "torch_cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "cuda_device_name": "NVIDIA L4",
+    "cuda_capability": [
+      8,
+      9
+    ]
+  },
+  "model_width": [
+    [
+      17,
+      0
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "completed_at": "2026-03-06T04:45:45.018436+00:00",
+  "results": {
+    "eval_unpruned": {
+      "rmse": 690.0085385777423,
+      "mae": 510.96262146465324,
+      "r2": 0.42400804736091835
+    },
+    "eval_sparsify": {
+      "rmse": 736.1470738596871,
+      "mae": 552.3289039901399,
+      "r2": 0.3444034400259619
+    },
+    "eval_pruned": {
+      "rmse": 731.9253695457268,
+      "mae": 556.8292912382175,
+      "r2": 0.35190139425344213
+    },
+    "sparsity": {
+      "total_edges": 90,
+      "pruned_edges": 70,
+      "pruned_ratio": 0.7777777777777778
+    },
+    "prune_candidate": {
+      "node_th": 0.02,
+      "edge_th": 0.1
+    }
+  }
+}

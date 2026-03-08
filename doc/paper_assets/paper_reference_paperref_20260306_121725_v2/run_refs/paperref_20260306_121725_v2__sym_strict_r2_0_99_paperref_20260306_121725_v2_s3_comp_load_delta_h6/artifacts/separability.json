@@ -1,0 +1,41 @@
+{
+  "free_symbols": [
+    "hdd_18c",
+    "hour_cos",
+    "hour_sin",
+    "is_night",
+    "load_lag_12",
+    "load_lag_24",
+    "month_cos"
+  ],
+  "additive_separable": true,
+  "multiplicative_separable": false,
+  "additive_components": [
+    [
+      "hdd_18c",
+      "hour_cos",
+      "hour_sin",
+      "load_lag_12"
+    ],
+    [
+      "is_night"
+    ],
+    [
+      "load_lag_24"
+    ],
+    [
+      "month_cos"
+    ]
+  ],
+  "multiplicative_components": [
+    [
+      "hdd_18c",
+      "hour_cos",
+      "hour_sin",
+      "is_night",
+      "load_lag_12",
+      "load_lag_24",
+      "month_cos"
+    ]
+  ]
+}

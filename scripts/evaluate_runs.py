@@ -22,6 +22,14 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def _pick_predictions_path(artifacts_dir: Path) -> Path | None:
+    for name in ("predictions_test_reconstructed.parquet", "predictions_test.parquet"):
+        path = artifacts_dir / name
+        if path.exists():
+            return path
+    return None
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Build comparison tables/plots from synced runs/ artifacts.")
     ap.add_argument("--run", action="append", required=True, help="Path to a synced run directory (repeatable).")
@@ -49,12 +57,12 @@ def main() -> None:
         if str(src_id) not in run_by_name:
             raise ValueError(f"08-transfer-eval run references missing source run_id={src_id}: {p}")
         src_run = run_by_name[str(src_id)]
-        pred_src = src_run / "artifacts" / "predictions_test.parquet"
-        pred_tgt = p / "artifacts" / "predictions_test.parquet"
-        if not pred_src.exists():
-            raise FileNotFoundError(f"Missing source predictions_test.parquet for transfer gap: {pred_src}")
-        if not pred_tgt.exists():
-            raise FileNotFoundError(f"Missing transfer predictions_test.parquet for transfer gap: {pred_tgt}")
+        pred_src = _pick_predictions_path(src_run / "artifacts")
+        pred_tgt = _pick_predictions_path(p / "artifacts")
+        if pred_src is None:
+            raise FileNotFoundError(f"Missing source predictions for transfer gap: {src_run / 'artifacts'}")
+        if pred_tgt is None:
+            raise FileNotFoundError(f"Missing transfer predictions for transfer gap: {p / 'artifacts'}")
 
         src_df = pd.read_parquet(pred_src).dropna(subset=["y_true", "y_pred"])
         tgt_df = pd.read_parquet(pred_tgt).dropna(subset=["y_true", "y_pred"])

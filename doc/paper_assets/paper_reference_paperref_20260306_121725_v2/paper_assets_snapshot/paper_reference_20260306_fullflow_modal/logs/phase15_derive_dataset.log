@@ -1,0 +1,123 @@
+✓ Initialized. View run at 
+https://modal.com/apps/hfvcn/main/ap-Rvi85liqJAruK6XrfYsy05
+✓ Created objects.
+├── 🔨 Created mount 
+│   /Users/vfch/Documents/project/graduation-design/modal_jobs/derive_dataset.py
+├── 🔨 Created mount /Users/vfch/Documents/project/graduation-design/src
+└── 🔨 Created function derive_dataset.
+2026-03-06 04:24:20,277 [INFO] src.data.split: Loaded train: /vol/runs/2026-03-06_042129_03d4b407/processed/train_2026-03-06_042227.parquet (73536 rows)
+2026-03-06 04:24:20,691 [INFO] src.data.split: Loaded val: /vol/runs/2026-03-06_042129_03d4b407/processed/val_2026-03-06_042227.parquet (15672 rows)
+2026-03-06 04:24:21,032 [INFO] src.data.split: Loaded test: /vol/runs/2026-03-06_042129_03d4b407/processed/test_2026-03-06_042227.parquet (15672 rows)
+2026-03-06 04:24:21,039 [INFO] src.data.split: Inverse transformed 2 columns
+2026-03-06 04:24:21,101 [INFO] src.data.split: Inverse transformed 2 columns
+2026-03-06 04:24:21,135 [INFO] src.data.split: Inverse transformed 2 columns
+2026-03-06 04:24:21,451 [INFO] src.data.split: Inverse transformed 3 columns
+2026-03-06 04:24:21,486 [INFO] src.data.split: Inverse transformed 3 columns
+2026-03-06 04:24:21,505 [INFO] src.data.split: Inverse transformed 3 columns
+2026-03-06 04:24:23,764 [INFO] src.data.split: Saved train: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/train_2026-03-06_042421.parquet (72960 rows)
+2026-03-06 04:24:24,594 [INFO] src.data.split: Saved val: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/val_2026-03-06_042421.parquet (15096 rows)
+2026-03-06 04:24:25,124 [INFO] src.data.split: Saved test: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/test_2026-03-06_042421.parquet (15096 rows)
+2026-03-06 04:24:28,969 [INFO] derive_dataset: Derived dataset created: paperref_20260306_fullflow__derived_h1_6_72_144_576 (from 2026-03-06_042129_03d4b407)
+{
+  "run_id": "paperref_20260306_fullflow__derived_h1_6_72_144_576",
+  "phase": "01.5-derived-dataset",
+  "status": "completed",
+  "source_data_run_id": "2026-03-06_042129_03d4b407",
+  "source_timestamp": "2026-03-06_042227",
+  "degree_base_c": 18.0,
+  "horizon_steps": [
+    1,
+    6,
+    72,
+    144,
+    576
+  ],
+  "net_load_lag_steps": [
+    1,
+    6,
+    12,
+    48,
+    72,
+    144,
+    576
+  ],
+  "add_physics_proxies": true,
+  "add_hub_wind": true,
+  "add_temp_ghi": true,
+  "add_absolute_targets": true,
+  "timestamp": "2026-03-06_042421",
+  "rows": {
+    "train": 72960,
+    "val": 15096,
+    "test": 15096
+  },
+  "added_columns": {
+    "targets": [
+      "delta_load",
+      "delta_load_h1",
+      "delta_load_h144",
+      "delta_load_h576",
+      "delta_load_h6",
+      "delta_load_h72",
+      "delta_net_load",
+      "delta_net_load_h1",
+      "delta_net_load_h144",
+      "delta_net_load_h576",
+      "delta_net_load_h6",
+      "delta_net_load_h72",
+      "delta_solar_h1",
+      "delta_solar_h144",
+      "delta_solar_h576",
+      "delta_solar_h6",
+      "delta_solar_h72",
+      "delta_wind_h1",
+      "delta_wind_h144",
+      "delta_wind_h576",
+      "delta_wind_h6",
+      "delta_wind_h72",
+      "net_load",
+      "net_load_h1",
+      "net_load_h144",
+      "net_load_h576",
+      "net_load_h6",
+      "net_load_h72",
+      "solar_h1",
+      "solar_h144",
+      "solar_h576",
+      "solar_h6",
+      "solar_h72",
+      "wind_h1",
+      "wind_h144",
+      "wind_h576",
+      "wind_h6",
+      "wind_h72"
+    ],
+    "net_load_lags": [
+      "net_load_lag_1",
+      "net_load_lag_6",
+      "net_load_lag_12",
+      "net_load_lag_48",
+      "net_load_lag_72",
+      "net_load_lag_144",
+      "net_load_lag_576"
+    ],
+    "engineered_features": [
+      "wind_speed_10m_m_s_cubed",
+      "ghi_day_w_m2",
+      "cdd_18c",
+      "hdd_18c",
+      "wind_speed_hub_est",
+      "ghi_temp_corr_w_m2"
+    ]
+  },
+  "paths": {
+    "train": "/vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/train_2026-03-06_042421.parquet",
+    "val": "/vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/val_2026-03-06_042421.parquet",
+    "test": "/vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/test_2026-03-06_042421.parquet"
+  },
+  "artifacts_dir": "/vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/artifacts",
+  "created_at": "2026-03-06T04:24:25.124813+00:00"
+}
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/hfvcn/main/ap-Rvi85liqJAruK6XrfYsy05

@@ -1,0 +1,131 @@
+{
+  "run_id": "paperref_20260306_121725_v2__s0p_solar_delta_h6",
+  "phase": "02-kan-training",
+  "kind": "s0p_solar_delta_h6",
+  "data_run_id": "paperref_20260306_121725__derived_h1_6",
+  "data_timestamp": "2026-03-06_043036",
+  "started_at": "2026-03-06T04:46:03.815462+00:00",
+  "cfg": {
+    "target_col": "delta_solar_h6",
+    "grid_range_min": -5.0,
+    "grid_range_max": 5.0,
+    "hidden_width": 10,
+    "hidden_layers": null,
+    "grid": 5,
+    "k": 3,
+    "seed": 1,
+    "hidden_mult": 0,
+    "mult_arity": 2,
+    "warmup_steps": 200,
+    "sparsify_steps": 800,
+    "refine_steps": 200,
+    "warmup_lr": 0.01,
+    "sparsify_lr": 0.005,
+    "refine_lr": 0.5,
+    "sparsify_lamb": 0.005,
+    "sparsify_lamb_l1": 1.0,
+    "sparsify_lamb_entropy": 1.5,
+    "sparsify_lamb_coef": 0.0,
+    "sparsify_lamb_coefdiff": 0.0,
+    "target_pruned_ratio": 0.8,
+    "max_rmse_degrade_ratio": 1.1,
+    "prune_require_features": [],
+    "prune_require_strict": false,
+    "hidden_width_final": 3,
+    "hidden_mult_final": 0
+  },
+  "feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "solar_altitude",
+    "solar_azimuth",
+    "is_night",
+    "ghi_w_m2",
+    "ghi_day_w_m2",
+    "ghi_temp_corr_w_m2",
+    "temp_2m_c",
+    "solar_lag_12",
+    "solar_lag_24",
+    "solar_lag_48"
+  ],
+  "target_scaler": {
+    "mean": 4.41170595122,
+    "std": 2805.0737145276253
+  },
+  "lag_steps": [
+    12,
+    24,
+    48
+  ],
+  "lag_series": [
+    "solar"
+  ],
+  "include_groups": [
+    "cyclic",
+    "solar_geom",
+    "solar_flag",
+    "meteo_irradiance",
+    "meteo_temp"
+  ],
+  "include_base": false,
+  "max_train_rows": 50000,
+  "device": "cuda",
+  "env": {
+    "python": "3.11.12",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "torch_version": "2.10.0+cu128",
+    "torch_cuda_available": true,
+    "torch_cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "cuda_device_name": "NVIDIA L4",
+    "cuda_capability": [
+      8,
+      9
+    ]
+  },
+  "model_width": [
+    [
+      16,
+      0
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "completed_at": "2026-03-06T04:47:59.321928+00:00",
+  "results": {
+    "eval_unpruned": {
+      "rmse": 1239.5571301750524,
+      "mae": 701.5549012995566,
+      "r2": 0.7646384690609523
+    },
+    "eval_sparsify": {
+      "rmse": 1181.6198593475397,
+      "mae": 702.5979478088361,
+      "r2": 0.7861260218210327
+    },
+    "eval_pruned": {
+      "rmse": 1278.8044060873997,
+      "mae": 839.5164709690285,
+      "r2": 0.7494983259360077
+    },
+    "sparsity": {
+      "total_edges": 51,
+      "pruned_edges": 14,
+      "pruned_ratio": 0.27450980392156865
+    },
+    "prune_candidate": {
+      "node_th": 0.01,
+      "edge_th": 0.002
+    }
+  }
+}

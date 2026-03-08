@@ -1,0 +1,25 @@
+{
+  "target_col": "load",
+  "n_checks": 1,
+  "score": 0.0,
+  "checks": [
+    {
+      "name": "temp_sensitivity_present",
+      "passed": false,
+      "score": 0.0,
+      "details": {
+        "var": "temp_2m_c",
+        "derivative_summary": {
+          "var": "temp_2m_c",
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "pct_positive": 0.0,
+          "pct_negative": 0.0,
+          "n": 1
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "run_id": "paperref_20260306_121725_v2__s3_comp_wind_delta_h6",
+  "phase": "02-kan-training",
+  "kind": "s3_comp_wind_delta_h6",
+  "data_run_id": "paperref_20260306_121725__derived_h1_6",
+  "data_timestamp": "2026-03-06_043036",
+  "started_at": "2026-03-06T04:38:47.592944+00:00",
+  "cfg": {
+    "target_col": "delta_wind_h6",
+    "grid_range_min": -5.0,
+    "grid_range_max": 5.0,
+    "hidden_width": 10,
+    "hidden_layers": null,
+    "grid": 5,
+    "k": 3,
+    "seed": 1,
+    "hidden_mult": 0,
+    "mult_arity": 2,
+    "warmup_steps": 200,
+    "sparsify_steps": 800,
+    "refine_steps": 200,
+    "warmup_lr": 0.01,
+    "sparsify_lr": 0.005,
+    "refine_lr": 0.5,
+    "sparsify_lamb": 0.01,
+    "sparsify_lamb_l1": 1.0,
+    "sparsify_lamb_entropy": 2.0,
+    "sparsify_lamb_coef": 0.0,
+    "sparsify_lamb_coefdiff": 0.0,
+    "target_pruned_ratio": 0.8,
+    "max_rmse_degrade_ratio": 1.1,
+    "prune_require_features": [],
+    "prune_require_strict": false,
+    "hidden_width_final": 4,
+    "hidden_mult_final": 0
+  },
+  "feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "wind_speed_10m_m_s",
+    "wind_speed_10m_m_s_cubed",
+    "wind_speed_hub_est",
+    "wind_lag_24",
+    "wind_lag_48"
+  ],
+  "target_scaler": {
+    "mean": 0.017304948656425404,
+    "std": 1123.20056610968
+  },
+  "lag_steps": [
+    24,
+    48
+  ],
+  "lag_series": [
+    "wind"
+  ],
+  "include_groups": [
+    "cyclic",
+    "meteo_wind"
+  ],
+  "include_base": false,
+  "max_train_rows": 50000,
+  "device": "cuda",
+  "env": {
+    "python": "3.11.12",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "torch_version": "2.10.0+cu128",
+    "torch_cuda_available": true,
+    "torch_cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "cuda_device_name": "NVIDIA L4",
+    "cuda_capability": [
+      8,
+      9
+    ]
+  },
+  "model_width": [
+    [
+      11,
+      0
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "completed_at": "2026-03-06T04:40:41.931368+00:00",
+  "results": {
+    "eval_unpruned": {
+      "rmse": 796.3603657161088,
+      "mae": 612.9404080901214,
+      "r2": 0.23276790759947574
+    },
+    "eval_sparsify": {
+      "rmse": 704.82256133146,
+      "mae": 518.5883358615082,
+      "r2": 0.39901022858503565
+    },
+    "eval_pruned": {
+      "rmse": 837.6229726940885,
+      "mae": 613.0474989122876,
+      "r2": 0.15120141780770358
+    },
+    "sparsity": {
+      "total_edges": 48,
+      "pruned_edges": 13,
+      "pruned_ratio": 0.2708333333333333
+    },
+    "prune_candidate": {
+      "node_th": 0.01,
+      "edge_th": 0.002
+    }
+  }
+}

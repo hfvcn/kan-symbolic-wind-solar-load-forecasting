@@ -1,0 +1,24 @@
+{
+  "run_id": "paperref_20260306_121725_v2__s3_combo_net_load",
+  "phase": "05-structured-combination",
+  "kind": "net_load_from_components",
+  "target_col": "net_load_h6",
+  "component_runs": {
+    "load": "paperref_20260306_121725_v2__s3_comp_load_delta_h6",
+    "wind": "paperref_20260306_121725_v2__s3_comp_wind_delta_h6",
+    "solar": "paperref_20260306_121725_v2__s3_comp_solar_delta_h6"
+  },
+  "component_targets": {
+    "load": "delta_load_h6",
+    "wind": "delta_wind_h6",
+    "solar": "delta_solar_h6"
+  },
+  "started_at": "2026-03-06T07:37:19.759994+00:00",
+  "eval_test": {
+    "rmse": 1407.3511329370697,
+    "mae": 1043.1587961070986,
+    "r2": 0.991169210855008,
+    "n": 15624
+  },
+  "completed_at": "2026-03-06T07:37:19.788367+00:00"
+}

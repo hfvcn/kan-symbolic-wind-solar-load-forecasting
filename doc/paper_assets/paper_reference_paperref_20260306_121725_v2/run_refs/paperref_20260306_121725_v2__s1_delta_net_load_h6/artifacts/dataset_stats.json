@@ -1,0 +1,58 @@
+{
+  "train_input": {
+    "shape": [
+      50000,
+      31
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0",
+    "numel": 1550000,
+    "finite_frac_sample": 1.0,
+    "min_sample": -3.1334495544433594,
+    "max_sample": 57361.41015625,
+    "mean_sample": 1747.48486328125,
+    "std_sample": 9565.1982421875
+  },
+  "train_label": {
+    "shape": [
+      50000,
+      1
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0",
+    "numel": 50000,
+    "finite_frac_sample": 1.0,
+    "min_sample": -4.897576808929443,
+    "max_sample": 5.242056846618652,
+    "mean_sample": -0.008702713996171951,
+    "std_sample": 1.0962886810302734
+  },
+  "test_input": {
+    "shape": [
+      15624,
+      31
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0",
+    "numel": 484344,
+    "finite_frac_sample": 1.0,
+    "min_sample": -2.0345380306243896,
+    "max_sample": 52487.0234375,
+    "mean_sample": 1437.734619140625,
+    "std_sample": 7927.08837890625
+  },
+  "test_label": {
+    "shape": [
+      15624,
+      1
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0",
+    "numel": 15624,
+    "finite_frac_sample": 1.0,
+    "min_sample": -2.930169105529785,
+    "max_sample": 3.7626278400421143,
+    "mean_sample": -0.0007273522205650806,
+    "std_sample": 0.8637732863426208
+  }
+}

@@ -64,11 +64,27 @@ def build_plan(args: argparse.Namespace, *, session_id: str, detached: bool) -> 
     planned += derive_cmds
     run_ids += derive_run_ids
 
-    kan_cmds, kan_target_by_run, comp_runs = plan_kan_sweeps(args, session_id=session_id, detached=detached, derived_id=derived_id)
+    downstream_args = args
+    if str(derived_id).strip():
+        downstream_args = argparse.Namespace(**vars(args))
+        downstream_args.source_timestamp = ""
+
+    kan_cmds, kan_target_by_run, comp_runs = plan_kan_sweeps(
+        downstream_args,
+        session_id=session_id,
+        detached=detached,
+        derived_id=derived_id,
+    )
     planned += kan_cmds
     run_ids += list(kan_target_by_run.keys())
 
-    baseline_cmds, baseline_runs = plan_baselines(args, session_id=session_id, detached=detached, derived_id=derived_id, kan_target_by_run=kan_target_by_run)
+    baseline_cmds, baseline_runs = plan_baselines(
+        downstream_args,
+        session_id=session_id,
+        detached=detached,
+        derived_id=derived_id,
+        kan_target_by_run=kan_target_by_run,
+    )
     planned += baseline_cmds
     run_ids += baseline_runs
 

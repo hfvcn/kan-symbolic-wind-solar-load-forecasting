@@ -132,6 +132,7 @@ def _extract_symbolic_impl(
         build_symbolic_formula,
         evaluate_symbolic_formula,
         extract_symbolic_edges,
+        prime_symbolic_activations,
         sympy_complexity,
     )
 
@@ -217,19 +218,13 @@ def _extract_symbolic_impl(
     # Populate internal activations for symbolic fitting.
     # Note: pykan symbolic fitting is CPU-bound + Branch-intensive, so move to CPU after forward.
     x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32), device=device_s)
-
-    if device_s == "cuda":
-        logger.info("Running forward on GPU to get activations...")
-        with torch.no_grad():
-            _ = model(x_sample)
-        
-        logger.info("Moving model to CPU for symbolic extraction (SymPy / fitting is CPU-only and slow on GPU)...")
-        model = model.to("cpu")
-        x_sample = x_sample.to("cpu")
-    else:
-        # Running on CPU already
-        with torch.no_grad():
-            _ = model(x_sample)
+    model, x_sample = prime_symbolic_activations(
+        model,
+        x_sample,
+        device_name=device_s,
+        torch_mod=torch,
+        logger_obj=logger,
+    )
 
     # Per-edge suggestions + optional fixing.
     # Standard official-style extraction (using our wrapper to capture fits for reporting)

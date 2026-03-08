@@ -1,0 +1,17 @@
+{
+  "free_symbols": [
+    "load"
+  ],
+  "additive_separable": false,
+  "multiplicative_separable": false,
+  "additive_components": [
+    [
+      "load"
+    ]
+  ],
+  "multiplicative_components": [
+    [
+      "load"
+    ]
+  ]
+}

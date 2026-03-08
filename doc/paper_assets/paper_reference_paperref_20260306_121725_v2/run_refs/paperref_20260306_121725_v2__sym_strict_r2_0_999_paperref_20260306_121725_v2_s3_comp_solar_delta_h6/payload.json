@@ -1,0 +1,47 @@
+{
+  "run_id": "paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6",
+  "status": "completed",
+  "train_run_id": "paperref_20260306_121725_v2__s3_comp_solar_delta_h6",
+  "data_run_id": "paperref_20260306_121725__derived_h1_6",
+  "data_timestamp": "2026-03-06_043036",
+  "r2_threshold": 0.999,
+  "weight_simple": 0.9,
+  "fix_below_threshold_to_zero": false,
+  "sample_rows": 20000,
+  "lib": [
+    "x",
+    "x^2",
+    "x^3",
+    "sin",
+    "cos",
+    "abs"
+  ],
+  "safe_exp_clip": null,
+  "eval_clip_quantiles": null,
+  "eval_test": {
+    "rmse": 2317.177719616117,
+    "mae": 1196.6301551563013,
+    "r2": 0.08595753547977558,
+    "n_eval": 15624
+  },
+  "feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "solar_altitude",
+    "solar_azimuth",
+    "is_night",
+    "ghi_w_m2",
+    "ghi_day_w_m2",
+    "ghi_temp_corr_w_m2",
+    "temp_2m_c",
+    "solar_lag_24",
+    "solar_lag_48"
+  ],
+  "target_col": "delta_solar_h6",
+  "device": "cpu",
+  "artifacts_dir": "/vol/runs/paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts"
+}

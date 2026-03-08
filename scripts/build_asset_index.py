@@ -3,11 +3,36 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from pathlib import Path
 
 
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text())
+
+
+def _discover_manifest_commands(doc_root: Path) -> dict[str, dict[str, str]]:
+    command_by_run: dict[str, dict[str, str]] = {}
+    sweeps_root = doc_root / "thesis_sweeps"
+    if not sweeps_root.exists():
+        return command_by_run
+    for manifest_path in sorted(sweeps_root.glob("*/manifest.json")):
+        payload = _read_json(manifest_path)
+        planned = payload.get("planned")
+        if not isinstance(planned, list):
+            continue
+        for item in planned:
+            if not isinstance(item, dict):
+                continue
+            run_id = item.get("run_id")
+            cmd = item.get("cmd")
+            if not run_id or not isinstance(cmd, list) or not cmd:
+                continue
+            command_by_run[str(run_id)] = {
+                "manifest": str(manifest_path),
+                "command": shlex.join(str(part) for part in cmd),
+            }
+    return command_by_run
 
 
 def _infer_phase_and_kind(run_dir: Path, payload: dict) -> tuple[str, str]:
@@ -67,6 +92,10 @@ def main() -> None:
     else:
         run_dirs = sorted([p for p in runs_dir.iterdir() if p.is_dir() and (p / "payload.json").exists()], key=lambda p: p.name)
 
+    doc_root = paper_assets_dir.parent
+    command_by_run = _discover_manifest_commands(doc_root)
+    sweeps_root = doc_root / "thesis_sweeps"
+
     md: list[str] = []
     md.append("# Thesis Asset Index")
     md.append("")
@@ -91,7 +120,6 @@ def main() -> None:
                 md.append(f"- `{p}`")
 
         # Thesis-oriented sweep sessions (per-session outputs live under doc/thesis_sweeps/<session>/).
-        sweeps_root = Path("doc") / "thesis_sweeps"
         if sweeps_root.exists():
             for sess in sorted([p for p in sweeps_root.iterdir() if p.is_dir()], key=lambda p: p.name):
                 manifest = sess / "manifest.json"
@@ -110,6 +138,19 @@ def main() -> None:
             md.append(f"- `{p}`")
         for p in sorted(paper_assets_dir.glob("sensitivity_summary_*.csv")):
             md.append(f"- `{p}`")
+        for p in sorted(paper_assets_dir.glob("wind_ablation_summary_*.csv")):
+            md.append(f"- `{p}`")
+        for p in sorted(paper_assets_dir.glob("PAPER_REPRO_MAP_*.md")):
+            md.append(f"- `{p}`")
+        for subdir in sorted([p for p in paper_assets_dir.iterdir() if p.is_dir() and p.name.startswith("paper_delivery_")], key=lambda p: p.name):
+            for p in sorted(subdir.iterdir(), key=lambda path: path.name):
+                if p.is_file():
+                    md.append(f"- `{p}`")
+    if doc_root.exists():
+        for p in sorted(doc_root.glob("paper_delivery_closure_*.md")):
+            md.append(f"- `{p}`")
+        for p in sorted(doc_root.glob("*ablation_summary_*.csv")):
+            md.append(f"- `{p}`")
     md.append("")
 
     # Per-run assets
@@ -125,6 +166,10 @@ def main() -> None:
             md.append("")
             md.append(f"- phase: `{phase}`")
             md.append(f"- kind: `{kind}`")
+            command_info = command_by_run.get(run_dir.name)
+            if command_info:
+                md.append(f"- manifest: `{command_info['manifest']}`")
+                md.append(f"- command: `{command_info['command']}`")
 
             artifacts = run_dir / "artifacts"
             if artifacts.exists():

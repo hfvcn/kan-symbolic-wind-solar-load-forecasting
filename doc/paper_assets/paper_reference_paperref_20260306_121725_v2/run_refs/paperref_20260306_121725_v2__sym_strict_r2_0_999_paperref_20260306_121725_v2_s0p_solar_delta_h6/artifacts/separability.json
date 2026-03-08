@@ -1,0 +1,53 @@
+{
+  "free_symbols": [
+    "ghi_day_w_m2",
+    "ghi_temp_corr_w_m2",
+    "ghi_w_m2",
+    "hour_cos",
+    "hour_sin",
+    "is_night",
+    "month_cos",
+    "solar_altitude",
+    "solar_azimuth",
+    "solar_lag_12",
+    "solar_lag_24",
+    "solar_lag_48",
+    "temp_2m_c"
+  ],
+  "additive_separable": false,
+  "multiplicative_separable": false,
+  "additive_components": [
+    [
+      "ghi_day_w_m2",
+      "ghi_temp_corr_w_m2",
+      "ghi_w_m2",
+      "hour_cos",
+      "hour_sin",
+      "is_night",
+      "month_cos",
+      "solar_altitude",
+      "solar_azimuth",
+      "solar_lag_12",
+      "solar_lag_24",
+      "solar_lag_48",
+      "temp_2m_c"
+    ]
+  ],
+  "multiplicative_components": [
+    [
+      "ghi_day_w_m2",
+      "ghi_temp_corr_w_m2",
+      "ghi_w_m2",
+      "hour_cos",
+      "hour_sin",
+      "is_night",
+      "month_cos",
+      "solar_altitude",
+      "solar_azimuth",
+      "solar_lag_12",
+      "solar_lag_24",
+      "solar_lag_48",
+      "temp_2m_c"
+    ]
+  ]
+}

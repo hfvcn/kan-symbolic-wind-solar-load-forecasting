@@ -1,326 +1,201 @@
-下面的建议是基于你这份阶段性记录（Solar 已经能做到“物理量进稀疏结构 + pruned 精度很高”，Wind 的主要瓶颈在 sparsify 阶段退化/崩、以及含 lag 时的自回归遮蔽）来给出的后续策略与可落地的结构改造方向。
+# 论文落地 TODO（V3-修订版，2026-03-06）
+
+目标：把现有工程闭环收敛成**论文级证据链**（主实验 + 机制验证 + 反例边界 + 稳健性统计 + 复杂度/精度权衡），而不是继续加新模块。
+
+配套现状与审查快照：`doc/PROJECT_ARCHITECTURE_STATUS_FOR_AI_v3.md`
 
 ---
 
-## 1) 先把目标函数说清楚：你现在是在做“三目标帕累托”
+## 0. 论文主命题收口（必须先钉死，避免写散）
 
-你们 Phase2 的产物已经非常齐全了（`eval_sparsify / eval_pruned / feature_importance(_sparsify) / sparsity / prune_search`），现在建议把“选 run”的逻辑从“看几行指标”升级成一个明确的三目标筛选器：
+- [x] **一句话主命题**（写进摘要/答辩首页）：在 multi-horizon 的设置下，用稀疏 KAN + 符号提取，从风速/GHI/温度/历史量中提取可复算的解析关系，并用消融与反例边界证明“物理量入式/退式”主要由特征竞争与稀疏/剪枝轨迹共同决定。
+- [x] **主结论 / 副结论 / 边界结论清单**：主结论绑定主实验表，副结论绑定 wind/solar 机制表，边界结论绑定 `delta_solar_h288` 反例；摘要、结论、答辩首页统一使用同一套表述。
+- [x] **贡献点清单（3–5 条）**：每条对应一组可复现实验与一张图/一张表（禁止“只有观点没有证据”的贡献）。
+- [x] **Claim 强度表（强说/弱说/边界）**：
+  - 强说：有主表 + 消融/统计支撑的结论。
+  - 弱说：只对特定数据集/特定 horizon/特定稀疏预算成立的结论。
+  - 边界：明确的失败模式（如 solar `h=288` 越界崩坏）。
+- [x] **Run 白名单**：正文只允许引用白名单里的 run_id；附录允许更多但必须可复现（manifest + 资产索引）。
 
-**硬约束（必须满足）**
-
-1. 关键物理特征在 *prune 后* 仍 `active_edges > 0`（例如 Solar：`solar_altitude + ghi_* + temp_2m_c`；Wind：至少 `wind_speed_*` 和/或 `v^3`）。
-2. `active_edges_total` 落在 Phase3 可承受区间（你们已经把 20~30 作为舒适区；我建议再细分：**15~25 是“黄金区”**，25~35 是“可做但慢/复杂”）。
-3. `R²(pruned)` ≥ 你们设定的论文门槛（Solar 看起来可以把门槛定到 0.85 甚至 0.87；Wind 可能需要单独定义目标）。
-
-**优化目标（越大越好）**
-
-* 在满足硬约束的前提下：最大化 `R²(pruned)`，并最小化 `active_edges_total`。
-
-一个很好用的“自动打分”方式（方便你们批量挑 topK）：
-
-* `score = R2_pruned - α * log(1 + active_edges_total) - β * missing_phys`
-
-  * `missing_phys`：缺失的关键物理变量数（比如 temp 被剪掉就 +1）
-  * α 取 0.01~0.03（控制“少边”的偏好强度），β 取 0.05~0.2（强制保物理量）
-
-这样你们不需要“拍脑袋挑 run”，也能跟 `prune_search.json` 直接对齐（甚至可以对每个 prune candidate 都算一遍 score，再选最优）。
+状态（2026-03-09）：已完成；冻结稿已写入 `doc/paper_delivery_closure_20260306.md`，其中包含主命题、结论冻结、贡献点、claim 强度和 run 白名单。
 
 ---
 
-## 2) 用“分层诊断”把调参从玄学变成定位：先判死在 sparsify 还是死在 prune
+## 1. 必须补的证据链（影响交付，按顺序执行）
 
-你们新增的 3 个诊断产物其实已经能做一个**非常清晰的决策树**（尤其对 Wind）：
+### 1.1 主实验矩阵定版（论文主表的“设计”先固定）
 
-### A. `feature_importance_sparsify.csv` 里物理量已经 0
+- [x] **固定目标与 horizon（建议 2–3 个）**：
+  - 主结果：`net_load`（或 `delta_net_load_h6` → 重建到 abs）优先；
+  - 机制验证：solar 选 `h=72/h=144/h=576`（已有证据链），wind 选 `h=72/h=576`（补对称证据）。
+- [x] **固定 baselines 范围**（正文只保留能回答问题的最小集合）：
+  - persistence（按 `_h{n}` 做 `shift(n)`）；
+  - baseline MLP（预算/特征对齐到对应 KAN run）；
+  - （可选）PySR 基线：若能贡献“复杂度 vs 精度”对照就保留，否则降级到附录。
+- [x] **固定指标与复杂度定义**：
+  - 指标：RMSE / R² / skill（必选）；WAPE（若需要解释尺度）；
+  - 复杂度：KAN 用 `edge_pruned_ratio` 或 active edge 数；公式用 `sympy_node_count`；baseline 用 `param_count`。
 
-**含义**：物理量在 sparsify 阶段就被“杀死”，后面 prune 怎么调都救不回。
-**对策优先级**：先救 sparsify（不是 prune）。
+状态（2026-03-09）：已完成；主实验矩阵与口径冻结见 `doc/paper_delivery_closure_20260306.md` 第 5 节。
 
-可以直接采取的动作：
+验收：主表结构在写作中不再变更（后续所有实验只是在该矩阵中填格子/补证据）。
 
-* 降 `sparsify_lamb`（Wind 你们已经验证 0.001 → 0.0002 有明显改善，但仍不稳）
-* 调整 sparsify 日程（见下文 Wind 的“稳定性补丁包”）
-* 或做“物理量保活正则/结构”（见第 5 节架构创新）
+### 1.2 口径门禁（delta→abs 重建与汇总一致）
 
-### B. sparsify 里物理量>0，但 prune 后变 0
+- [x] 对所有 `delta_*` 目标：统一执行重建  
+      `python3 scripts/reconstruct_predictions.py --run runs/<run_id>`
+- [x] 汇总只使用 **abs(test)** 口径（重建后的 `predictions_test_reconstructed.parquet`），并确保 persistence 用 `shift(h)`。
 
-**含义**：剪枝搜索/选择策略把它剪没了。
-**对策**：改 prune 的选择规则或加约束（而不是一味降 lambda）。
+状态（2026-03-09）：已完成；`scripts/reconstruct_predictions.py` 输出重建文件，`src/eval/runs.py` / `scripts/evaluate_runs.py` 已优先读取 `predictions_test_reconstructed.parquet` 并按 horizon 计算 persistence skill。
 
-立即可做的动作：
+验收：`scripts/evaluate_runs.py` 的对比表不再混用 delta/abs（优先读取 reconstructed）。
 
-* 在 `prune_search.json` 的候选里，加入一个“必须保留物理量”的过滤条件：
+### 1.3 主结果主表（预测有效 + 公平对照）
 
-  * 只在满足“关键物理量仍 active”的候选集合里选最优 R²/边数
-* 或把 prune 的目标从“达到 target_pruned_ratio”改成“在边数预算内最大化 R² + 物理量保留”（见第 4 节的 prune 改造）
+- [x] 选定一组“正文主结果” run（KAN + 对齐预算的 MLP + persistence），生成并冻结：
+  - `doc/paper_assets/comparison_table.csv`
+  - `doc/paper_assets/pareto_rmse_vs_complexity*.png`
+- [x] 对主结果 run：生成图表与索引（见 3.1 的最小图表集合）。
 
----
+状态（2026-03-09）：已完成；主表与 Pareto 已冻结在 `doc/paper_assets/paper_delivery_20260306/`，复现映射见 `doc/paper_assets/PAPER_REPRO_MAP_20260306.md`。
 
-## 3) Solar 后续调参策略：目标是“少边且不丢 temp”，从你们当前帕累托前沿继续往下压
+验收：答辩追问“你到底提升了什么/和什么比”时，能用主表 30 秒讲清楚。
 
-你们 Solar 现在其实已经有两条很好的“锚点”了：
+### 1.4 wind/solar 机制验证（必须对称，形成完整证据链）
 
-* **精度优先**：`hw50,g5,k3,l=0.0015,e=3` → `R²(pruned)=0.8905`, `active_edges_total=28`，且温度+GHI+高度都存活
-* **提取友好**：`hw60,g5,k3,l=0.001,e=3` → `R²(pruned)=0.8764`, `active_edges_total=18`，温度也在
+Solar（已具备雏形，补“论文级封装”）：
+- [x] 把 `doc/solar_ablation_summary_20260304.csv` 对应的三组结论收敛成“条件边际贡献 + 剪枝轨迹敏感”的可引用段落（正文）。
+- [x] 把 `h=144 both` 作为“竞争导致外生量被淘汰且性能更差”的反例（正文或 5.3 小结）。
 
-你们的问题本质是：
+Wind（必须补齐，与 solar 同级别证据）：
+- [x] 复刻最小三组对照：`lags-only / meteo-only / both`，horizon 先做 `h=72` 与 `h=576`。
+- [x] 输出至少包含：abs(test) 指标 + `wind_speed_*`（或 `meteo_wind`）的 active_edges 统计。
+- [x] 若缺少汇总脚本：新增一个与 `scripts/summarize_solar_ablation.py` 同构的 wind 汇总脚本（输出 CSV，供论文直接引用）。
 
-> 把边数压得更狠（比如 l=0.002）时，temp_2m_c 容易被当成“弱边际贡献特征”直接剪掉。
+状态（2026-03-08）：已完成；正文可直接使用 wind/solar 对称机制表。证据：`doc/solar_ablation_summary_20260304.csv`、`doc/paper_assets/paper_delivery_20260306/wind_ablation_summary_20260306.csv`、`doc/paper_assets/comparison_table.csv`、`doc/paper_delivery_closure_20260306.md`。
 
-### 3.1 我建议的 Solar 调参路线（局部搜索，不要大范围扫）
+验收：正文可以用“wind/solar 两行对照表”统一讲清机制，而不是只在 solar 侧成立。
 
-#### Step S1：只动 (l, entropy)，锁定结构 `g=5,k=3`
+### 1.5 成功公式案例（至少 1 个能写进正文的“成功公式”）
 
-你们已经看到 `l=0.002,e=2` 会丢 temp；这说明“稀疏压力过大 + 熵项不足以维持分布”时，temp 会先死。
-所以更合理的下一步是**在 0.0015~0.002 之间做细粒度 + 提升 entropy 让 temp 不被极端稀疏化牺牲**：
+目标：把“可解释公式”从“产物存在”升级为“正文结论成立”。
 
-推荐优先跑这 6 组（成本小、信息量大）：
+- [x] 优先路线（不改 teacher）：已完成 `delta_net_load_h6` teacher 的 Phase 3 sweep（S0）验证；当前 canonical grid 未找到满足“稳定/可复算/正 skill”的 direct 配置，失败证据已固定。
+- [x] 兜底路线（保证交付）：走 S3 结构化分解，对 wind/solar/load 子任务分别提取子公式，再组合成可解释的 net_load 叙事。
 
-* `l=0.0014, e=3.0`
-* `l=0.0016, e=3.0`
-* `l=0.0018, e=3.0`
-* `l=0.0016, e=3.5`
-* `l=0.0018, e=3.5`
-* `l=0.0020, e=4.0`
+成功公式的最低验收（写进正文的门槛）：
+- [x] test 上 **skill 为正且稳定**（至少 3-seed 不全翻车）；
+- [x] 公式显式包含关键物理量（风速/GHI/温度至少各有一个在对应子公式或总公式里出现）；
+- [x] 公式可渲染（LaTeX）可复算（`formula_eval_test.json` 与脚本复算一致）。
 
-你要看的不是“unpruned 多高”，而是：
+状态（2026-03-08）：已完成；正文主路径采用 S3 结构化分解，不再把 direct `delta_net_load_h6` teacher 公式当作唯一交付路径。证据：`doc/paper_delivery_closure_20260306.md`、`doc/paper_assets/paper_reference_paperref_20260306_121725_v2/run_refs/`（S3 load/solar/wind 公式工件）、`doc/paper_assets/paper_reference_paperref_20260306_121725_v2/paper_assets_snapshot/figures/`。
+优先路线状态（2026-03-09）：已追加尝试 direct teacher S0；发现当前 `paperref_20260306_121725_v2__s1_delta_net_load_h6` 的 pruned 结构只剩 `load` 活跃边，因此新增改在 `paperref_20260306_fullflow__kan_delta_net_load_h6` 上补发 CPU symbolic（`20260309_modal_direct_fullflow__sym_*`）验证 direct 路线是否仍可成立。
+当前执行策略（2026-03-09）：direct S0 已切换为纯云端 detached 运行，不再依赖本地常驻进程；提交记录与后续同步入口见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/manifest.json` 与 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/session_status_20260309.md`。
+同步结论（2026-03-09）：远端巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`；11 个 direct run 中仅 `20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k` 有可见 artifacts，且其重建后 abs(test) `rmse=3797.18`、`skill=-0.466`，未达到 direct 成功门槛。当前正文仍以 S3 结构化分解为主路径。
 
-* `feature_importance_sparsify` 里 temp 是否还活
-* 以及 `active_edges_total` 是否能从 28 往 20~25 逼近，同时 R²(pruned) 不掉太多
+### 1.6 反例边界（把弱点变贡献）
 
-> 直觉：`l` 稍增会压边数，`entropy` 稍增会降低“winner-take-all”，让 temp 这种“第二梯队特征”不至于全灭。
+- [x] Solar `delta_solar_h288`：固定三层证据并写成论文段落模板：  
+  1) val 不稳定预警（`eval_pruned.json`）  
+  2) test 外推崩坏（分位数 + 越界率）  
+  3) 最小修复对照（clip：风险缓解，不宣称性能提升）
+- [x] 明确论文设定：Open-Meteo 历史档案为 **ex post explanatory setting**（避免被当作可上线预报特征）。
 
-#### Step S2：在“temp 能活”的配置上，再动 prune 约束把边数压干净
+状态（2026-03-09）：已完成；证据与段落模板已冻结在 `doc/paper_delivery_closure_20260306.md` 与 `doc/paper_assets/paper_delivery_20260306/solar_h288_boundary_20260306.json`。
 
-你们现在 `target_pruned_ratio=0.85` 能得到 28 条边、精度很好。
-如果目标是逼近 20~25 条边，我建议在最优 1~2 个 (l,e) 配置上做：
+### 1.7 复杂度—精度 trade-off（把 Pareto 变成“正式结果”）
 
-* `target_pruned_ratio = 0.90` + `max_rmse_degrade_ratio = 1.03~1.05`
-* `target_pruned_ratio = 0.95` + `max_rmse_degrade_ratio = 1.05`
+- [x] 在主实验矩阵内，对关键目标画 Pareto（RMSE vs complexity），并标注：
+  - 物理变量是否入式（edges/公式包含变量）；
+  - 解释性更强但精度下降的点（用于讨论章节）。
 
-并且**别让 prune 选择“只看 R²”**（见第 4 节），否则它可能为了极小的 R² 提升把 temp 剪掉。
+状态（2026-03-09）：已完成；主结果 Pareto 已落盘到 `doc/paper_assets/paper_delivery_20260306/pareto_rmse_vs_complexity.png`，主结果表同时保留 complexity 字段用于正文讨论。
 
-#### Step S3：结构微创新（在不冒险的前提下减少边）
-
-你们已经观察到：
-
-* `g=5` 比 `g=3/g=10`稳
-* `hidden_mult` 目前带来更多边且精度变差（说明“乘法单元 + 当前正则/剪枝策略”不匹配）
-
-因此结构上我建议优先试一种**“漏斗瓶颈”**，它对“少边可提取”通常更友好：
-
-* `hidden_layers = 48,16`（或 `32,8`）
-  再配合偏温和的 `l=0.001~0.0015`、`e=3`
-
-你们记录里也提过类似方向（`hl=32,8 / 48,16`）。
-重点是：瓶颈层能迫使网络把信息“压缩汇聚”，减少冗余边，同时不必靠更高 lambda 去硬剪（硬剪最容易把 temp 剪死）。
-
----
-
-## 4) prune 策略的“解决当前问题”的关键改造：把“物理量保留”纳入剪枝选择
-
-你们现在已经有 `prune_search.json`，这意味着 prune 是一个“在多个 candidate 中选一个”的过程。
-**当前最容易踩的坑**：选到了某个 candidate，R²(pruned) 很好，但把关键物理量剪掉了（尤其是温度/风速这种容易被替代的变量）。
-
-### 4.1 建议把 prune selection 规则升级为“带约束的多目标选择”
-
-从“在允许退化范围内，选最稀疏/或选最好 R²”
-升级为：
-
-1. **必须满足**：关键物理特征 `active_edges > 0`
-2. 在满足 1 的候选里：
-
-   * 若你们更偏论文可解释：优先最小 `active_edges_total`
-   * 若你们更偏精度：优先最大 `R²`，但加一个边数预算（例如 ≤25 或 ≤30）
-
-这一个改造，能直接解决你们 Solar “压边会丢 temp”、Wind “物理量有时被剪没”的一大块问题——因为有些问题并不是“训练没学到”，而是“剪枝选择把它删了”。
-
-### 4.2 可选的更激进方案：分组剪枝（per-feature budget）
-
-对输入特征做分组（Solar：`ghi_*` 一组、`temp` 一组、`solar_altitude` 一组…；Wind：`wind_speed_*` 一组…），剪枝时给每组一个最小保留边数（比如每个关键物理特征至少留 1 条输入边）。
-
-这会显著提升“物理量出现在最终符号公式里”的概率。
+验收：论文能回答“你牺牲了多少精度换来多少可解释性”。
 
 ---
 
-## 5) Wind 的解决思路：先把 sparsify 稳住，再解决“lag 遮蔽”，最后才谈提精度
+## 2. 稳健性与统计补洞（答辩追问兜底：必须补，但可与 1.x 并行）
 
-你们 Wind 现在最关键的信息其实是：
+### 2.1 多 seed 稳健性（最少 3 seeds）
 
-* 风速相关特征在纯物理场景**可以进入结构**（`active_edges>0`），但 `R²(pruned)` 只有 ~0.15 左右
-* 很多配置在 `eval_sparsify` 就直接崩（出现巨大负值），说明不是“剪枝阈值没选好”，而是 sparsify 本身训练/评估不稳定
+- [x] 主结果：`net_load_h6`（或 `delta_net_load_h6` abs 口径）补 3 seeds（KAN + baseline）。
+- [x] 机制点：solar 选一个关键 horizon（如 `h=72` both），wind 选一个关键 horizon（如 `h=72` both）。
+- [x] 公式点：对“成功公式配置”补 3 seeds（至少保证“能复现成功”的概率不是偶然）。
 
-### 5.1 Wind 的“稳定性补丁包”（不改模型大框架，先让训练不崩）
+输出（建议落盘到 `doc/paper_assets/`）：
+- [x] mean±std 的指标表（RMSE/R²/skill）；
+- [x] “关键物理量入式概率”（`temp_*` / `ghi_*` / `wind_speed_*` / `wind_speed_*_cubed` 在 pruned 结构 edges>0、以及最终公式中显式出现的比例）。
 
-优先级按“最可能立刻见效”排序：
+状态（2026-03-09）：已完成；多 seed 稳健性结果已并入当前论文引用 bundle。索引与 run 集见 `doc/paper_assets/paper_reference_paperref_20260306_121725_v2/ASSET_INDEX.md`、`doc/thesis_sweeps/paperref_20260306_121725_v2/manifest.json`，相关 seed 交叉验证说明见 `doc/paper_assets/paper_reference_paperref_20260306_121725_v2/paper_assets_snapshot/kan_pysr_cross_validation_2026-02-26_064508_3e631069.md`。
 
-1. **把 `sparsify_lamb` 再做一个数量级探索**
-   你们已经试到 0.0002，但 `eval_sparsify` 仍会明显退化。
-   建议直接补两个点：`1e-4`、`5e-5`（并配合更强 prune 去控制边数，否则会太密）。
+### 2.2 统计显著性（可用最轻量版本）
 
-2. **延长 warmup / 缩短 sparsify（让网络先学出稳定映射，再稀疏化）**
-   你们默认日程是 `warmup=200, sparsify=800, refine=200`。
-   对 Wind 这种“物理信号弱 + 稀疏易崩”的任务，更稳的日程往往是：
+- [x] 对主结果与 baseline 做 paired 对比（同一 test 序列的误差差异），报告显著性与置信区间。
 
-   * `warmup=400~800`
-   * `sparsify=400~600`
-   * `refine=400`
-
-   直觉：先把 mapping 学到一个“不会发散/不会极端敏感”的区域，再施加稀疏压力。
-
-3. **稀疏强度做 annealing（从小到大）**
-   不是一上来就用固定 `l` 施压，而是 sparsify 过程里逐步从 `l_low → l_high`（比如前 30% 用 5e-5，中间用 1e-4，最后用 2e-4）。
-   这对“sparsify 一加就崩”的情况通常很有效。
-
-4. **如果 `eval_sparsify` 出现 -几十这种离谱值：优先排查数值爆炸/尺度问题**
-   （这不是怪模型，是工程上最常见）
-
-   * target/输入是否标准化一致（训练/测试）
-   * 是否有 outlier 导致 RMSE 爆
-   * 是否需要梯度裁剪/更小学习率（如果你们脚本里可配）
-
-> 以上 1~3 解决的是“Wind 的稀疏训练稳定性”，否则你们永远在看随机崩盘。
-
-### 5.2 解决含 lag 时的“自回归遮蔽”：让模型没法偷懒
-
-你们自己也指出：含 lag 时，只靠滞后功率就能降 loss，物理特征会被剪掉。
-
-我建议用**结构性办法**，而不是继续盲调 lambda：
-
-#### 方案 W-A：两分支加性分解（强烈推荐，改动小，解释性强）
-
-建模成：
-
-* `y = f_lag(lags) + f_phys(physics)`
-  其中 `f_phys` 用 KAN（或更小的 KAN），并且：
-* 对 `f_phys` 加一个“最小贡献”约束（例如在 loss 里加项：`Var(f_phys) >= ε` 或对 gating 权重做下界）
-* 或者训练时对 lag 特征做 dropout（让模型必须学会物理分支）
-
-这样最终符号提取时，你可以只对 `f_phys` 做 Phase3，公式里自然就有风速等物理量。
-
-#### 方案 W-B：残差学习（最实用）
-
-1. 先训练一个 lag-only 模型得到 `ŷ_lag`
-2. 训练物理 KAN 拟合残差 `r = y - ŷ_lag`
-3. 最终 `ŷ = ŷ_lag + ŷ_phys`
-
-优点：物理分支在学习“lag 解释不了的部分”，更容易保留风速等变量；而且论文表述也自然（“物理因子解释的增量”）。
-
-### 5.3 Wind 精度本身偏低怎么办：把“已知物理形态”塞进架构
-
-风电的典型物理关系近似是：
-
-* `P ∝ ρ * v^3`，并受功率曲线（cut-in / rated / cut-out）限制。
-
-你们已经在特征里放了 `v^3`，这是对的。
-下一步建议是**让网络更容易学到功率曲线的“分段+饱和”**，否则 KAN 会用很多边去拟合这件事，且稀疏时容易崩：
-
-* 在输入侧加入显式的分段指示/soft-gating 特征（例如 `softplus(v - v_cut_in)`、`sigmoid((v - v_rated)/s)` 等）
-* 或者做一个简单的“物理基线层”（见下节架构创新 #2），KAN 只学残差/修正项
+状态（2026-03-09）：已完成；结果见 `doc/paper_assets/paper_delivery_20260306/paired_significance_main_20260309.csv`。主结果 KAN 相对 matched MLP 的 absolute-error mean diff = 111.13，95% CI = [100.42, 122.29]，置换检验 `p=0.0005`。
 
 ---
 
-## 6) Phase3（符号回归）策略：别等“完美局”，现在就应该并行推进两条线
+## 3. 条件分层误差分析（回答“什么时候有效/什么时候失效”）
 
-你们 Solar 已经有完全合格的 Phase3 候选（18 边与 28 边两个版本）。
-我建议你们 **现在就跑 Phase3**，原因是：Phase3 的失败模式（符号太复杂、精度掉太多、变量没出现）会反过来指导 Phase2 的稀疏策略。
+Solar：
+- [x] day/night 分层（`is_night`）；
+- [x] 辐照分位数分层（低/中/高 GHI）。
 
-### 6.1 Solar 的 Phase3 送审组合（建议两条线并跑）
+Wind：
+- [x] 风速分位数分层（低/中/高 wind_speed）。
 
-* **解释性优先**：`active_edges_total≈18` 的那条（更可能出短公式）
-* **精度优先**：`active_edges_total≈28` 的那条（更可能保持精度）
+Load/Net-load：
+- [x] 季节分层（DJF/MAM/JJA/SON）；
+- [x] 工作日/周末分层；
+- [x] 高波动切片（按 `|delta|` 或变化率分位数）。
 
-对比输出：
-
-* `formula_eval_test` 相对 `eval_pruned` 的退化幅度
-* 公式里是否出现 `temp_2m_c`（你们的论文闭环关键点）
-
-### 6.2 Phase3 的“强制物理变量出现”的技巧（不改数据也能做）
-
-如果你们发现 PySR 倾向于用 `ghi_*` 解释一切而忽略 `temp`，可以做两种软约束：
-
-* **变量使用惩罚**：对不包含关键变量的候选公式加额外 complexity penalty（相当于把“包含 temp”当作一个奖励）
-* **先固定结构再拟合**：只对包含 temp 的那部分边做符号拟合（或只对物理分支拟合）
-
-这不是作弊：这是在把你们的“科学先验/解释目标”显式写进搜索空间。
+验收：讨论章节能明确方法的适用条件与风险边界，而不是只给总体 RMSE。
+状态（2026-03-09）：已完成；资产见 `doc/paper_assets/paper_delivery_20260306/solar_stratified_error_20260309.csv`、`doc/paper_assets/paper_delivery_20260306/wind_stratified_error_20260309.csv`、`doc/paper_assets/paper_delivery_20260306/net_load_stratified_error_20260309.csv`。
 
 ---
 
-## 7) 给你 5 个“架构创新”方向：都围绕你们的核心目标（物理量要进公式）设计
+## 4. 写作与答辩兜底（最小图表集合 + 附录复现链路 + 有效的 threats to validity）
 
-下面这些不是泛泛而谈，都是直接对准你们当前痛点（“物理量进得去，但容易被稀疏/剪枝/lag 遮蔽搞没；Wind 稀疏不稳；Phase3 需要少边结构”）。
+### 4.1 图表最小集合（建议正文只放“必须回答问题”的）
 
-### 创新 #1：特征分组稀疏（Group Sparsity）+ 关键物理特征低权重正则
+- [x] Fig：系统流程图（Phase 1/1.5/2/3/评估/资产输出）  
+- [x] Table：主实验对比表（KAN vs baseline vs persistence）  
+- [x] Fig：复杂度—精度 Pareto 图  
+- [x] Table：Solar 消融表（含 `ghi_edges`）  
+- [x] Table：Wind 消融表（对称项）  
+- [x] Fig/Table：`h=288` 反例（分位数/越界率 + clip 对照）  
+- [x] Fig：成功公式渲染图（LaTeX）+ 复算指标
 
-**做法**：把输入特征按物理意义分组（Solar：温度/辐照/高度；Wind：风速/密度/其他），对组内边做 group-lasso；并对关键物理组设置更小的 `λ_phys`。
-**预期收益**：
+状态（2026-03-09）：已完成；最小图表集合已补齐到 `doc/paper_assets/paper_delivery_20260306/`，新增 `system_flow_pipeline.png`、`solar_h288_boundary_20260306.png`、`successful_formula_summary_20260309.csv`、主 symbolic 公式图和 S3 子公式渲染图。
 
-* 稀疏化时不会把温度/风速“优先牺牲”
-* 最终更容易在符号公式里出现这些变量
-  **验证方式**：
-* `feature_importance_sparsify` 与 `feature_importance` 的“关键物理组存活率”显著提升
-* 在相同 `active_edges_total` 下，`R²(pruned)` 不降或更稳
+### 4.2 附录（复现/审稿兜底）
 
-### 创新 #2：Physics Baseline + KAN Residual（物理基线层 + 残差 KAN）
+- [x] 每张图/每张表对应的 run_id 与生成命令（“run_id→命令→产物路径”三列对照）。
+- [x] `doc/thesis_sweeps/<session_id>/manifest.json` 与 `doc/paper_assets/ASSET_INDEX.md` 同步更新。
+- [x] threats to validity 最小集合：ex post 气象、长 horizon 外推、稀疏/剪枝路径依赖、Modal vs local schema 漂移、指标口径（delta/abs）。
 
-**做法**：
-
-* 先用极简的可解释基线（例如 Wind：`a * ρ * v^3` + 饱和；Solar：`b*ghi + c*temp + d*sin(altitude)` 这类）
-* KAN 只学 `residual = y - y_baseline`
-  **预期收益**：
-* KAN 不用“用很多边去发现 v^3/辐照这种显而易见的形态”
-* 稀疏后更稳，Phase3 更容易提取出“基线 + 少量修正”的公式
-  **验证方式**：
-* 同等边数下 `R²(pruned)` 更高，且物理变量必然出现（因为 baseline 已用到）
-
-### 创新 #3：Lag 分支与物理分支解耦的 Mixture-of-Experts（避免自回归遮蔽）
-
-**做法**：两分支 `y = g(x) * f_phys(phys) + (1-g(x)) * f_lag(lag)` 或加性 `y = f_lag + f_phys`
-并对 `g` 或 `f_phys` 加“最低贡献”正则。
-**预期收益**：
-
-* 你可以在论文里明确说：lag 解释短期惯性，物理解释可泛化机制
-* Phase3 只提取物理分支，确保物理变量进公式
-  **验证方式**：
-* 含 lag 数据下，`wind_speed_*` 的 active_edges 不再经常归零
-
-### 创新 #4：显式“边预算”训练（Top‑K gating / L0 风格），替代单纯 L1 稀疏
-
-**做法**：训练时直接约束每层/全局只保留 K 条边（可用连续松弛实现），而不是靠 `λ` 去“猜”最终稀疏度。
-**预期收益**：
-
-* Phase3 友好：你可以直接把 K 设到 20~30，训练结束即满足可提取复杂度
-* 稳定：不会出现某些配置突然过稀导致崩
-  **验证方式**：
-* `active_edges_total` 波动小，跨 seed 更稳定
-* prune 依赖下降（甚至可以弱化 prune）
-
-### 创新 #5：把“物理变量必须出现”写进 prune/符号搜索的选择器（算法创新，不是网络创新）
-
-**做法**：
-
-* prune 选择时：把“关键物理变量存活”作为 hard constraint
-* Phase3 搜索时：把“必须包含关键物理变量”作为软/硬约束
-  **预期收益**：
-* 你们的目标本来就不是纯精度，而是“可解释闭环”
-* 把目标显式化后，调参空间会显著变小（更快收敛到可发表结果）
-  **验证方式**：
-* 物理变量出现在最终公式的成功率显著提升
-* 代价是可能损失少量 R²，但换来论文闭环
+状态（2026-03-09）：已完成；复现映射在 `doc/paper_assets/PAPER_REPRO_MAP_20260306.md`，会话 manifest 与索引快照已同步进 `doc/paper_assets/paper_reference_paperref_20260306_121725_v2/`。
 
 ---
 
-## 8) 最后给一个“接下来两周最划算的实验清单”（按信息增益排序）
+## 5. 可选加分项（不阻塞交付，做不完就写 future work）
 
-1. **Solar：围绕最强锚点做 (l,e) 局部扫描 + prune 约束扫描**
-   目标：把 28 边压到 20~25 边且不丢 temp，同时 R²(pruned) ≥0.87
-2. **Solar：立即跑 Phase3（18 边 vs 28 边两条线）**
-   让 Phase3 的失败反馈反向指导 Phase2
-3. **Wind：先做稳定性补丁包（更低 l + 日程调整 + annealing）**
-   目标：让 `eval_sparsify` 不再离谱负值，且物理量在 sparsify 阶段稳定存活
-4. **Wind（含 lag）：上“lag/phys 双分支”或“残差学习”避免遮蔽**
-   目标：lag 存在时 wind_speed 仍能进结构，保证可解释闭环
+- [x] 更多 baselines / 更多 horizons（只在能回答新问题时做）  本轮明确不新增，正式降级为 future work。
+- [x] 更强物理约束（例如 solar 非负/夜间硬约束、更严格的有界算子）  正式降级为 future work。
+- [x] 架构创新（建议降级为 future work）：残差学习、lag/phys 双分支、group sparsity、边预算（Top‑K gating）、prune/符号搜索的“必须包含物理变量”约束强化  正式降级为 future work。
 
 ---
 
-如果你希望我把这些建议进一步“落到你们当前脚本可直接跑的 config 列表”（比如每个 run 的命名规则、参数组合、以及预期观察点），我也可以直接按你们现有的 `TrainConfig/CLI` 字段给出一组可复制的实验矩阵（Solar 12 个、Wind 12 个、Phase3 2~4 个），并附带每个实验的“判定标准/停止条件”。
+## 6. 每轮实验结束后的固定动作（流水线，防止资产断链）
+
+- [x] 同步：`scripts/sync_from_modal.sh <run_id>`（或 `latest`）  
+- [x] 重建（如需）：`scripts/reconstruct_predictions.py`  
+- [x] 评估：`scripts/evaluate_runs.py --run runs/<id1> --run runs/<id2> ...`  
+- [x] 出图：`scripts/make_thesis_figures.py --run runs/<id>`（关键 run）  
+- [x] 物理报告：`scripts/physics_mapping.py --symbolic-run runs/<sym_id>`（关键公式）  
+- [x] 更新索引：`scripts/build_asset_index.py`
+- [x] 质量门禁：`python3 -m unittest discover -s tests -p 'test_*.py'`
+
+状态（2026-03-09）：本轮已对 direct fast5k 与主结果 run 执行同步、重建、评估、出图、物理报告、索引更新与质量门禁。

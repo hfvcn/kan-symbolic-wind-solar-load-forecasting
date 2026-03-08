@@ -1,0 +1,11 @@
+{
+  "reconstructed_from": "delta_load_h6",
+  "reconstructed_target": "load",
+  "base_run_id": "2026-03-06_041802_0ad5813e",
+  "base_timestamp": "2026-03-06_041853",
+  "horizon_steps": 6,
+  "rmse": 1030.432401839848,
+  "mae": 838.9975673241998,
+  "r2": 0.9503136992843518,
+  "n_eval": 15624
+}

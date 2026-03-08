@@ -5,6 +5,62 @@ import pandas as pd
 
 
 class TestSymbolicExtraction(unittest.TestCase):
+    def test_prime_symbolic_activations_replays_forward_on_cpu_after_gpu(self) -> None:
+        from src.kan_sr.symbolic import prime_symbolic_activations
+
+        class FakeNoGrad:
+            def __enter__(self):
+                return None
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        class FakeTorch:
+            @staticmethod
+            def no_grad():
+                return FakeNoGrad()
+
+        class FakeTensor:
+            def __init__(self, device: str) -> None:
+                self.device = device
+
+            def to(self, device: str):
+                return FakeTensor(device)
+
+        class FakeModel:
+            def __init__(self, device: str) -> None:
+                self.device = device
+                self.calls: list[tuple[str, str]] = []
+                self.symbolic_fun = [FakeSymbolicLayer(device), FakeSymbolicLayer(device)]
+
+            def to(self, device: str):
+                self.device = device
+                return self
+
+            def __call__(self, x):
+                self.calls.append((self.device, x.device))
+                return None
+
+        class FakeSymbolicLayer:
+            def __init__(self, device: str) -> None:
+                self.device = device
+
+            def to(self, device: str):
+                self.device = device
+                return self
+
+        model, x_sample = prime_symbolic_activations(
+            FakeModel("cuda"),
+            FakeTensor("cuda"),
+            device_name="cuda",
+            torch_mod=FakeTorch(),
+        )
+
+        self.assertEqual(model.device, "cpu")
+        self.assertEqual(x_sample.device, "cpu")
+        self.assertEqual(model.calls, [("cuda", "cuda"), ("cpu", "cpu")])
+        self.assertTrue(all(layer.device == "cpu" for layer in model.symbolic_fun))
+
     def test_evaluate_symbolic_formula_broadcasts_scalar(self) -> None:
         import sympy as sp
 

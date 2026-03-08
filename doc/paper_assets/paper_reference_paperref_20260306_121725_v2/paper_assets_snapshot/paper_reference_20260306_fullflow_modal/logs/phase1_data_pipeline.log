@@ -1,0 +1,216 @@
+✓ Initialized. View run at 
+https://modal.com/apps/hfvcn/main/ap-pGH1mIfSyiUbnDrfUcHjRE
+✓ Created objects.
+├── 🔨 Created mount 
+│   /Users/vfch/Documents/project/graduation-design/modal_jobs/data_pipeline.py
+├── 🔨 Created mount /Users/vfch/Documents/project/graduation-design/src
+├── 🔨 Created function step_download.
+├── 🔨 Created function step_preprocess.
+├── 🔨 Created function step_features.
+├── 🔨 Created function step_split_normalize.
+└── 🔨 Created function run_pipeline.
+[pipeline] Starting data pipeline
+[pipeline] Volume: kan-sr
+[pipeline] ISO: ERCOT
+[pipeline] Year: 2018, Target: load, Force: False
+2026-03-06 04:21:29,764 [INFO] data_pipeline: Starting pipeline run: 2026-03-06_042129_03d4b407
+2026-03-06 04:21:29,764 [INFO] data_pipeline:   Year: 2018, Target: load, Force: False
+2026-03-06 04:21:34,718 [INFO] data_pipeline: Downloading ERCOT actuals for year 2018
+2026-03-06 04:21:34,720 [INFO] src.data.download: Downloading: s3://arpa-e-perform/ERCOT/2018/Wind/Actuals/BA_level/BA_wind_actuals_2018.h5
+2026-03-06 04:21:34,720 [INFO] src.data.download:         to: /vol/runs/2026-03-06_042129_03d4b407/raw/wind_actuals_2018.h5
+2026-03-06 04:21:35,739 [INFO] src.data.download: File size: 123.4 MB
+2026-03-06 04:21:39,752 [INFO] src.data.download: Download complete: /vol/runs/2026-03-06_042129_03d4b407/raw/wind_actuals_2018.h5
+2026-03-06 04:21:39,752 [INFO] src.data.download: Cached wind actuals: /vol/runs/2026-03-06_042129_03d4b407/raw/wind_actuals_2018.h5
+2026-03-06 04:21:39,754 [INFO] src.data.download: Downloading: s3://arpa-e-perform/ERCOT/2018/Solar/Actuals/BA_level/BA_solar_actuals_2018.h5
+2026-03-06 04:21:39,754 [INFO] src.data.download:         to: /vol/runs/2026-03-06_042129_03d4b407/raw/solar_actuals_2018.h5
+2026-03-06 04:21:39,839 [INFO] src.data.download: File size: 58.5 MB
+2026-03-06 04:21:41,381 [INFO] src.data.download: Download complete: /vol/runs/2026-03-06_042129_03d4b407/raw/solar_actuals_2018.h5
+2026-03-06 04:21:41,381 [INFO] src.data.download: Cached solar actuals: /vol/runs/2026-03-06_042129_03d4b407/raw/solar_actuals_2018.h5
+2026-03-06 04:21:41,382 [INFO] src.data.download: Downloading: s3://arpa-e-perform/ERCOT/2018/Load/Actuals/BA_level/BA_load_actuals_2018.h5
+2026-03-06 04:21:41,382 [INFO] src.data.download:         to: /vol/runs/2026-03-06_042129_03d4b407/raw/load_actuals_2018.h5
+2026-03-06 04:21:41,467 [INFO] src.data.download: File size: 2.9 MB
+2026-03-06 04:21:41,738 [INFO] src.data.download: Download complete: /vol/runs/2026-03-06_042129_03d4b407/raw/load_actuals_2018.h5
+2026-03-06 04:21:41,738 [INFO] src.data.download: Cached load actuals: /vol/runs/2026-03-06_042129_03d4b407/raw/load_actuals_2018.h5
+2026-03-06 04:21:44,017 [INFO] data_pipeline: Step 'download' marked complete
+2026-03-06 04:21:48,002 [INFO] data_pipeline: Loading raw HDF5 files...
+2026-03-06 04:21:48,003 [INFO] src.data.download: Loading HDF5: /vol/runs/2026-03-06_042129_03d4b407/raw/wind_actuals_2018.h5
+2026-03-06 04:21:51,158 [INFO] src.data.download: Loaded DataFrame: 105120 rows x 265 columns
+2026-03-06 04:21:51,159 [INFO] src.data.download: Time range: 2018-01-01 00:00:00+00:00 to 2018-12-31 23:55:00+00:00
+2026-03-06 04:21:51,173 [INFO] src.data.download: Loading HDF5: /vol/runs/2026-03-06_042129_03d4b407/raw/solar_actuals_2018.h5
+2026-03-06 04:21:53,240 [INFO] src.data.download: Loaded DataFrame: 105120 rows x 227 columns
+2026-03-06 04:21:53,241 [INFO] src.data.download: Time range: 2018-01-01 00:00:00+00:00 to 2018-12-31 23:55:00+00:00
+2026-03-06 04:21:53,245 [INFO] src.data.download: Loading HDF5: /vol/runs/2026-03-06_042129_03d4b407/raw/load_actuals_2018.h5
+2026-03-06 04:21:53,368 [INFO] src.data.download: Loaded DataFrame: 105120 rows x 1 columns
+2026-03-06 04:21:53,369 [INFO] src.data.download: Time range: 2018-01-01 00:00:00+00:00 to 2018-12-31 23:55:00+00:00
+2026-03-06 04:21:53,369 [INFO] data_pipeline: Combining data types into unified DataFrame...
+2026-03-06 04:21:53,372 [INFO] data_pipeline: Interpolating missing values...
+2026-03-06 04:21:53,372 [INFO] src.data.preprocess: Max interpolation: 1.0 hours = 12 steps
+2026-03-06 04:21:53,374 [INFO] src.data.preprocess: Found 0 gaps across 3 columns
+2026-03-06 04:21:53,378 [INFO] src.data.preprocess: Found 0 gaps across 3 columns
+2026-03-06 04:21:53,379 [INFO] src.data.preprocess: Interpolation complete: 0 values filled, 0 gaps remaining
+2026-03-06 04:21:53,380 [INFO] src.data.preprocess: No remaining NaN values to handle
+2026-03-06 04:21:53,397 [INFO] src.data.preprocess: Quality report written to: /vol/runs/2026-03-06_042129_03d4b407/reports/quality_report.json
+2026-03-06 04:21:53,509 [INFO] data_pipeline: Saved intermediate cleaned data: /vol/runs/2026-03-06_042129_03d4b407/intermediate_cleaned.parquet
+2026-03-06 04:21:54,752 [INFO] data_pipeline: Step 'preprocess' marked complete
+2026-03-06 04:22:00,077 [INFO] data_pipeline: Loading cleaned intermediate data...
+2026-03-06 04:22:00,264 [INFO] data_pipeline: Adding meteorology features (Open-Meteo archive, cache-first)...
+2026-03-06 04:22:00,266 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-01-01..2018-01-31 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:01,041 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-02-01..2018-03-03 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:01,762 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-03-04..2018-04-03 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:02,621 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-04-04..2018-05-04 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:03,378 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-05-05..2018-06-04 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:04,136 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-06-05..2018-07-05 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:04,893 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-07-06..2018-08-05 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:05,624 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-08-06..2018-09-05 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:06,351 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-09-06..2018-10-06 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:07,076 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-10-07..2018-11-06 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:07,801 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-11-07..2018-12-07 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:08,505 [INFO] src.data.meteorology: Fetching Open-Meteo hourly: 2018-12-08..2018-12-31 vars=temperature_2m,wind_speed_10m,surface_pressure,shortwave_radiation
+2026-03-06 04:22:09,187 [INFO] src.data.meteorology: Cached meteorology to: /vol/runs/2026-03-06_042129_03d4b407/raw/open_meteo_hourly.parquet
+2026-03-06 04:22:09,319 [INFO] src.data.meteorology: Added meteorology features: temp_2m_c, surface_pressure_hpa, ghi_w_m2, wind_speed_10m_m_s
+2026-03-06 04:22:09,320 [INFO] data_pipeline: Applying feature engineering...
+2026-03-06 04:22:09,320 [INFO] src.data.features: Adding all feature groups...
+2026-03-06 04:22:09,372 [INFO] src.data.features: Added cyclic features: hour_sin, hour_cos, dow_sin, dow_cos, month_sin, month_cos
+2026-03-06 04:22:11,781 [INFO] src.data.features: Calculating solar position for lat=31.0, lon=-100.0
+2026-03-06 04:22:12,837 [INFO] src.data.features: Added solar features: 52695 day timestamps, 52425 night timestamps
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+/root/project/src/data/features.py:203: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df_out[lag_col_name] = df_out[col].shift(lag)
+2026-03-06 04:22:13,347 [INFO] src.data.features: Added 144 lag features for 3 columns (lags: 1-48)
+2026-03-06 04:22:13,348 [INFO] src.data.features: Feature engineering complete: 7 -> 160 columns (+153)
+2026-03-06 04:22:19,258 [INFO] data_pipeline: Saved featured data: /vol/runs/2026-03-06_042129_03d4b407/intermediate_featured.parquet
+2026-03-06 04:22:21,177 [INFO] data_pipeline: Step 'features' marked complete
+2026-03-06 04:22:27,250 [INFO] data_pipeline: Loading featured intermediate data...
+2026-03-06 04:22:27,568 [INFO] data_pipeline: Applying chronological split with 48-step gap...
+2026-03-06 04:22:27,569 [INFO] src.data.split: Chronological split: 105120 total rows
+2026-03-06 04:22:27,570 [INFO] src.data.split:   Train: 73584 rows (70.0%) - 2018-01-01 00:00:00+00:00 to 2018-09-13 11:55:00+00:00
+2026-03-06 04:22:27,570 [INFO] src.data.split:   Val:   15720 rows (15.0%) - 2018-09-13 16:00:00+00:00 to 2018-11-07 05:55:00+00:00
+2026-03-06 04:22:27,571 [INFO] src.data.split:   Test:  15720 rows (15.0%) - 2018-11-07 10:00:00+00:00 to 2018-12-31 23:55:00+00:00
+2026-03-06 04:22:27,571 [INFO] src.data.split:   Gap:   48 steps between each split
+2026-03-06 04:22:27,571 [INFO] data_pipeline: Dropping initial lag rows...
+2026-03-06 04:22:27,571 [INFO] src.data.split: Dropped first 48 lag rows: 73584 -> 73536 rows
+2026-03-06 04:22:27,571 [INFO] src.data.split: Dropped first 48 lag rows: 15720 -> 15672 rows
+2026-03-06 04:22:27,571 [INFO] src.data.split: Dropped first 48 lag rows: 15720 -> 15672 rows
+2026-03-06 04:22:27,571 [INFO] data_pipeline: Normalizing features (excluding target: load)...
+2026-03-06 04:22:27,572 [INFO] src.data.split: Normalizing 158 columns (excluding 1 target columns)
+2026-03-06 04:22:27,925 [INFO] src.data.split: Z-score normalization complete (fit on train only)
+2026-03-06 04:22:27,925 [INFO] src.data.split:   Features normalized: 158
+2026-03-06 04:22:27,925 [INFO] src.data.split:   Mean range: [-0.2195, 44542.0515]
+2026-03-06 04:22:27,926 [INFO] src.data.split:   Scale range: [0.6167, 14964.0180]
+2026-03-06 04:22:27,929 [INFO] src.data.split: Scaler parameters saved to: /vol/runs/2026-03-06_042129_03d4b407/artifacts/scaler_params.json
+2026-03-06 04:22:29,714 [INFO] src.data.split: Saved train: /vol/runs/2026-03-06_042129_03d4b407/processed/train_2026-03-06_042227.parquet (73536 rows)
+2026-03-06 04:22:30,250 [INFO] src.data.split: Saved val: /vol/runs/2026-03-06_042129_03d4b407/processed/val_2026-03-06_042227.parquet (15672 rows)
+2026-03-06 04:22:30,729 [INFO] src.data.split: Saved test: /vol/runs/2026-03-06_042129_03d4b407/processed/test_2026-03-06_042227.parquet (15672 rows)
+2026-03-06 04:22:32,337 [INFO] data_pipeline: Step 'split_normalize' marked complete
+2026-03-06 04:22:33,284 [INFO] data_pipeline: Pipeline complete: 2026-03-06_042129_03d4b407
+{
+  "run_id": "2026-03-06_042129_03d4b407",
+  "status": "completed",
+  "year": 2018,
+  "target_col": "load",
+  "started_at": "2026-03-06T04:21:29.769085+00:00",
+  "completed_at": "2026-03-06T04:22:32.376203+00:00",
+  "processed_dir": "/vol/runs/2026-03-06_042129_03d4b407/processed",
+  "artifacts_dir": "/vol/runs/2026-03-06_042129_03d4b407/artifacts",
+  "reports_dir": "/vol/runs/2026-03-06_042129_03d4b407/reports"
+}
+
+[sync] Syncing artifacts to: runs/2026-03-06_042129_03d4b407
+[sync] Warning: Failed to sync run directory: Command '['modal', 'volume', 'get', 'kan-sr', '/runs/2026-03-06_042129_03d4b407/', 'runs', '--force']' returned non-zero exit status 1.
+
+[pipeline] COMPLETE
+[pipeline] Artifacts synced to: runs/2026-03-06_042129_03d4b407
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/hfvcn/main/ap-pGH1mIfSyiUbnDrfUcHjRE

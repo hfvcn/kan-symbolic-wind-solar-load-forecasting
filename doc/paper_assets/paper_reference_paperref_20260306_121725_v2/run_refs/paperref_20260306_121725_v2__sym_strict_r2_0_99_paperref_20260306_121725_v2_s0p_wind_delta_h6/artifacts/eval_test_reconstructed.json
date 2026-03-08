@@ -1,0 +1,11 @@
+{
+  "reconstructed_from": "delta_wind_h6",
+  "reconstructed_target": "wind",
+  "base_run_id": "2026-03-06_041802_0ad5813e",
+  "base_timestamp": "2026-03-06_041853",
+  "horizon_steps": 6,
+  "rmse": 1338.3206007114995,
+  "mae": 1064.3612150987815,
+  "r2": 0.9862295660103488,
+  "n_eval": 15624
+}

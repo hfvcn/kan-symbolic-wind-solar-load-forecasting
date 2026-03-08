@@ -1,0 +1,222 @@
+{
+  "baseline_eval": {
+    "rmse": 1181.6198593475397,
+    "mae": 702.5979478088361,
+    "r2": 0.7861260218210327
+  },
+  "baseline_rmse": 1181.6198593475397,
+  "target_pruned_ratio": 0.8,
+  "max_rmse_degrade_ratio": 1.1,
+  "required_features": [],
+  "required_filter_mode": "not_requested",
+  "selection_mode": "rmse_ok_only",
+  "records": [
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.002
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 14,
+        "pruned_ratio": 0.27450980392156865
+      },
+      "eval_val": {
+        "rmse": 1278.8044060873997,
+        "mae": 839.5164709690285,
+        "r2": 0.7494983259360077
+      },
+      "rmse_ok": true,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.005
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 21,
+        "pruned_ratio": 0.4117647058823529
+      },
+      "eval_val": {
+        "rmse": 1392.5111297860583,
+        "mae": 1079.9474013137683,
+        "r2": 0.7029703970908375
+      },
+      "rmse_ok": false,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.01
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 26,
+        "pruned_ratio": 0.5098039215686274
+      },
+      "eval_val": {
+        "rmse": 1538.7171480821337,
+        "mae": 1232.568081924748,
+        "r2": 0.6373230354963078
+      },
+      "rmse_ok": false,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.03
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 31,
+        "pruned_ratio": 0.6078431372549019
+      },
+      "eval_val": {
+        "rmse": 1684.1226382170146,
+        "mae": 1327.009921177924,
+        "r2": 0.5655399857397294
+      },
+      "rmse_ok": false,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.05
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 35,
+        "pruned_ratio": 0.6862745098039216
+      },
+      "eval_val": {
+        "rmse": 2047.5517353468942,
+        "mae": 1625.9578206810168,
+        "r2": 0.3577972627069559
+      },
+      "rmse_ok": false,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.01,
+        "edge_th": 0.08
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 40,
+        "pruned_ratio": 0.7843137254901961
+      },
+      "eval_val": {
+        "rmse": 2437.020898625417,
+        "mae": 2091.179235900938,
+        "r2": 0.09025245645423985
+      },
+      "rmse_ok": false,
+      "sparse_ok": false,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.02,
+        "edge_th": 0.1
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 41,
+        "pruned_ratio": 0.803921568627451
+      },
+      "eval_val": {
+        "rmse": 2729.672197802487,
+        "mae": 2353.154551328892,
+        "r2": -0.14136191641798002
+      },
+      "rmse_ok": false,
+      "sparse_ok": true,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.02,
+        "edge_th": 0.15
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 42,
+        "pruned_ratio": 0.8235294117647058
+      },
+      "eval_val": {
+        "rmse": 2502.268102474964,
+        "mae": 2113.158978071508,
+        "r2": 0.04088636684199776
+      },
+      "rmse_ok": false,
+      "sparse_ok": true,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    },
+    {
+      "candidate": {
+        "node_th": 0.03,
+        "edge_th": 0.2
+      },
+      "sparsity": {
+        "total_edges": 51,
+        "pruned_edges": 42,
+        "pruned_ratio": 0.8235294117647058
+      },
+      "eval_val": {
+        "rmse": 2502.268102474964,
+        "mae": 2113.158978071508,
+        "r2": 0.04088636684199776
+      },
+      "rmse_ok": false,
+      "sparse_ok": true,
+      "required": {
+        "ok": true,
+        "missing": [],
+        "details": []
+      }
+    }
+  ]
+}
