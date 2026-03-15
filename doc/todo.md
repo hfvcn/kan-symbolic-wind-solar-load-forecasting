@@ -91,7 +91,8 @@ Wind（必须补齐，与 solar 同级别证据）：
 状态（2026-03-08）：已完成；正文主路径采用 S3 结构化分解，不再把 direct `delta_net_load_h6` teacher 公式当作唯一交付路径。证据：`doc/paper_delivery_closure_20260306.md`、`doc/paper_assets/paper_reference_paperref_20260306_121725_v2/run_refs/`（S3 load/solar/wind 公式工件）、`doc/paper_assets/paper_reference_paperref_20260306_121725_v2/paper_assets_snapshot/figures/`。
 优先路线状态（2026-03-09）：已追加尝试 direct teacher S0；发现当前 `paperref_20260306_121725_v2__s1_delta_net_load_h6` 的 pruned 结构只剩 `load` 活跃边，因此新增改在 `paperref_20260306_fullflow__kan_delta_net_load_h6` 上补发 CPU symbolic（`20260309_modal_direct_fullflow__sym_*`）验证 direct 路线是否仍可成立。
 当前执行策略（2026-03-09）：direct S0 已切换为纯云端 detached 运行，不再依赖本地常驻进程；提交记录与后续同步入口见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/manifest.json` 与 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/session_status_20260309.md`。
-同步结论（2026-03-09）：远端巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`；11 个 direct run 中仅 `20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k` 有可见 artifacts，且其重建后 abs(test) `rmse=3797.18`、`skill=-0.466`，未达到 direct 成功门槛。当前正文仍以 S3 结构化分解为主路径。
+同步结论（2026-03-09）：远端巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`；11 个 direct run 中已有 6 个形成完整 run 并完成本地重建/评估，但全部 `skill<0`。最佳配置 `20260309_modal_direct_fullflow__sym_strict_r2_0_98` 的 abs(test) `rmse=3779.76`、`skill=-0.459`；其余 5 个仅留下远端部分公式工件，没有形成完整成功 run。当前正文仍以 S3 结构化分解为主路径。
+后续决策（2026-03-09）：同一 `delta_net_load_h6` teacher 的 direct S0 到此终止，不再继续追加同 teacher 的 Phase 3 参数 sweep。若后续仍要推进 direct 路线，只允许进入“改 teacher / 改 Phase 2 结构”的新路线；当前 teacher 下的 direct 结果仅作为失败证据与反例材料保留。
 
 ### 1.6 反例边界（把弱点变贡献）
 
@@ -185,6 +186,7 @@ Load/Net-load：
 - [x] 更多 baselines / 更多 horizons（只在能回答新问题时做）  本轮明确不新增，正式降级为 future work。
 - [x] 更强物理约束（例如 solar 非负/夜间硬约束、更严格的有界算子）  正式降级为 future work。
 - [x] 架构创新（建议降级为 future work）：残差学习、lag/phys 双分支、group sparsity、边预算（Top‑K gating）、prune/符号搜索的“必须包含物理变量”约束强化  正式降级为 future work。
+- [x] direct 公式主线的后续尝试：仅在更换 teacher 或调整 Phase 2 稀疏/结构设计时重启；禁止继续在当前 `paperref_20260306_fullflow__kan_delta_net_load_h6` teacher 上追加同类 symbolic sweep。  正式降级为 future work / 新实验路线。
 
 ---
 

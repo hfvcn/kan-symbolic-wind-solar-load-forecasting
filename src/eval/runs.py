@@ -246,6 +246,9 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
             pred_df = pd.read_parquet(pred_path)
             mm = _metrics_from_predictions(pred_df, horizon_steps=horizon_steps)
             if mm is not None:
+                rmse = float(mm["rmse"])
+                mae = float(mm["mae"])
+                r2 = float(mm["r2"])
                 rmse_persistence = float(mm["rmse_persistence"])
                 skill_score = float(mm["skill_score"]) if mm.get("skill_score") is not None else None
         eq_path = artifacts / "equations.csv"

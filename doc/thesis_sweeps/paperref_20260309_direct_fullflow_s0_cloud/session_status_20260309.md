@@ -58,7 +58,8 @@
 ## Sync Outcome (2026-03-09)
 
 - 同步巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`。
-- 11 个 direct run 中，只有 `20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k` 的 `artifacts/` 目录可见。
-- 已对该 fast5k run 完成本地同步、重建、评估、出图与物理映射；摘要见 `doc/paper_assets/paper_delivery_20260306/direct_teacher_fast5k_assessment_20260309.csv`。
-- 当前 direct fast5k 的 abs(test) `rmse=3797.18`、`skill=-0.466`、`complexity=433`，未达到“稳定/可复算/正 skill”的验收门槛。
-- 结论：direct S0 路线本轮只形成失败证据，不进入正文主结论；成功公式主路径继续使用 S3 结构化分解。
+- 本次复查共确认 `11` 个 direct run，其中 `6` 个形成完整 run 并已同步本地，`5` 个只留下远端部分公式工件，没有形成完整成功 run。
+- 已同步完成的 6 个 run 全部未达到“稳定/可复算/正 skill”门槛；最佳配置是 `20260309_modal_direct_fullflow__sym_strict_r2_0_98`，abs(test) `rmse=3779.76`、`skill=-0.459`。
+- `20260309_modal_direct_fullflow__sym_strict_r2_0_98` 的公式明确包含 `wind_speed_* / ghi_* / temp_2m_c` 等物理量，但泛化结果仍明显差于 persistence。
+- 本地对比表在 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/eval_check/comparison_table.csv`；论文引用版摘要已补到 `doc/paper_assets/paper_delivery_20260306/direct_teacher_cloud_check_20260309.csv`。
+- 结论：direct S0 路线当前只形成失败证据，不进入正文正向 claim；成功公式主路径继续使用 S3 结构化分解。

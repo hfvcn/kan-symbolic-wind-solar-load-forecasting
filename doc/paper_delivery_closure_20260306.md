@@ -96,11 +96,12 @@
 
 ### Direct S0 结果
 
-1. direct teacher S0 的远端同步巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`：11 个 run 中仅 `20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k` 有可见 artifacts。
-2. 该 fast5k run 经本地重建后，abs(test) RMSE=3797.18、skill=-0.466、complexity=433，评估资产见 `doc/paper_assets/paper_delivery_20260306/direct_teacher_fast5k_assessment_20260309.csv`。
-3. 结论是 direct S0 在当前 teacher 上未找到满足“稳定/可复算/正 skill”的配置，因此保留为失败证据，不进入正文正向 claim。
+1. direct teacher S0 的远端同步巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`：11 个 run 中已有 6 个形成完整 run 并成功同步，但没有一组达到 `正 skill`。
+2. 最佳配置是 `20260309_modal_direct_fullflow__sym_strict_r2_0_98`，其 abs(test) RMSE=3779.76、skill=-0.459；公式中已显式包含 `wind_speed_* / ghi_* / temp_2m_c` 等物理量，但泛化仍明显差于 persistence。论文摘要表见 `doc/paper_assets/paper_delivery_20260306/direct_teacher_cloud_check_20260309.csv`。
+3. 其余 5 个 run 只留下远端部分公式工件，没有形成完整成功 run。结论是 direct S0 在当前 teacher 上未找到满足“稳定/可复算/正 skill”的配置，因此保留为失败证据，不进入正文正向 claim。
+4. 后续不再继续追加同一 `delta_net_load_h6` teacher 的 Phase 3 参数 sweep；若要重启 direct 路线，只能进入“新 teacher / 新 Phase 2 结构”的独立实验路线，而不是重复当前 symbolic 网格。
 
 ### 图表与 Future Work 冻结
 
 1. 最小图表集合已补齐到 `doc/paper_assets/paper_delivery_20260306/`，新增包括 `system_flow_pipeline.png`、`solar_h288_boundary_20260306.png`、`successful_formula_summary_20260309.csv`、`formula_2026-03-01_160200_sym_strict_r2_0_995__kan151000.png` 以及 S3 子公式渲染图。
-2. “更多 baselines / 更多 horizons”、“更强物理约束”、“架构创新” 已正式降级为 future work；当前主实验矩阵已经足以支撑论文主命题，不再扩展正文实验范围。
+2. “更多 baselines / 更多 horizons”、“更强物理约束”、“架构创新” 以及 “direct 公式的新 teacher 路线” 已正式降级为 future work；当前主实验矩阵已经足以支撑论文主命题，不再扩展正文实验范围。
