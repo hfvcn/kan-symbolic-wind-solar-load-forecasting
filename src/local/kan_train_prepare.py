@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +8,7 @@ from src.data.split import load_splits_from_parquet
 from src.kan_sr.dataset import build_kan_dataset, pick_feature_columns
 from src.local.kan_train_config import TrainConfig
 from src.local.kan_train_core import move_dataset_to_device, torch_env_info
+from src.local.run_contract import utc_now_iso
 
 
 @dataclass(frozen=True)
@@ -149,7 +149,10 @@ def build_payload(
         "kind": str(kind or "kan"),
         "data_run_id": str(data_run_id),
         "data_timestamp": str(data_timestamp),
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": utc_now_iso(),
+        "status": "running",
+        "finished_at": None,
+        "completed_at": None,
         "cfg": asdict(cfg),
         "feature_cols": list(prepared.feature_cols),
         "target_scaler": prepared.target_scaler,

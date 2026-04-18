@@ -89,7 +89,6 @@ KAN_SYMBOLIC_SWEEP: list[dict[str, Any]] = [
         "fix_below_threshold_to_zero": False,
         "sample_rows": 20_000,
         "lib": "x,x^2,x^3,sin,cos,abs",
-        "use_gpu": True,
     },
     {
         "name": "sym_medium_r2_0.995",
@@ -98,7 +97,6 @@ KAN_SYMBOLIC_SWEEP: list[dict[str, Any]] = [
         "fix_below_threshold_to_zero": False,
         "sample_rows": 20_000,
         "lib": "x,x^2,x^3,sin,cos,abs,exp",
-        "use_gpu": True,
     },
 ]
 
@@ -532,8 +530,6 @@ def main() -> None:
                             cmd_args.append("--fix-below-threshold-to-zero")
                         if cfg.get("lib") is not None:
                             cmd_args += ["--lib", str(cfg.get("lib"))]
-                        if bool(cfg.get("use_gpu", False)):
-                            cmd_args.append("--use-gpu")
                         if detached_remote:
                             cmd_args += ["--run-id", det_run_id]
 

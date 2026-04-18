@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import modal
+from src.local.run_contract import mark_payload_completed, utc_now_iso
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -127,6 +128,18 @@ def _evaluate(model: Any, x, y_true, *, target_scaler: Optional[dict[str, float]
         "mae": mae(y_true_np, pred),
         "r2": r2(y_true_np, pred),
     }
+
+
+def _write_final_pruned_eval(
+    *,
+    artifacts_dir: Path,
+    model: Any,
+    dataset: dict[str, Any],
+    target_scaler: Optional[dict[str, float]] = None,
+) -> dict[str, float]:
+    eval_pruned = _evaluate(model, dataset["test_input"], dataset["test_label"], target_scaler=target_scaler)
+    _write_json(artifacts_dir / "eval_pruned.json", eval_pruned)
+    return eval_pruned
 
 
 def _torch_env_info() -> dict[str, Any]:
@@ -490,7 +503,10 @@ def _train_kan_impl(
         "kind": str(kind or "kan"),
         "data_run_id": data_run_id,
         "data_timestamp": resolved_ts,
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": utc_now_iso(),
+        "status": "running",
+        "finished_at": None,
+        "completed_at": None,
         "cfg": asdict(cfg),
         "feature_cols": feature_cols,
         "target_scaler": target_scaler,
@@ -748,7 +764,6 @@ def _train_kan_impl(
     sparsity_final = compute_edge_sparsity(model)
 
     _write_json(artifacts_dir / "sparsity.json", {"best_candidate": best["candidate"], **sparsity_final.as_dict()})
-    _write_json(artifacts_dir / "eval_pruned.json", best["eval_val"])
 
     # Optional refine after pruning (LBFGS)
     _fit_in_chunks(
@@ -801,17 +816,13 @@ def _train_kan_impl(
     }
     torch.save(ckpt, checkpoint_dir / "model.pt")
 
-    eval_pruned_final = best["eval_val"]
+    eval_pruned_final = _write_final_pruned_eval(
+        artifacts_dir=artifacts_dir,
+        model=model,
+        dataset=dataset,
+        target_scaler=target_scaler,
+    )
     prune_candidate_final = best["candidate"]
-    payload["completed_at"] = datetime.now(timezone.utc).isoformat()
-    payload["results"] = {
-        "eval_unpruned": eval_unpruned,
-        "eval_sparsify": eval_sparsify,
-        "eval_pruned": eval_pruned_final,
-        "sparsity": sparsity_final.as_dict(),
-        "prune_candidate": prune_candidate_final,
-    }
-    _write_json(payload_path, payload)
 
     # Save test predictions for downstream evaluation/plots
     x_test = torch.tensor(test_df[feature_cols].to_numpy(dtype=np.float32)).to(device_name)
@@ -840,15 +851,27 @@ def _train_kan_impl(
 
     pred_df = pd.DataFrame({"y_true": y_true, "y_pred": pred, "residual": pred - y_true}, index=test_df.index)
     pred_df.to_parquet(artifacts_dir / "predictions_test.parquet", compression="snappy")
+    payload = mark_payload_completed(
+        payload,
+        results={
+            "eval_unpruned": eval_unpruned,
+            "eval_sparsify": eval_sparsify,
+            "eval_pruned": eval_pruned_final,
+            "sparsity": sparsity_final.as_dict(),
+            "prune_candidate": prune_candidate_final,
+        },
+    )
+    _write_json(payload_path, payload)
     volume.commit()
 
     return {
         "run_id": run_id,
-        "status": "completed",
+        "status": str(payload["status"]),
+        "finished_at": str(payload["finished_at"]),
         "data_run_id": data_run_id,
         "data_timestamp": resolved_ts,
         "eval_unpruned": eval_unpruned,
-        "eval_pruned": best["eval_val"],
+        "eval_pruned": eval_pruned_final,
         "sparsity": sparsity_final.as_dict(),
         "checkpoint": str(checkpoint_dir / "model.pt"),
     }

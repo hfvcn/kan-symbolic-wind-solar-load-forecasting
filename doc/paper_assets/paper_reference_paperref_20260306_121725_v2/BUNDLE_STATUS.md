@@ -6,6 +6,7 @@
 - source_data_run_id: `2026-03-06_041802_0ad5813e`
 - derived_data_run_id: `paperref_20260306_121725__derived_h1_6`
 - refreshed comparison table: `paper_assets/comparison_table.csv`
+- refreshed S3 closure snapshot: `paper_assets/s3_formula_closure_20260417.csv`
 - refreshed asset index snapshot: `ASSET_INDEX.md`
 
 ## Final State
@@ -21,6 +22,8 @@
 ## Notes
 
 - 当前论文引用目录已经包含全部 24 个完整 symbolic run。
+- `paper_assets/comparison_table.csv` 已包含 `paperref_20260306_121725_v2__s3_combo_net_load__formula`（`kind=s3_composite_formula`）这一行。
+- `paper_assets/s3_formula_closure_20260417.csv` 汇总了 `direct teacher` / `direct symbolic` / `S3 composite predictor` / `S3 composite formula` 四对象对照，可直接用于正文或答辩口径核对。
 - `session_meta/` 保留了 retry2 和 retry3_cpu 的提交记录，便于追溯。
 - 旧的 pending symbolic 快照目录已移除。
 

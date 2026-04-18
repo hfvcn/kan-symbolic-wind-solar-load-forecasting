@@ -22,6 +22,7 @@ def _plan_kan_train_cmd(
     sparsify_lamb_entropy: float | None = None,
     hidden_width_override: int | None = None,
     force_no_warmup_update_grid: bool = False,
+    seed: int | None = None,
 ) -> list[str]:
     hidden_layers = str(args.kan_hidden_layers).strip()
     # Use caller-supplied lamb override; fall back to CLI arg; fall back to modal default (0.01).
@@ -64,6 +65,8 @@ def _plan_kan_train_cmd(
         cmd_args.append("--no-include-base")
     if bool(args.no_warmup_update_grid) or force_no_warmup_update_grid:
         cmd_args.append("--no-warmup-update-grid")
+    if seed is not None:
+        cmd_args += ["--seed", str(int(seed))]
     if bool(args.use_gpu):
         cmd_args.append("--use-gpu")
     ts_opt = str(args.source_timestamp).strip() or None
@@ -88,6 +91,7 @@ def _plan_kan_train(
     sparsify_lamb_entropy: float | None = None,
     hidden_width_override: int | None = None,
     force_no_warmup_update_grid: bool = False,
+    seed: int | None = None,
 ) -> tuple[PlannedCmd, str]:
     run_id = det_run_id(session_id, name)
     cmd = _plan_kan_train_cmd(
@@ -105,8 +109,45 @@ def _plan_kan_train(
         sparsify_lamb_entropy=sparsify_lamb_entropy,
         hidden_width_override=hidden_width_override,
         force_no_warmup_update_grid=force_no_warmup_update_grid,
+        seed=seed,
     )
     return PlannedCmd(name="kan_train", run_id=run_id, cmd=cmd), run_id
+
+
+def _append_kan_train(
+    planned: list[PlannedCmd],
+    mapping: dict[str, str],
+    *,
+    args: argparse.Namespace,
+    session_id: str,
+    detached: bool,
+    derived_id: str,
+    map_label: str,
+    name: str,
+    target_col: str,
+    include_groups: str,
+    lag_steps: str,
+    include_base: bool,
+    lag_series: str,
+    force_no_warmup_update_grid: bool = False,
+    seed: int | None = None,
+) -> None:
+    cmd, run_id = _plan_kan_train(
+        args=args,
+        session_id=session_id,
+        detached=detached,
+        derived_id=derived_id,
+        name=name,
+        target_col=target_col,
+        include_groups=include_groups,
+        lag_steps=lag_steps,
+        include_base=include_base,
+        lag_series=lag_series,
+        force_no_warmup_update_grid=force_no_warmup_update_grid,
+        seed=seed,
+    )
+    planned.append(cmd)
+    mapping[run_id] = map_label
 
 
 def plan_s1(args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str) -> tuple[list[PlannedCmd], dict[str, str]]:
@@ -210,6 +251,135 @@ def plan_s3(args: argparse.Namespace, *, session_id: str, detached: bool, derive
         lag_series="solar",
     )
     return planned, mapping, comp_runs
+
+
+def plan_s2b(
+    args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str
+) -> tuple[list[PlannedCmd], dict[str, str]]:
+    """S2-blocking: interventional test of autoregressive shortcut competition.
+
+    For each seed (1-5), train:
+    - Focused wind teacher with wind lags (unblocked baseline)
+    - Focused wind teacher WITHOUT wind lags (blocked — lag_series="load")
+    - Direct net_load teacher with full canonical lags (unblocked)
+    - Direct net_load teacher WITHOUT wind/solar lags (blocked — lag_series="load")
+
+    The ΔVER between blocked and unblocked conditions measures
+    the competition pressure of autoregressive shortcuts.
+    """
+    planned: list[PlannedCmd] = []
+    mapping: dict[str, str] = {}
+    seeds = [1, 2, 3, 4, 5]
+
+    for s in seeds:
+        _append_kan_train(
+            planned,
+            mapping,
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            map_label=f"wind_unblocked_s{s}",
+            name=f"s2b_wind_unblocked_seed{s}",
+            target_col="delta_wind_h6",
+            include_groups="cyclic,meteo_wind",
+            lag_steps="24,48",
+            include_base=False,
+            lag_series="wind",
+            seed=s,
+        )
+
+        _append_kan_train(
+            planned,
+            mapping,
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            map_label=f"wind_blocked_s{s}",
+            name=f"s2b_wind_blocked_seed{s}",
+            target_col="delta_wind_h6",
+            include_groups="cyclic,meteo_wind",
+            lag_steps="none",
+            include_base=False,
+            lag_series="none",
+            seed=s,
+        )
+
+        # --- Case 4a: Direct net_load, UNBLOCKED (canonical no-base teacher) ---
+        _append_kan_train(
+            planned,
+            mapping,
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            map_label=f"direct_unblocked_s{s}",
+            name=f"s2b_direct_unblocked_seed{s}",
+            target_col="delta_net_load_h6",
+            include_groups="meteorology,solar,cyclic",
+            lag_steps="12,24,48",
+            include_base=False,
+            lag_series="load,wind,solar",
+            seed=s,
+            force_no_warmup_update_grid=True,
+        )
+
+        # --- Case 4b: Direct net_load, BLOCKED (only load lags) ---
+        _append_kan_train(
+            planned,
+            mapping,
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            map_label=f"direct_blocked_s{s}",
+            name=f"s2b_direct_blocked_seed{s}",
+            target_col="delta_net_load_h6",
+            include_groups="meteorology,solar,cyclic",
+            lag_steps="12,24,48",
+            include_base=False,
+            lag_series="load",
+            seed=s,
+            force_no_warmup_update_grid=True,
+        )
+
+    return planned, mapping
+
+
+def plan_s2c(
+    args: argparse.Namespace, *, session_id: str, detached: bool, derived_id: str
+) -> tuple[list[PlannedCmd], dict[str, str]]:
+    """S2-strong-blocking: direct net-load variant with all autoregressive lags removed.
+
+    This does not replace matched Case 4 (`s2b`); it adds a stronger intervention
+    arm so we can test whether fully removing lag shortcuts yields cleaner
+    physical-edge recovery than the load-only blocked condition.
+    """
+    planned: list[PlannedCmd] = []
+    mapping: dict[str, str] = {}
+    seeds = [1, 2, 3, 4, 5]
+
+    for s in seeds:
+        _append_kan_train(
+            planned,
+            mapping,
+            args=args,
+            session_id=session_id,
+            detached=detached,
+            derived_id=derived_id,
+            map_label=f"direct_fully_blocked_s{s}",
+            name=f"s2c_direct_fully_blocked_seed{s}",
+            target_col="delta_net_load_h6",
+            include_groups="meteorology,solar,cyclic",
+            lag_steps="none",
+            include_base=False,
+            lag_series="none",
+            seed=s,
+            force_no_warmup_update_grid=True,
+        )
+
+    return planned, mapping
 
 
 def plan_s0_physics(
@@ -387,6 +557,14 @@ def plan_kan_sweeps(args: argparse.Namespace, *, session_id: str, detached: bool
         mapping.update(m)
     if "s2" in sweeps:
         cmds, m = plan_s2(args, session_id=session_id, detached=detached, derived_id=derived_id)
+        planned += cmds
+        mapping.update(m)
+    if "s2b" in sweeps:
+        cmds, m = plan_s2b(args, session_id=session_id, detached=detached, derived_id=derived_id)
+        planned += cmds
+        mapping.update(m)
+    if "s2c" in sweeps:
+        cmds, m = plan_s2c(args, session_id=session_id, detached=detached, derived_id=derived_id)
         planned += cmds
         mapping.update(m)
     if "s3" in sweeps:

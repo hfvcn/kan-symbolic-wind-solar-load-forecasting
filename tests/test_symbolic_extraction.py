@@ -1,10 +1,28 @@
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 
 class TestSymbolicExtraction(unittest.TestCase):
+    def test_modal_symbolic_timeout_is_24_hours(self) -> None:
+        source = Path("modal_jobs/kan_symbolic.py").read_text()
+        self.assertIn("SYMBOLIC_TIMEOUT_S = 24 * 3600", source)
+        self.assertNotIn("timeout=2 * 3600", source)
+
+    def test_modal_symbolic_supports_submit_only(self) -> None:
+        source = Path("modal_jobs/kan_symbolic.py").read_text()
+        self.assertIn("submit_only: bool = False", source)
+        self.assertIn("call = fn.spawn(", source)
+        self.assertIn('"status": "submitted"', source)
+
+    def test_modal_symbolic_has_cli_friendly_cpu_wrapper(self) -> None:
+        source = Path("modal_jobs/kan_symbolic.py").read_text()
+        self.assertIn("def extract_symbolic_cpu_cli(", source)
+        self.assertIn("lib_csv: str = \"default\"", source)
+        self.assertIn("device_name=\"cpu\"", source)
+
     def test_prime_symbolic_activations_replays_forward_on_cpu_after_gpu(self) -> None:
         from src.kan_sr.symbolic import prime_symbolic_activations
 

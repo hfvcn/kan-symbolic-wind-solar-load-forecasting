@@ -91,88 +91,106 @@
 
 ## 5. 论文收口前必须补的后续工作
 
-> **状态标注**：这一节不是单纯的论文文本修改任务，而是“工程产物生成 + 论文口径收口”的联动任务。只有在 `S3` 的净负荷总公式被真实生成、落盘并完成 test 复算之后，下面关于主表、图表、答辩口径的后续条目才算具备继续推进的前提。
+> **状态标注（更新于 2026-04-17）**：这一节最初记录的是“工程产物生成 + 论文口径收口”的联动缺口。现在 `S3` 的净负荷总公式已经真实生成、落盘并完成 test 复算：正式 run 为 `paperref_20260306_121725_v2__s3_combo_net_load`，正式比较表为 `doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/comparison_table.csv`。相关主表、图表与正文口径也已完成回写，因此本节主闭环现已完成；剩余只保留一个后续增强项：`wind/solar` 更深的 symbolic 提取留作独立后处理，不再作为当前 `next` 清单的前置条件。
 
-### 5.1 先把当前最大缺口写清楚
+### 5.1 这轮已经补齐的最大缺口
 
-1. 当前最强结果已经不是“direct net-load 导出一条同时含风速/光照/温度/历史负荷的总公式”，而是：
+1. 当前最强结果依然不是“direct net-load 直接导出一条同时含风速/光照/温度/历史负荷的总公式”，而是：
    - direct 路线会坍缩为 `load` 主导公式；
    - S2 证明物理量消失的主要原因是 lag shortcut competition；
    - S3 能把 load / wind / solar 三个子任务的关键物理量稳定保留在局部公式中，并保持组合预测精度。
-2. 当前 `s3_combo_net_load` 的实际产物仍然只是：
-   - `predictions_test.parquet`
-   - `eval_test.json`
-3. 这意味着当前已经有“三条局部公式 + 一个组合后的净负荷预测器”，但还没有“一条最终的净负荷总公式”。
-4. 因此后续工作的重点不应该再回到“继续硬追 direct 单条公式”，而应该是把 `S3 局部公式 -> 净负荷总公式` 这最后半步补完。
-5. 在这一步真正完成之前，本节后续内容都应视为“待工程产物补齐后继续”，不能误标成已经完成的论文文字收口工作。
+2. `s3_combo_net_load` 已不再只有 `predictions_test.parquet` 与 `eval_test.json`。当前正式产物还包括：
+   - `formula_combined.sympy.txt`
+   - `formula_combined.tex`
+   - `formula_combined_metrics.json`
+   - `formula_eval_test.json`
+   - `predictions_test_formula.parquet`
+3. 这意味着当前已经同时具备：
+   - “三条局部公式 + 一个组合后的净负荷预测器”
+   - “由三条局部公式显式组合得到的一条净负荷总公式”
+4. 因此当前后续工作的重点，不再是“把总公式生出来”，而是把它正确写入主表、图表和正文口径，并明确呈现它相对组合预测器的 transfer gap。
+5. 当前阶段如果继续遗漏的，不是工程产物本身，而是：
+   - 主表是否把 `S3 composite formula` 单列出来；
+   - 图表是否把 `predictor` 与 `formula` 分对象展示；
+   - 正文是否仍在把 `S3` 的局部公式可解释性和组合预测精度混写成同一个对象。
 
-### 5.2 工程上必须补的产物
+### 5.2 工程上已经补齐的产物
 
-1. 扩展 `scripts/combine_net_load_runs.py`，使其不仅组合三个子任务的预测值，还能读取三个子任务 symbolic run 的 `formula_reconstructed.sympy.txt`。
-2. 在组合阶段显式构造：
+1. `scripts/combine_net_load_runs.py` 已扩展为不仅组合三个子任务的预测值，也能读取三个子任务 symbolic run 的 `formula_reconstructed.sympy.txt`。
+2. 组合阶段已显式构造：
    - `F_net = F_load - F_wind - F_solar`
-3. 组合 run 需要新增并落盘以下产物：
+3. 组合 run 已新增并落盘以下产物：
    - `formula_combined.sympy.txt`
    - `formula_combined.tex`
    - `formula_eval_test.json`
    - `predictions_test_formula.parquet`
-4. 组合公式评估必须直接对 test 集逐点计算，不能只保留组合预测结果而缺少公式复算结果。
-5. 若组合公式在数值评估中出现溢出/裁剪问题，应在文档中明确记录原因与边界，不能把失败静默吞掉。
+4. 组合公式评估已经直接对 test 集逐点计算，并已进入正式比较表。
+5. 这一步保持了 Debug-First：若组合公式数值评估异常，会显式报错而不是静默降级。当前 `paperref` 正式 run 成功完成，无额外溢出/裁剪 fallback。
 
 ### 5.3 主叙事与补充交付的关系
 
-1. 当前论文主叙事不应改回“为了满足课题要求而强行追一条总公式”的写法。更稳的主线仍然是：
+1. 当前论文主叙事仍不应改回“为了满足课题要求而强行追一条总公式”的写法。更稳的主线仍然是：
    - direct 公式坍缩是失败案例；
    - S2 是机制验证；
    - S3 是建设性解决方案。
-2. 课题原始要求中“最终给出净负荷公式”这一项，更适合作为对现有主叙事的补充交付（closure），而不是反过来支配全文结构。
-3. 因此收口策略应是：
+2. 课题原始要求中“最终给出净负荷公式”这一项，仍应作为对现有主叙事的补充交付（closure），而不是反过来支配全文结构。
+3. 因此当前收口策略应是：
    - 主贡献继续强调“为什么 direct 路线失败、为什么 S3 能恢复可辨识性”；
-   - 额外交付补上“由三条局部公式显式组合得到净负荷总公式并完成 test 复算”。
-4. 在总公式产物真正补齐之前，论文中不能再把 `s3_combo_net_load` 写成“最终净负荷公式”，更准确的说法应是：
-   - “三条局部物理公式 + 结构化组合预测器”
+   - 额外交付明确写出“由三条局部公式显式组合得到净负荷总公式，并已完成 test 复算”。
+4. 现在可以把 `paperref_20260306_121725_v2__s3_combo_net_load__formula` 写成“由三条局部公式结构化组合得到的净负荷总公式”；但仍必须与 `paperref_20260306_121725_v2__s3_combo_net_load` 这个组合预测器分对象叙述，不能混成一个结果。
 5. `KAN > PySR`、`wind 先增后降`、`其他物理量下降` 等表述仍需保持现有的边界强度，不因收口需要而过度泛化。
 
-### 5.4 当前论文里已经有的比较，和仍然缺的比较
+### 5.4 当前论文里已经有的比较，和现在新增的比较
 
-1. 当前论文里其实已经明确包含“公式 vs KAN”的比较，不是完全空白：
+1. 当前论文里原本就已经明确包含“公式 vs KAN”的比较，不是完全空白：
    - 方法上已经定义了 `TGR = RMSE_symbolic / RMSE_teacher`；
    - direct 主结果里已经有 `KAN教师` vs `strict symbolic` 的数值比较；
    - S3 子任务层面已经有 load / wind / solar 各自的 TGR。
-2. 因此当前真正缺的，不是“公式和 KAN 从未比较过”，而是：
+2. 当前已经补齐此前真正缺失的那一组比较：
    - `S3 composite formula` vs `S3 composite predictor`
-   - 也就是“最终结构化总公式”和“最终组合预测器”之间的差距还没有被正式落盘和写入主表。
-3. 这也是为什么现在不能把 `s3_combo_net_load` 直接称为“最终净负荷公式”：
-   - 现在拿到的是组合预测器结果；
-   - 还没有拿到与之对应的总公式结果。
+   - 对应正式落盘位置：`doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/comparison_table.csv`
+3. 当前 `paperref` 正式数值是：
+   - `S3 composite predictor`：RMSE `1254.6153`，MAE `821.8361`，R2 `0.9929838`，skill `0.5153250`
+   - `S3 composite formula`：RMSE `2644.3554`，MAE `1706.3551`，R2 `0.9688310`，skill `-0.0214366`，complexity `310`
+4. 这说明当前已经可以把 `s3_combo_net_load__formula` 称为“最终净负荷总公式”，但不能把它写成“最终净负荷最优结果”：
+   - 公式对象已存在；
+   - 但它相对组合预测器仍存在明显 transfer gap。
+5. 后续性能排查已把这条改进真正落回正式 `paperref` run：structured combo pipeline 现在按真实 test 指标自动选择更优 predictor / formula candidate，而不再固定绑定单一路径。2026-04-18 已通过显式 refresh 流程把 detached symbolic session 与外部 best symbolic run 并入正式 `paper_assets`；当前 `S3 composite formula` 实际采用的局部公式来源为：
+   - `load`：`s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6`
+   - `wind`：`symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6`
+   - `solar`：`paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6`
+   但这轮 refresh 完成后，`S3 composite predictor` 与 `S3 composite formula` 的最终净负荷 test 指标并未继续提升，因此论文口径应写成“候选池与公式来源已刷新并显式化”，而不是“最终 S3 数值再次改善”。
+6. 进一步的 `wind/solar` full-grid symbolic 深挖已作为后处理完成一轮，并已纳入正式 `comparison_table.csv`；当前剩余工作不再是“把任务跑完”，而是是否还要继续做更激进的 symbolic 扩展搜索。
 
-### 5.5 论文主表与图表需要补的内容
+### 5.5 论文主表与图表的补齐情况
 
 1. 当前主表里已经有：
    - `direct KAN`
    - `matched MLP`
    - `direct symbolic`
-2. 为了让“补充交付”闭环，主结果表中还应新增一行：
-   - `S3 composite formula`
-3. 这行结果需要同时报告：
+2. 主结果源表现在已经补齐 `S3 composite formula` 这一行；正式来源就是：
+   - `doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/comparison_table.csv`
+3. 这行结果当前已按正式口径报告：
    - RMSE / MAE / R2 / skill
-   - 复杂度
+   - complexity = `310`（`sympy_node_count`）
    - 公式来源说明（由 load / wind / solar 三个局部公式结构化组合）
-4. 图表上至少应补一张：
+4. 图表上已经补出四对象对比资产：
    - `direct KAN` vs `direct symbolic` vs `S3 composite predictor` vs `S3 composite formula`
-5. 若最终 `S3 composite formula` 的精度低于 `S3 composite predictor`，也应保留这一差距，并将其解释为“局部公式组合后的 transfer gap”，而不是只展示更好看的结果。
+5. 当前正式结果已经明确表明：`S3 composite formula` 的 RMSE 相对 `S3 composite predictor` 增加 `1389.7401`，比例约 `2.1077x`。这一差距仍应保留，并解释为“局部公式组合后的 transfer gap”，而不是只展示更好看的 predictor 结果。
 
 ### 5.6 答辩与中期汇报阶段的表达边界
 
-1. 可以展示并强调：
+1. 现在可以展示并强调：
    - direct 路线为何失败；
    - S2 如何证明失败原因；
    - S3 如何在保持精度的同时恢复关键物理量；
-   - 当前论文里已经有公式与 KAN 的直接比较（direct symbolic vs direct KAN，以及各子任务 TGR）。
-2. 当前不能直接说：
-   - “已经拿到最终净负荷单条公式”
+   - 当前论文里已经有公式与 KAN 的直接比较（direct symbolic vs direct KAN，以及各子任务 TGR）；
+   - 由三条局部公式结构化组合得到的净负荷总公式已经生成，并已完成 test 复算。
+2. 当前仍不能直接说：
+   - “已经拿到最终净负荷单条公式，并且它优于组合预测器”
+   - “S3 的局部公式可解释性和组合预测精度是同一个结果对象”
 3. 当前更稳的说法是：
-   - “已经拿到三条局部物理公式、组合后的净负荷预测结果，以及公式相对 KAN 的比较证据；下一步是把三条局部公式显式合成为一条净负荷总公式，并补上这条总公式相对组合预测器的复算验证。”
+   - “已经拿到由三条局部公式结构化组合得到的净负荷总公式，并完成了 test 复算；但该总公式相对组合预测器仍存在明显 transfer gap，因此论文与答辩中必须并列呈现 predictor 与 formula 两个对象。”
 
 ## 6. 审查报告筛选结论（2026-04-13）
 
@@ -195,7 +213,9 @@
 
 1. `Case 4` 不能再写成已经严格闭合的机制证明。更稳的写法应是：阻断实验提供了支持 `shortcut competition` 的干预性证据，但由于 `unblocked` 与 `blocked` 当前统计对象和口径不完全同层，这一节应避免“唯一机制已被完全证明”的强表述。
    来源：`gedt-1.md`、`gp-1.md`
-2. `S3` 不能把“局部公式的可解释性”和“组合预测器的精度”混写成同一个对象。在补出 `S3 composite formula` 之前，应统一写成“三条局部公式 + 结构化组合预测器”，并明确当前尚未完成显式总公式的 test 复算。
+2. `S3` 不能把“局部公式的可解释性”和“组合预测器的精度”混写成同一个对象。即使现在已经补出 `S3 composite formula`，正文中也仍必须明确区分：
+   - `三条局部公式 + 结构化组合预测器`
+   - `由三条局部公式组合得到并已完成 test 复算的净负荷总公式`
    来源：`gedt-1.md`、`gp-1.md`、`gpp-1.md`
 3. 当前主结论的边界应继续保持：
    - `KAN > PySR` 仅限当前 canonical 主实验设置；
@@ -241,9 +261,9 @@
 
 1. 已确认真实切分口径来自代码：`TRAIN_RATIO=0.7`、`VAL_RATIO=0.15`，即 `70/15/15 + 48步gap`。第三章、第五章、主文件与流程图已统一到这一口径。
    来源：代码核对 `src/config.py`、`src/data/split.py`
-2. 报告中提到的 `26/28` 维、`lag_1` vs `lag_12/24/48`、扩展函数库定义不清等问题，都属于“协议文本未完全冻结”的信号；改稿时应统一扫一遍。
+2. 报告中提到的 `26/28` 维、`lag_1` vs `lag_12/24/48`、扩展函数库定义不清等问题，确实属于此前“协议文本未完全冻结”的信号；本轮已经统一扫过主稿、章节稿和 `thesis_draft` 的核心表述，当前不再作为阻塞项。
    来源：`gp-1.md`
-3. 如果 `Case 4` 暂时不重跑，那么正文和答辩口径都应主动承认其比较层级尚未完全对齐，而不是继续把它写成最硬的一条证据。
+3. `Case 4` 已经按 canonical `no-base` direct-task 口径重跑并收齐 3 对 paired seed；但由于效应量仍偏弱且波动明显，正文和答辩口径仍应把它写成支持 `shortcut competition` 的干预性证据，而不是最硬的一条机制证明。
    来源：`gedt-1.md`、`gp-1.md`
 
 ### 6.5 采纳原则（改成按属实与否，不按难度）
@@ -251,25 +271,28 @@
 1. 后续是否纳入修改，只看一条：该判断或其对应问题是否属实。
 2. 只要与代码、实验资产、现稿核对后属实，就进入后续改动清单；区别只在于分阶段推进，而不是简单标成“不采纳”。
 3. 需要区分两类内容：
-   - 事实性问题：例如 `Case 4` 口径未完全对齐、`S3` 尚无显式总公式 test 复算、当前存在划分前插值、当前只有单数据集/有限 seed/有限 baseline。这些若属实，全部纳入后续修改。
+   - 事实性问题：例如 `Case 4` 口径未完全对齐、`S3 predictor` 与 `S3 formula` 容易被混写、当前存在划分前插值、当前只有单数据集/有限 seed/有限 baseline。这些若属实，全部纳入后续修改。
    - 结论性定性：例如“这是致命 flaw”“当前版本无法接收”。这类属于外部评审口吻，不直接照抄进论文正文；但其背后对应的事实性问题，仍按上条纳入处理。
 
 ### 6.6 分阶段纳入清单
 
 1. 第一阶段：口径与一致性修正
+   - 【已于 2026-04-17 完成】已统一 `main.tex` / `chapters/*.tex` / `thesis_draft` 中的 `S3` 总公式闭环口径、`Case 4` 边界说明、`PySR=0.076`、`strict/medium/strict_poly4` 函数库定义与旧的 `load_lag_1` 残留表述；并已根据 canonical `no-base` 的 Case 4 direct-task paired 结果下调相关结论强度：当前 3 对 final-pred seed 的 `blocked - unblocked` RMSE 分别为 `+53.05`、`+470.44`、`+214.82`，均值 `+246.10`，方向一致但强度有限。
    - 统一数据切分、特征维度、lag 记法、函数库定义等协议文本。
    - 收紧 `Case 4`、`S3`、`KAN > PySR`、`wind 非单调` 等结论强度。
    - 明确区分 `teacher/composite predictor` 与 `symbolic formula` 两类证据对象。
    来源：`gedt-1.md`、`gp-1.md`、代码核对 `src/config.py`、`src/data/split.py`
 2. 第二阶段：正文证据呈现补齐
+   - 【已于 2026-04-17 完成】已新增 `protocol_ledger_20260417.csv`、`representative_formula_table_20260417.csv`、`direct_symbolic_collapse_20260417.png`、`wind_solar_horizon_20260417.png`、`s2_blocking_summary_20260417.png`、`case4_matched_blocking_seed_detail_20260417.csv`、`case4_matched_blocking_summary_20260417.csv`，并已接入主稿 `main.tex` 与章节版 `chapter4.tex/chapter5.tex`。
    - 增加 `split/protocol ledger`、代表性公式表、关键对比图。
    - 把当前最重要的证据链从“主要靠表格扫描”改成“图表与表格共同支撑”。
-   - 明确把 `S3` 写成“三条局部公式 + 结构化组合预测器”，直到总公式真正闭环。
+   - 明确把 `S3` 写成“`三条局部公式 + 结构化组合预测器 + 已复算总公式`”，并在正文中区分 predictor 与 formula 两个对象。
    来源：`gedt-1-gc.md`、`gp-1-gc.md`、`gpp-1-gc.md`、`gedt-1.md`、`gp-1.md`
 3. 第三阶段：实验与工程闭环补强
-   - 显式构造 `S3 composite formula` 并完成 test 逐点复算。
-   - 若继续加强机制证据，则重做 `Case 4` 的同口径对照。
-   - 若继续加强外部说服力，则补充更多 baseline、seed、以及额外数据/区域验证；这些不是因为“难所以不做”，而是作为后续阶段的证据增强项推进。
+   - 【已于 2026-04-17 完成】显式构造 `S3 composite formula` 并完成 test 逐点复算。
+   - 【已于 2026-04-17 完成】已补做 `Case 4` 的 canonical `no-base` direct-task 对照；结果显示 3 对 paired seed 在 final-pred 口径下均为 blocked 更差，但效应量仅属弱到中等支持，因此正文不再保留旧的 `+0.80 / 强成功` 口径。
+   - 【已于 2026-04-17 转入独立后处理】`wind/solar` 更深的 full-grid symbolic 提取不再作为当前 `next` 的完成条件。原因是 symbolic 提取运行在 Modal 上、单次 job 受 `2h` 限制，且现有公式复杂度已经偏高；后续若要继续加强，可由人工单独筛选与重跑。
+   - 若继续加强外部说服力，则补充更多 baseline、seed、以及额外数据/区域验证；这些现在归入长期证据增强项，不再视为本轮 `next` 清单的未完成项。
    来源：`gedt-1.md`、`gp-1.md`、`gpp-1.md`
 4. 图表层面的建议也按同样规则处理：
    - “需要把坍缩、恢复、S3 出路可视化”这一判断属实，应纳入第二阶段。

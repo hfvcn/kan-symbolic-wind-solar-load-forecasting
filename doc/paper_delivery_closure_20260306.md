@@ -105,3 +105,33 @@
 
 1. 最小图表集合已补齐到 `doc/paper_assets/paper_delivery_20260306/`，新增包括 `system_flow_pipeline.png`、`solar_h288_boundary_20260306.png`、`successful_formula_summary_20260309.csv`、`formula_2026-03-01_160200_sym_strict_r2_0_995__kan151000.png` 以及 S3 子公式渲染图。
 2. “更多 baselines / 更多 horizons”、“更强物理约束”、“架构创新” 以及 “direct 公式的新 teacher 路线” 已正式降级为 future work；当前主实验矩阵已经足以支撑论文主命题，不再扩展正文实验范围。
+
+## 9. 2026-04-17 S3 总公式闭环补充
+
+### S3 闭环状态
+
+1. S3净负荷总公式的工程闭环已经完成，正式结果以 `paperref_20260306_121725_v2__s3_combo_net_load` 与 `paperref_20260306_121725_v2__s3_combo_net_load__formula` 为准。
+2. 2026-04-18 symbolic refresh 后，结构化组合预测器的正式指标更新为 RMSE=1254.62、skill=0.515；显式总公式的正式指标更新为 RMSE=2644.36、skill=-0.021。
+3. 这说明论文现在可以明确声称“净负荷总公式已显式合成并完成test复算”，但不能再把预测器对象与公式对象混写成同一个结果。
+
+### 新增交付资产
+
+1. 四对象闭环对比表：`doc/paper_assets/paper_delivery_20260306/s3_main_comparison_20260417.csv`
+2. 四对象闭环对比图：`doc/paper_assets/paper_delivery_20260306/s3_formula_closure_20260417.png`
+3. 正式 paperref 收口快照：`doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/s3_formula_closure_20260417.csv`
+
+### 2026-04-17 第二阶段证据呈现补充
+
+1. 已新增协议 ledger：`doc/paper_assets/paper_delivery_20260306/protocol_ledger_20260417.csv`，把 `teacher / direct symbolic / Case 3 / Case 4 / S3 predictor / S3 formula` 的统计单位与证据对象统一冻结。
+2. 已新增代表性公式表：`doc/paper_assets/paper_delivery_20260306/representative_formula_table_20260417.csv`，并列收录 `direct collapsed formula`、`load local formula`、`wind local formula`、`solar local formula` 的 FAR/TGR/complexity。
+3. 已新增三张关键图：
+   - `doc/paper_assets/paper_delivery_20260306/direct_symbolic_collapse_20260417.png`
+   - `doc/paper_assets/paper_delivery_20260306/wind_solar_horizon_20260417.png`
+   - `doc/paper_assets/paper_delivery_20260306/s2_blocking_summary_20260417.png`
+4. 这轮补充的目标不是再造新实验，而是把已有证据从“主要靠表格扫描”改成“图表 + protocol ledger + 对象分层”共同支撑。
+
+### 口径冻结
+
+1. 正文、摘要、答辩稿中凡涉及S3结果，必须区分 `S3 composite predictor` 与 `S3 composite formula`。
+2. 若讨论“结构化分解是否保住了精度”，引用 predictor 指标；若讨论“总公式是否已经得到”，引用 formula 指标与 transfer gap。
+3. S3当前的核心边界不再是“尚未形成总公式”，而是“总公式已经存在，但相对预测器仍有明显transfer gap”。

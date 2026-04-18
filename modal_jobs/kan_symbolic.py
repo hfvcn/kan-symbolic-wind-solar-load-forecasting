@@ -39,6 +39,7 @@ if not logger.handlers:
 APP_NAME = "kan-sr-symbolic"
 DEFAULT_VOLUME_NAME = os.environ.get("KAN_SR_VOLUME", "kan-sr")
 VOLUME_MOUNT = "/vol"
+SYMBOLIC_TIMEOUT_S = 24 * 3600
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name(DEFAULT_VOLUME_NAME, create_if_missing=True)
@@ -341,7 +342,7 @@ def _extract_symbolic_impl(
     return out_payload
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600)
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=SYMBOLIC_TIMEOUT_S)
 def extract_symbolic(
     train_run_id: str,
     *,
@@ -368,7 +369,7 @@ def extract_symbolic(
     )
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=2 * 3600, gpu="L4")
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=SYMBOLIC_TIMEOUT_S, gpu="L4")
 def extract_symbolic_gpu(
     train_run_id: str,
     *,
@@ -395,6 +396,50 @@ def extract_symbolic_gpu(
     )
 
 
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=SYMBOLIC_TIMEOUT_S)
+def extract_symbolic_cpu_cli(
+    train_run_id: str,
+    *,
+    run_id: str = "",
+    r2_threshold: float = 0.99,
+    weight_simple: float = 0.9,
+    fix_below_threshold_to_zero: bool = False,
+    sample_rows: int = 10_000,
+    lib_csv: str = "default",
+    safe_exp_clip: float = 0.0,
+    eval_clip_quantiles: str = "",
+) -> dict[str, Any]:
+    lib_list = None
+    lib_s = str(lib_csv).strip().lower()
+    if lib_s not in {"", "default"}:
+        lib_list = [s.strip() for s in str(lib_csv).split(",") if s.strip()]
+
+    safe_exp_opt: float | None = None
+    if float(safe_exp_clip) > 0:
+        safe_exp_opt = float(safe_exp_clip)
+
+    q_opt: tuple[float, float] | None = None
+    q_s = str(eval_clip_quantiles).strip()
+    if q_s:
+        parts = [p.strip() for p in q_s.split(",") if p.strip()]
+        if len(parts) != 2:
+            raise ValueError("eval_clip_quantiles must be 'low,high' (e.g. 0.01,0.99)")
+        q_opt = (float(parts[0]), float(parts[1]))
+
+    return _extract_symbolic_impl(
+        train_run_id,
+        run_id=run_id.strip() or None,
+        r2_threshold=float(r2_threshold),
+        weight_simple=float(weight_simple),
+        fix_below_threshold_to_zero=bool(fix_below_threshold_to_zero),
+        sample_rows=int(sample_rows),
+        lib=lib_list,
+        safe_exp_clip=safe_exp_opt,
+        eval_clip_quantiles=q_opt,
+        device_name="cpu",
+    )
+
+
 @app.local_entrypoint()
 def main(
     train_run_id: str,
@@ -407,6 +452,7 @@ def main(
     safe_exp_clip: float = 0.0,
     eval_clip_quantiles: str = "",
     use_gpu: bool = False,
+    submit_only: bool = False,
 ) -> None:
     lib_list = None
     lib_s = str(lib).strip().lower()
@@ -425,6 +471,20 @@ def main(
             raise ValueError("eval_clip_quantiles must be 'low,high' (e.g. 0.01,0.99)")
         q_opt = (float(parts[0]), float(parts[1]))
     fn = extract_symbolic_gpu if use_gpu else extract_symbolic
+    if submit_only:
+        call = fn.spawn(
+            train_run_id,
+            run_id=run_id_opt,
+            r2_threshold=r2_threshold,
+            weight_simple=weight_simple,
+            fix_below_threshold_to_zero=fix_below_threshold_to_zero,
+            sample_rows=sample_rows,
+            lib=lib_list,
+            safe_exp_clip=safe_exp_opt,
+            eval_clip_quantiles=q_opt,
+        )
+        print(json.dumps({"run_id": run_id_opt, "status": "submitted", "call": str(call)}, indent=2))
+        return
     result = fn.remote(
         train_run_id,
         run_id=run_id_opt,

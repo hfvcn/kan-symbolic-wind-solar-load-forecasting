@@ -1,0 +1,1148 @@
+% !TEX program = xelatex
+% 基于KAN的可解释净负荷预测：自回归捷径竞争机制与结构化分解方案
+\documentclass[12pt,a4paper,oneside]{ctexbook}
+
+% ===== 页面设置 =====
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+
+% ===== 字体与编码 =====
+\usepackage{fontspec}
+\usepackage{xeCJK}
+
+% ===== 数学 =====
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% ===== 图表 =====
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{makecell}
+
+% ===== 引用与链接 =====
+\usepackage[backend=biber,style=gb7714-2015,sorting=none]{biblatex}
+\addbibresource{references.bib}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{cleveref}
+
+% ===== 代码 =====
+\usepackage{listings}
+\usepackage{xcolor}
+
+% ===== 算法 =====
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ===== 其他 =====
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{setspace}
+
+% ===== 行距设置 =====
+\onehalfspacing
+
+% ===== 章节标题格式 =====
+\ctexset{
+  chapter = {
+    format = \centering\zihao{3}\heiti,
+    nameformat = {},
+    titleformat = {},
+    number = \arabic{chapter},
+    beforeskip = 20pt,
+    afterskip = 20pt,
+  },
+  section = {
+    format = \zihao{4}\heiti,
+    beforeskip = 15pt,
+    afterskip = 10pt,
+  },
+  subsection = {
+    format = \zihao{-4}\heiti,
+    beforeskip = 10pt,
+    afterskip = 8pt,
+  },
+}
+
+% ===== 图表标题格式 =====
+\captionsetup{
+  font={small},
+  labelsep=space,
+  justification=centering,
+}
+\captionsetup[table]{position=top}
+\captionsetup[figure]{position=bottom}
+
+% ===== 页眉页脚 =====
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small 基于KAN的可解释净负荷预测}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ===== 自定义命令 =====
+\newcommand{\netload}{\text{net\_load}}
+\newcommand{\deltanetload}{\Delta\text{net\_load}}
+\newcommand{\VER}{\text{VER}}
+\newcommand{\FAR}{\text{FAR}}
+\newcommand{\TGR}{\text{TGR}}
+\newcommand{\RMSE}{\text{RMSE}}
+\newcommand{\MAE}{\text{MAE}}
+
+\begin{document}
+
+% ===== 封面（占位，按学校模板替换） =====
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\zihao{1}\heiti 毕业设计（论文）\par}
+\vspace{2cm}
+{\zihao{2}\heiti 基于KAN的可解释净负荷预测：\\[0.5em]自回归捷径竞争机制与结构化分解方案\par}
+\vspace{3cm}
+{\zihao{3}
+\begin{tabular}{rl}
+% 按学校模板填写
+学生姓名： & \underline{\hspace{5cm}} \\[1em]
+学\hspace{2em}号： & \underline{\hspace{5cm}} \\[1em]
+指导教师： & \underline{\hspace{5cm}} \\[1em]
+学\hspace{2em}院： & \underline{\hspace{5cm}} \\[1em]
+专\hspace{2em}业： & \underline{\hspace{5cm}} \\[1em]
+\end{tabular}
+\par}
+\vfill
+{\zihao{3} \the\year 年 \the\month 月\par}
+\end{titlepage}
+
+% ===== 摘要 =====
+\frontmatter
+
+% ──────────────────────────────────────────────
+% 中文摘要
+% ──────────────────────────────────────────────
+\chapter*{摘\quad 要}
+\addcontentsline{toc}{chapter}{摘要}
+
+高比例可再生能源并网背景下，净负荷（总负荷减去风光出力）的准确预测与物理可解释性对电力系统调度至关重要。Kolmogorov-Arnold网络（KAN）通过边上可学习的B样条函数实现"先学习、后提取"的符号回归路径，有望同时满足预测精度与公式可解释性的需求。然而，将KAN符号提取应用于包含自回归滞后特征的时间序列预测任务时，会出现系统性的"公式坍缩"现象：稀疏化-剪枝过程将全部物理气象变量（风速、辐照度、温度等）剪除，最终提取的公式退化为仅含负荷滞后项的极简表达。
+
+本文以ARPA-E PERFORM数据集的5分钟采样净负荷数据为对象，围绕上述公式坍缩现象的成因与应对，开展了四项递进实验。首先，构建KAN教师-符号提取管线并验证其预测有效性；在当前标准对齐的主实验设置下，KAN教师的技能分数达到0.453，显著优于MLP基线（0.430，$p=0.0005$）和PySR（0.076）。其次，提出变量进入率（VER）和公式出现率（FAR）等可辨识性诊断指标，系统记录了直接净负荷目标下9组符号配置全部坍缩（VER=0/9）的现象。第三，设计S2自回归阻断干预实验，以干预对照而非仅凭观察性相关来检验"自回归捷径竞争"假说：阻断滞后特征后，聚焦风电任务的$\Delta\VER=+0.60$（95\% CI=[0.20, 1.00]）；而在严格matched的直接净负荷任务上，4个有效paired seed仅给出$\Delta\VER=+0.25$（95\% CI=[0.00, 0.75]），另有1个seed两次未产出post-prune checkpoint。这表明shortcut competition的干预性证据在focused wind设置下最强，在direct net-load设置下则更弱且不稳定。第四，设计S3结构化分解方案，将净负荷拆分为负荷、风电、光伏三个子任务。S3结构化组合预测器在保持预测精度并进一步提升组合表现（skill=0.515）的同时实现了全部子任务FAR=3/3，表明结构化分解后可以稳定提取具有物理含义的局部公式；进一步地，本文已经完成净负荷总公式的显式合成与test复算，但复算结果的RMSE=2644.36、skill=-0.021，说明总公式对象相对结构化组合预测器仍存在明显transfer gap。
+
+本文支持如下判断：在当前实验与数据处理设置下，自回归捷径竞争——而非变量无关性——更能解释KAN符号提取中物理气象变量被剪除的现象。S2阻断实验为这一解释提供了干预性支持，S3分解方案则给出了兼顾精度与可解释性的建设性解决路径。研究同时诚实报告了方法的边界条件：S2阻断在直接净负荷任务上带来明显精度代价，太阳辐照在长期时域外推退化，风电可辨识性随时域呈非单调变化；尽管S3总公式已经完成显式合成与test复算，但其相对结构化组合预测器仍存在明显transfer gap，因此预测器对象与公式对象必须分开表述。
+
+\vspace{1em}
+\noindent\textbf{关键词：}KAN；符号回归；净负荷预测；可解释性；自回归竞争；可辨识性
+
+\newpage
+
+% ──────────────────────────────────────────────
+% 英文摘要
+% ──────────────────────────────────────────────
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Accurate and physically interpretable forecasting of net load (total demand minus wind and solar generation) is essential for power system dispatch under high renewable penetration. Kolmogorov-Arnold Networks (KAN) offer a ``learn-then-extract'' symbolic regression pathway through learnable B-spline activation functions on network edges, potentially satisfying both predictive accuracy and formula-level interpretability. However, when applied to time-series forecasting tasks containing autoregressive lag features, KAN symbolic extraction exhibits systematic ``formula collapse'': the sparsification-pruning pipeline eliminates all physical meteorological variables (wind speed, irradiance, temperature, etc.), and the extracted formula degenerates into a minimal expression containing only load lags.
+
+Using 5-minute net load data from the ARPA-E PERFORM dataset, this thesis conducts four progressive experiments to investigate the cause and remedy of formula collapse. First, a KAN teacher-to-symbol extraction pipeline is established and validated; within the current canonical matched main experimental setting, the KAN teacher achieves a skill score of 0.453, significantly outperforming an MLP baseline (0.430, $p=0.0005$) and PySR (0.076). Second, identifiability diagnostics---Variable Entry Rate (VER) and Formula Appearance Rate (FAR)---are proposed, documenting complete collapse (VER = 0/9) across all nine symbolic configurations on the direct net load target. Third, an S2 autoregressive blocking intervention compares blocked and unblocked settings and provides interventional support for the shortcut-competition hypothesis: after blocking lag features, $\Delta$VER = +0.60 (95\% CI = [0.20, 1.00]) for the focused wind task, while the strict matched direct net-load setting yields only $\Delta$VER = +0.25 (95\% CI = [0.00, 0.75]) across four valid paired seeds, with one additional seed twice failing to produce a post-prune checkpoint. This indicates that the interventional evidence for shortcut competition is strongest in the focused wind setting and weaker, less stable in the direct net-load setting. Fourth, an S3 structured decomposition scheme partitions net load into load, wind, and solar sub-tasks. The structured composite predictor preserves predictive accuracy while improving the final combined result (skill = 0.515) and achieving FAR = 3/3 for all sub-tasks, and the explicit replayed net-load formula is now closed on the test set. However, the replayed total formula reaches RMSE = 2644.36 and skill = -0.021, revealing a clear transfer gap relative to the structured predictor.
+
+Overall, the evidence supports the following interpretation: under the current experimental and preprocessing setup, autoregressive shortcut competition---rather than variable irrelevance---more plausibly explains why physical meteorological variables are pruned during KAN symbolic extraction. The S2 blocking experiment provides interventional support for this interpretation, and the S3 decomposition offers a constructive solution balancing accuracy and interpretability. Boundary conditions are honestly reported: direct blocking on the net-load task carries a noticeable accuracy cost, solar identifiability degrades at long-horizon extrapolation, wind identifiability varies non-monotonically across forecast horizons, and although the S3 total formula has been explicitly closed and replayed, it still exhibits a substantial transfer gap relative to the structured predictor.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} KAN; symbolic regression; net load forecasting; interpretability; autoregressive competition; identifiability
+
+% ===== 目录 =====
+\tableofcontents
+
+% ===== 正文 =====
+\mainmatter
+
+% ══════════════════════════════════════════════
+% 第一章  绪论
+% ══════════════════════════════════════════════
+\chapter{绪论}
+
+\section{研究背景与意义}
+
+全球能源结构正经历以化石能源向可再生能源过渡为主线的深刻变革。截至2024年，风力发电和光伏发电在全球新增装机容量中的占比已超过80\%，中国的风光并网装机容量连续多年位居世界首位。随着风光渗透率的持续攀升，电力系统的运行特征发生了根本性改变：传统上由负荷需求单一驱动的调度模式，转变为必须同时应对负荷波动与风光出力不确定性的双重挑战\cite{hong2016probabilistic,kaur2016net}。
+
+在高比例可再生能源并网背景下，净负荷（net load）——即总用电需求减去风电出力与光伏出力之和——成为电力系统调度的核心预测对象。净负荷同时继承了人类用电行为的复杂周期性和天气驱动的随机波动性：光伏受辐照度和云量影响呈现日内"鸭子曲线"特征，风电受风速变化呈现跨日尺度的非平稳波动\cite{hanifi2020critical,inman2013solar}。两者的叠加使得净负荷的多步预测直接关系到机组组合优化、备用容量调度和电力市场出清等关键运营决策。准确预测净负荷对可再生能源高效消纳和电网安全稳定运行具有重要的工程意义\cite{kaur2016net}。
+
+近年来，深度学习方法在风光耦合负荷预测精度方面取得了显著进展。LSTM能够捕捉时间序列中的长程依赖关系\cite{silva2024lstm}；Transformer及其变体通过自注意力机制建模全局时间模式\cite{ebrahimzadeh2024ai}；CNN及其与RNN的混合架构进一步提升了多尺度特征提取能力\cite{wang2023hybrid}。这些方法在标准评估指标上已经大幅超越传统统计模型。然而，深度学习模型本质上是"黑箱"：其内部包含数万至数百万个参数的非线性映射，无法提供可审计的推理路径。电力系统运营者不仅需要准确的预测数值，更希望理解风速、辐照度、温度、历史负荷等关键因素如何驱动预测结果。这一需求在电网安全运行和调度决策的可追溯性方面尤为迫切。
+
+可解释人工智能（explainable AI, XAI）领域的现有方法——如SHAP值和注意力权重可视化——能够提供近似的事后解释，但它们本质上是对黑箱模型行为的局部线性近似或统计归因，无法给出确定性的数学公式\cite{machlev2022explainable}。与之相比，符号回归（symbolic regression）旨在从数据中直接发现闭式数学表达式，是模型可解释性的一种更强形式。然而，传统符号回归方法（如PySR\cite{cranmer2023pysr}）在高维输入场景下面临搜索空间组合爆炸的困难。
+
+Kolmogorov-Arnold网络（Kolmogorov-Arnold Networks, KAN）的提出为这一矛盾提供了新的技术路径。KAN于2025年发表于ICLR\cite{liu2025kan}，其核心思想是将传统MLP中节点上的固定激活函数替换为网络边上的可学习B样条函数。这一架构设计使KAN同时具备两个关键优势：首先，B样条函数的高度灵活性使KAN在较小的参数规模下即可达到接近甚至超过同等规模MLP的预测精度；其次，训练完成后可通过稀疏化正则、结构化剪枝和逐边符号拟合等步骤，将学到的数值映射转换为显式的SymPy数学表达式\cite{liu2025kan,liu2025kan2}。KAN的这种"先学习、后提取"范式在物理学方程重发现任务上已取得成功——Liu和Tegmark\cite{liu2025kan2}在Physical Review X上展示了KAN从数值数据中恢复出Kolmogorov湍流定标律等经典物理方程的能力。
+
+然而，将KAN的符号提取能力从受控的物理方程发现迁移到实际的时间序列预测任务时，出现了一个此前未被系统研究的结构性问题：在包含自回归滞后特征的预测场景中，滞后项（如前一时刻的负荷值、前一时刻的风电出力等）通常解释了短期预测方差的绝大部分。当KAN执行L1+熵正则化驱动的稀疏化时，这些高方差贡献的滞后特征形成"捷径"（shortcut），物理气象变量（辐照度、风速、温度等）在稀疏化竞争中被剪除。最终提取的符号公式退化为仅含负荷滞后项的极简表达，全部物理含义丢失。这一现象不是KAN或符号回归方法本身的缺陷，而是高频时间序列中自回归特征与外生物理特征之间信息竞争的结构性后果。理解这一机制，并找到原则性的应对方案，是KAN符号回归在能源预测领域实际应用的前提条件。
+
+Chen等\cite{chen2025mckan}提出的MCKAN（多尺度卷积Kolmogorov-Arnold网络）在风光功率多步预测中取得了优异精度，证明了KAN架构在能源预测任务上的有效性。但MCKAN的研究重心在预测性能优化，并未涉及符号提取和公式可解释性。本课题从MCKAN的多步预测框架出发，聚焦于从KAN到符号公式的提取过程中物理变量的可辨识性问题，构成对现有工作在可解释性维度上的补充。
+
+\section{研究现状与不足}
+
+围绕本课题的核心问题——KAN符号提取中物理变量为何消失——可沿三条技术脉络梳理研究现状。
+
+\textbf{风光耦合负荷预测方面。}负荷预测经历了从统计方法（ARIMA、指数平滑）到机器学习（随机森林、支持向量机）再到深度学习的演进路径\cite{hong2016probabilistic,ebrahimzadeh2024ai}。在净负荷预测这一细分方向上，Kaur等\cite{kaur2016net}较早地指出风光出力的不确定性叠加是净负荷预测的核心难点。Silva-Rodriguez等\cite{silva2024lstm}将LSTM应用于含风光微电网的净负荷预测，验证了深度序列模型在该任务上的有效性。Ebrahimzadeh等\cite{ebrahimzadeh2024ai}在对短期负荷预测AI技术的全面综述中明确指出，精度与可解释性之间的矛盾是该领域的核心瓶颈——现有高精度方法几乎无一能输出可审计的数学公式。
+
+\textbf{KAN与符号提取方面。}KAN\cite{liu2025kan}在ICLR 2025上的发表引发了广泛关注。其关键突破在于证明了边上的可学习激活函数（B样条）在训练后可通过稀疏化-剪枝-符号拟合的链路转换为解析公式。Liu和Tegmark\cite{liu2025kan2}在PRX上系统展示了KAN在物理方程发现中的符号回归能力，成功恢复了包括Stokes定律、相对论时间膨胀等12个经典物理方程。Panczyk等\cite{panczyk2024kan}在核工程领域验证了KAN-to-symbol的转换路径，进一步扩展了KAN符号提取的应用范围。然而，这些成功案例有一个共同特征：输入变量数目有限（通常2--5个），且不包含自回归滞后特征。在这种条件下，所有输入变量都承载独立的物理信息，符号提取的稀疏化过程不存在结构性的信息竞争。
+
+\textbf{KAN在能源预测中的应用方面。}Chen等\cite{chen2025mckan}的MCKAN采用多尺度卷积与KAN的组合架构，在15--45分钟尺度的风光功率预测中达到了优于Transformer等基线的精度。该工作采用Pearson相关系数进行特征选择、Min-Max归一化进行数据预处理，其多步预测设计和子任务分解思路对本课题具有方法论层面的参考价值。但MCKAN聚焦于预测性能的提升，并未执行从KAN到符号公式的提取步骤，也未考察物理变量在稀疏化过程中的命运。Mubarak等\cite{mubarak2024kan}将KAN应用于风电场功率预测，同样以预测精度为主要评价维度，未涉及符号可解释性。
+
+\textbf{符号回归方面。}基于遗传编程的符号回归方法——从Eureqa\cite{schmidt2009distilling}到PySR\cite{cranmer2023pysr}和Operon\cite{burlacu2020operon}——构成了方程发现的主流技术路线。近年来，基于神经网络的符号回归也取得了进展：AI Feynman\cite{udrescu2020ai}利用物理对称性先验引导搜索；基于Transformer的方法\cite{biggio2021neural,kamienny2022end}将方程生成建模为序列翻译任务；SR-LLM\cite{shojaee2025sr}进一步引入大语言模型的检索增强生成能力。SRBench系列基准测试\cite{lacava2021srbench,orzechowski2018where,defranca2023srbench}为符号回归方法的比较提供了标准化平台。但现有符号回归研究——无论是传统GP方法还是神经方法——均面向静态回归问题（给定输入-输出对，发现映射关系），尚未系统考察包含自回归特征的时间序列场景中的符号可辨识性问题。
+
+\textbf{核心研究缺口。}综合以上三条脉络，当前文献存在一个明确的空白：没有研究从机制层面分析KAN符号提取中物理变量被剪除的原因。现有KAN科学应用\cite{liu2025kan,liu2025kan2,panczyk2024kan}工作于干净的物理场景，不存在自回归竞争问题；现有KAN能源预测\cite{chen2025mckan,mubarak2024kan}关注精度但不做符号提取；现有符号回归工作\cite{schmidt2009distilling,cranmer2023pysr,udrescu2020ai,shojaee2025sr}面向静态问题但不处理时间序列的自回归结构。本课题正是针对这一交叉空白展开研究：在KAN-to-symbol的提取管线中，自回归滞后特征的捷径竞争是否是物理变量被稀疏化剪除的主要机制？如何通过可控的干预实验验证这一机制？如何通过结构化分解恢复物理变量的可辨识性？
+
+\section{研究目标与内容}
+
+本课题的研究思路并非一开始就直接指向"捷径竞争"这一机制解释。项目早期首先比较KAN与PySR等方法的预测能力，但需要区分历史探索期与当前主实验期：历史探索期曾出现个别弱配置run中PySR优于KAN的现象；进入当前canonical matched $\Delta\text{net\_load}_{h6}$主实验设置后，KAN teacher在预测层面已经稳定优于direct PySR。由此，问题焦点从"KAN能不能赢"转向"高精度KAN teacher能否转化为保留物理量的符号公式"。
+
+接下来的研究收敛过程是：先在direct路线下观察到公式退化为负荷主导；随后通过focused teacher与component teacher式的定向实验验证，并不是所有物理量都无法进入公式，其中solar构成稳定正例；最终将异常收敛到wind这一边界案例，其更常见的问题不是"训练失败"，而是原始风速项更难以被简洁、稳定、泛化良好的符号表达显式保留，且其可辨识性随horizon呈非单调变化。本文所称teacher均指``KAN teacher + symbolic extraction''的后验提取链路，不对应经典教师-学生蒸馏。
+
+针对上述研究缺口，本课题设定以下四个研究目标：
+
+\textbf{目标一：构建KAN教师-符号提取管线并验证其预测有效性。}在ARPA-E PERFORM公开数据集上，构建包含数据准备、KAN训练（预热-稀疏化-剪枝）、符号提取和多基线对比的完整管线。在净负荷变化量预测任务上，比较KAN教师模型与参数对齐MLP、特征对齐PySR和持续性基线的预测技能分数（skill score），验证KAN教师作为符号提取起点的预测能力。
+
+\textbf{目标二：提出面向符号可辨识性的量化诊断指标体系。}定义变量进入率（Variable Entry Rate, VER）、公式出现率（Formula Appearance Rate, FAR）、活跃边数（active edge count）和迁移间隙比（Transfer Gap Ratio, TGR）四个指标，分别从稀疏结构层面和符号公式层面量化物理变量的可辨识性。该指标体系为回答"哪些物理量能进入公式、哪些被剪除"提供可度量的判据。
+
+\textbf{目标三：设计自回归阻断干预实验，检验捷径竞争机制。}提出S2阻断实验（S2 autoregressive blocking）：在保持所有其他训练设置不变的条件下，仅移除自回归滞后特征，观察物理变量的VER变化。通过$\Delta\VER$（阻断后VER减去阻断前VER）及其bootstrap置信区间，以干预而非观察的方式检验"自回归捷径竞争而非变量无关性导致物理量被剪除"这一假说。
+
+\textbf{目标四：设计S3结构化分解方案作为建设性解决路径。}将净负荷预测分解为负荷、风电和光伏三个子任务，每个子任务使用与其物理本质对应的特征子集训练独立的KAN教师并提取符号公式。通过固定加法组合规则（净负荷 = 负荷 $-$ 风电 $-$ 光伏）合成结构化组合预测。验证该分解策略在保持预测精度的同时，是否能使各子公式稳定保留目标物理变量。
+
+围绕上述四个目标，本课题的具体研究内容包括：
+
+（1）数据管线的设计与实现。采用ARPA-E PERFORM数据集的5分钟采样电力数据和小时级气象观测数据，构造包含历史滞后特征、气象/太阳位置协变量和周期编码的26维输入特征。采用时间顺序划分策略，并在各子集间设置防泄漏间隔。
+
+（2）KAN训练与符号提取管线。实现预热-稀疏化（L1+熵正则化）-剪枝-符号拟合的四阶段训练流程。对剪枝后存活的网络边逐一执行候选函数拟合，经SymPy化简生成闭式公式。
+
+（3）公式坍缩现象的系统记录。在直接净负荷目标上，以多组符号配置（3种候选函数库$\times$3种拟合阈值）执行符号提取，记录所有配置下公式坍缩为仅含负荷项的现象。
+
+（4）S2阻断干预实验。在聚焦风电任务和直接净负荷任务上，分别执行5个随机种子的阻断/非阻断对比实验，计算$\Delta\VER$及其95\% bootstrap置信区间。
+
+（5）S3结构化分解与组合评估。训练负荷、风电、光伏三个子任务的KAN教师模型，提取各自的符号公式，合成结构化组合预测并与直接KAN教师对比精度和可解释性。
+
+\section{论文组织结构}
+
+本文共分七章，各章内容安排如下：
+
+第一章为绪论，阐述了风光耦合负荷预测中可解释性需求的工程背景，指出KAN符号提取面临的自回归捷径竞争问题，明确了研究目标和具体研究内容。
+
+第二章为文献综述，系统梳理了负荷与净负荷预测方法、符号回归与方程发现、Kolmogorov-Arnold网络、MCKAN与风光预测、物理信息学习与可解释性等方向的研究进展，归纳了现有工作的不足和本课题的切入点。
+
+第三章为数据与问题定义，介绍ARPA-E PERFORM数据集的结构与预处理方法，定义净负荷和差分目标的计算方式，说明特征工程和数据划分策略。
+
+第四章为方法设计，详细描述KAN教师训练管线、符号提取流程、VER/FAR/TGR等可辨识性诊断指标的定义，S2阻断干预实验的对照协议，以及S3结构化分解方案的设计。
+
+第五章为实验结果与分析，按四幕结构展开：预测精度基线（Act 1）、公式坍缩现象（Act 2）、S2阻断干预结果（Act 3）和S3分解评估（Act 4），以$\Delta\VER$和bootstrap置信区间为核心证据链。
+
+第六章为讨论，从捷径竞争机制的普遍性、实验过程的收敛链条、精度-可解释性权衡、方法局限性（数据泄漏风险、种子数量、单一数据集）等角度展开分析，并明确论文叙事边界。
+
+第七章为结论与后续工作，总结本课题的主要贡献和发现，并说明总公式收口工作与后续研究方向。
+
+
+% ══════════════════════════════════════════════
+% 第二章  文献综述
+% ══════════════════════════════════════════════
+\chapter{文献综述}
+
+\section{负荷与净负荷预测方法}
+
+电力负荷预测是电力系统运行与规划的基础环节，其方法论发展可划分为三个阶段。
+
+\textbf{统计方法阶段。}以自回归积分滑动平均（ARIMA）和指数平滑为代表的时间序列模型长期占据负荷预测的主导地位。这类方法基于平稳性假设，通过自相关结构捕捉负荷的周期性和趋势性。Hong和Fan\cite{hong2016probabilistic}在对概率负荷预测的教程综述中指出，统计方法在日前和周前尺度上仍具竞争力，但在处理强非线性和多变量交互方面存在固有局限。
+
+\textbf{机器学习阶段。}随机森林（Random Forest）、支持向量机（SVM）和梯度提升树（XGBoost）等方法引入了非线性建模能力和特征交互能力。这些方法的优势在于对异构特征（气象变量、日历变量、历史负荷）的灵活整合，且不要求输入数据满足特定分布假设\cite{wang2023hybrid}。然而，机器学习方法的预测精度依赖于人工特征工程的质量，且在超长序列依赖关系的建模上不如后续的深度学习方法。
+
+\textbf{深度学习阶段。}LSTM通过门控机制解决了传统RNN的梯度消失问题，能够捕捉数百步的时间依赖关系。Silva-Rodriguez等\cite{silva2024lstm}将LSTM应用于含风光微电网的净负荷预测，在NAPS 2024上报告了优于传统方法的结果。Transformer架构通过多头自注意力机制建模全局时间模式，在长序列预测上展现出优势\cite{ebrahimzadeh2024ai}。CNN及其与RNN的混合架构——如时间卷积网络（TCN）——通过多尺度卷积核提取不同时间粒度的特征模式\cite{wang2023hybrid}。Ebrahimzadeh等\cite{ebrahimzadeh2024ai}在2024年对短期负荷预测AI技术的综述中系统比较了上述方法，指出深度学习在精度上的优势已被充分验证，但可解释性的缺失仍是制约其在调度实践中推广的主要障碍。
+
+\textbf{净负荷预测的特殊挑战。}区别于传统负荷预测，净负荷（net load = load $-$ wind $-$ solar）的预测需要同时应对三个相互耦合的不确定性来源。Kaur等\cite{kaur2016net}是较早系统研究净负荷预测的工作，明确提出高可再生能源渗透率电网的净负荷预测问题，并指出风光出力的不确定性在净负荷上的叠加效应远超简单加总。Hanifi等\cite{hanifi2020critical}在对风电预测方法的综述中详细分析了风速的非平稳性和多尺度波动特征。Inman等\cite{inman2013solar}在太阳能预测综述中指出，辐照度受云量、气溶胶和太阳高度角的共同影响，其日内变异性在短时预测尺度上构成主要挑战。净负荷同时继承了这两种波动模式，加之负荷自身的复杂周期性（日周期、周周期、年周期及假日效应），使得净负荷预测成为一个在输入维度和物理机制上都更为复杂的任务。
+
+综合来看，深度学习方法在净负荷预测的精度维度上已取得显著进展，但所有高精度方法均属黑箱模型，无法输出可审计的数学公式。如何在保持预测能力的同时实现物理层面的可解释性，是该领域的开放问题。
+
+\section{符号回归与方程发现}
+
+符号回归（symbolic regression, SR）旨在从数据中发现闭式数学表达式，与数值回归（如神经网络拟合）的根本区别在于：其输出不是参数化的黑箱函数，而是由基本数学算子（加、乘、三角函数、幂函数等）组成的、人类可读可验证的解析表达式。
+
+\textbf{基于遗传编程的方法。}Schmidt和Lipson\cite{schmidt2009distilling}在2009年发表于Science的工作开创了现代数据驱动方程发现的先河。他们的Eureqa系统通过遗传编程（genetic programming, GP）在表达式树空间中搜索，成功从物理实验数据中重发现了牛顿运动定律和守恒律。后续发展中，PySR\cite{cranmer2023pysr}成为最广泛使用的开源符号回归工具。Operon\cite{burlacu2020operon}以C++实现了高效的GP引擎。
+
+\textbf{基于神经网络的方法。}AI Feynman\cite{udrescu2020ai}是将深度学习与符号回归结合的代表性工作。该方法利用物理对称性作为先验，将高维问题递归分解为低维子问题。Sahoo等\cite{sahoo2018learning}提出了EQL（方程学习器）。基于Transformer的符号回归方法\cite{biggio2021neural,kamienny2022end}将方程生成建模为从数据到表达式的序列翻译任务。
+
+\textbf{大语言模型驱动的新进展。}SR-LLM\cite{shojaee2025sr}于2025年发表于PNAS，将大语言模型的检索增强生成（RAG）能力引入符号回归。
+
+\textbf{基准测试与评价体系。}SRBench\cite{lacava2021srbench}由La Cava等人于2021年建立，涵盖14种符号回归方法和122个基准数据集。Orzechowski等\cite{orzechowski2018where}、de Franca等\cite{defranca2023srbench}、Radwan等\cite{radwan2024comparison}和Aldeia等\cite{aldeia2024srbench}分别从不同维度扩展了评价体系。
+
+\textbf{与本课题的关联。}现有符号回归研究主要面向静态回归问题。当符号回归被应用于时间序列预测时，自回归滞后特征天然具有极高的预测方差贡献，这在静态回归的基准测试中没有对应的场景。PySR\cite{cranmer2023pysr}在本课题的对齐实验中预测技能分数约为0.076，显著低于KAN教师的0.453，表明直接GP方法在高维时序场景下的搜索效率受限。
+
+\section{Kolmogorov-Arnold网络}
+
+\subsection{数学基础}
+
+Kolmogorov-Arnold表示定理\cite{kolmogorov1957representation,arnold1957functions}是KAN架构的数学基础。1957年，Kolmogorov\cite{kolmogorov1957representation}证明了以下定理：任意定义在有界闭域上的多元连续函数$f(x_1, x_2, \ldots, x_n)$均可精确表示为有限个一元连续函数的嵌套组合与加法：
+\begin{equation}
+f(x_1, \ldots, x_n) = \sum_{q=0}^{2n} \Phi_q \left( \sum_{p=1}^{n} \phi_{q,p}(x_p) \right)
+\end{equation}
+其中外层函数$\Phi_q$和内层函数$\phi_{q,p}$均为一元连续函数。Arnold\cite{arnold1957functions}进一步对三变量情形给出了具体的构造证明。
+
+\subsection{KAN架构与工作原理}
+
+Liu等\cite{liu2025kan}在2025年ICLR论文中提出的KAN架构直接受Kolmogorov-Arnold表示定理的启发，但做了两个关键的实用化推广。第一，不再要求精确的$(2n+1)$个内层函数，而是允许任意宽度和深度的网络结构；第二，用B样条参数化每条网络边上的一元激活函数，使其可通过梯度下降学习。
+
+KAN与传统MLP的核心区别在于"激活函数放在哪里"。MLP在每个节点上施加固定的激活函数（如ReLU、Sigmoid），节点间的连接承载线性权重。KAN则将可学习的非线性激活函数放在网络边上，每条边是一个由B样条基函数参数化的一元函数，节点仅执行加法汇总。
+
+KAN的参数效率通常优于同等精度的MLP。Liu等\cite{liu2025kan}报告，在多个函数逼近任务上，KAN以百量级参数达到了MLP数千参数的逼近精度。Kratsios和Furuya\cite{kratsios2024kan}从理论上分析了KAN的逼近和学习保证。Howard等\cite{howard2024finite}提出了有限基KAN变体。
+
+\subsection{符号提取流程}
+
+KAN符号提取是一个从数值B样条到解析表达式的多步转换过程\cite{liu2025kan,liu2025kan2}。该流程包含以下步骤：
+
+\textbf{第一步：常规训练（warmup）。}使用标准的均方误差损失训练KAN至收敛。
+
+\textbf{第二步：稀疏化（sparsification）。}在损失函数中引入L1正则化和熵正则化项。两种正则化的联合作用使KAN在训练过程中自动形成稀疏结构。
+
+\textbf{第三步：结构化剪枝（pruning）。}基于阈值搜索，将激活幅值低于阈值的边和孤立节点从网络中移除。
+
+\textbf{第四步：逐边符号拟合（symbolic fitting）。}对每条存活的边，用一组候选符号函数（如$x, x^2, x^3, \sin(x), \cos(x), |x|$等）逐一拟合其B样条曲线。
+
+\textbf{第五步：公式合成（formula composition）。}将所有已符号化的边按照网络拓扑组合，得到从输入到输出的完整解析表达式。使用SymPy进行化简，生成最终的闭式公式。
+
+\subsection{KAN 2.0与科学应用}
+
+Liu和Tegmark\cite{liu2025kan2}在2025年Physical Review X上的工作（KAN 2.0）系统展示了KAN在科学方程发现中的能力。该工作引入了MultKAN和kanpiler，并在12个经典物理方程上成功执行了符号提取。
+
+然而，上述所有成功案例都具有一个共同的前提条件：输入变量之间不存在信息层级差异。在时间序列预测场景中，自回归滞后特征通常解释了90\%以上的短期方差，与外生物理变量之间形成了极不对称的信息竞争关系。这一结构性差异是KAN符号提取从物理方程发现迁移到时间序列预测时的核心挑战，也是本课题研究的出发点。
+
+\section{MCKAN与风光预测参考}
+
+Chen等\cite{chen2025mckan}提出的MCKAN（Multi-scale Convolutional Kolmogorov-Arnold Network）是KAN在风光功率多步预测中的代表性应用，发表于Engineering Applications of Artificial Intelligence。
+
+\textbf{架构设计。}MCKAN采用多尺度卷积模块提取不同时间粒度的特征模式，通过EAA注意力机制融合多尺度特征，并以KAN层作为最终的预测映射。
+
+\textbf{本课题的对应关系。}本课题的方法设计在多个层面与MCKAN形成参照：（1）MCKAN的多步预测设计对应本课题的多步差分目标；（2）MCKAN的Pearson相关特征选择对应本课题的VER/FAR可辨识性诊断；（3）MCKAN的风光子任务结构对应本课题的S3结构化分解；（4）MCKAN的模块消融对应本课题的S2自回归阻断消融。
+
+\textbf{与本课题的差异。}MCKAN聚焦于预测精度提升，本课题则聚焦于从训练后的KAN中提取符号公式。两项工作在KAN的使用方式上存在本质差异：MCKAN将KAN作为端到端预测模型的组成部分，不执行后验符号提取；本课题将KAN作为"先学习后提取"管线的教师模型。
+
+\section{物理信息学习与可解释性}
+
+将物理先验知识嵌入机器学习模型，是提升模型可解释性和物理一致性的另一条技术路径。
+
+\textbf{物理信息神经网络（PINN）。}Misyris等\cite{misyris2020physics}将PINN引入电力系统动态仿真。Stiasny等\cite{stiasny2021learning}进一步提出了无数据训练的PINN方案。PINNSim\cite{pinnsim2023}将PINN方法工程化为可用的电力系统动态仿真器。
+
+\textbf{PIKAN。}Shuai和Li\cite{shuai2024pikan}将物理信息学习与KAN架构结合，提出PIKAN，用于电力系统动力学模拟。
+
+\textbf{可解释人工智能（XAI）在能源领域的应用。}Machlev等\cite{machlev2022explainable}在2022年发表于Energy and AI的综述中系统梳理了XAI技术在能源和电力系统中的应用现状。可以将当前的可解释性方法按"解释强度"从弱到强排列：统计归因（SHAP/LIME）$\to$ 注意力可视化 $\to$ 决策规则（决策树）$\to$ 符号公式。KAN的符号提取能力使其在理论上能够达到最高层次的可解释性。
+
+\textbf{KAN在可解释能源预测中的应用。}Panczyk等\cite{panczyk2024kan}在核工程领域验证了KAN-to-symbol的转换路径。Mubarak等\cite{mubarak2024kan}将KAN应用于风电场功率预测，但未执行符号提取步骤。
+
+\section{本章小结}
+
+本章从五个方向梳理了与本课题相关的研究进展。上述五条脉络共同指向一个未被填补的研究空白：在KAN符号提取用于时间序列预测的场景中，没有工作从机制层面研究物理变量的符号可辨识性问题。具体而言，三个问题尚无答案：（1）自回归滞后特征的捷径竞争是否是物理变量被剪除的主要机制？（2）这一机制能否通过可控的干预实验得到验证？（3）是否存在结构化的方法恢复物理变量的可辨识性？本课题正是围绕这三个问题展开研究。
+
+
+% ══════════════════════════════════════════════
+% 第三章  数据与问题定义
+% ══════════════════════════════════════════════
+\chapter{数据与问题定义}
+
+\section{数据来源与基本描述}
+
+本研究采用美国能源部高级研究计划局（ARPA-E）发布的PERFORM公开数据集\cite{perform2023}，选取德克萨斯州电力可靠性委员会（ERCOT）区域2018年全年数据作为实验对象。该数据集以5分钟为原始采样间隔（即每日288个时间步），包含负荷（load）、风力发电（wind generation）与光伏发电（solar generation）三类平衡区（BA）级别的实测序列。2018年全年共约105,120条记录。数据以HDF5格式存储于AWS S3公开存储桶\cite{perform2023}。
+
+选择ERCOT区域的理由有三：第一，ERCOT作为美国最大的独立系统运营商之一，风光渗透率居全美前列\cite{kaur2016net}；第二，PERFORM数据集对ERCOT区域提供了同期气象重分析变量；第三，ERCOT系统的电力市场独立性使得跨区域潮流干扰较小。
+
+原始序列的描述性统计由数据预处理流水线自动生成并随实验资产归档。考虑本文的重点在于净负荷构造、特征分组与机制检验，正文保留数据规模、采样频率和变量组成，不再单列占位式统计表。
+
+\section{净负荷与预测目标设计}
+
+\subsection{净负荷定义}
+
+净负荷（net load）是衡量电力系统中常规可调度机组实际承担的供需缺口的核心指标，其定义为：
+\begin{equation}
+\text{net\_load}(t) = \text{load}(t) - \text{wind}(t) - \text{solar}(t)
+\end{equation}
+
+\subsection{差分目标构造}
+
+本研究以差分形式（delta target）作为预测目标。对于预测时域$h$（单位：时间步，1步=5分钟），差分目标定义为：
+\begin{equation}
+\Delta\text{net\_load}_{h}(t) = \text{net\_load}(t+h) - \text{net\_load}(t)
+\end{equation}
+
+本研究设置三个预测时域：$h=6$（30分钟，主要目标）、$h=12$（1小时）、$h=24$（2小时）。
+
+在结构化分解实验（S3）中，额外定义分量差分目标：
+\begin{align}
+\Delta\text{load}_{h6}(t) &= \text{load}(t+6) - \text{load}(t) \\
+\Delta\text{wind}_{h6}(t) &= \text{wind}(t+6) - \text{wind}(t) \\
+\Delta\text{solar}_{h6}(t) &= \text{solar}(t+6) - \text{solar}(t)
+\end{align}
+三者满足线性恒等式：$\Delta\text{net\_load}_{h6} = \Delta\text{load}_{h6} - \Delta\text{wind}_{h6} - \Delta\text{solar}_{h6}$。
+
+\section{特征工程}
+
+本研究的特征体系分为四大类：周期编码特征、太阳几何特征、气象物理特征和自回归滞后特征。
+
+\subsection{周期编码特征}
+
+时间序列的周期性模式通过正弦-余弦编码捕捉\cite{vaswani2017attention}：
+\begin{equation}
+x_{\sin} = \sin\left(\frac{2\pi \cdot v}{P}\right), \quad x_{\cos} = \cos\left(\frac{2\pi \cdot v}{P}\right)
+\end{equation}
+包括小时编码（$P=24$）、星期编码（$P=7$）和年周期编码（$P=365.25$），共6个特征。
+
+\subsection{太阳几何特征}
+
+基于pvlib天文计算库\cite{pvlib2018}计算太阳高度角、太阳方位角和夜间标志，共3个特征。
+
+\subsection{气象物理特征}
+
+按物理含义分为风速类（wind\_speed\_10m、$v^3$、轮毂风速估计）、辐照类（GHI、日间门控GHI、温度修正GHI）、温度类（temp\_2m\_c）、度日类（CDD、HDD）和气压类（surface\_pressure），共10个特征。
+
+其中风速立方基于贝兹极限$P \propto \frac{1}{2}\rho A v^3$\cite{betz1920maximum}；轮毂风速通过幂律风廓线外推\cite{hellman1916wind}：
+\begin{equation}
+v_{\text{hub}} = v_{10\text{m}} \times \left(\frac{h_{\text{hub}}}{h_{\text{meas}}}\right)^{\alpha}
+\end{equation}
+
+温度修正辐照度考虑晶硅光伏组件效率随温度的线性衰减：
+\begin{equation}
+\text{ghi\_corr} = \text{ghi} \times \left[1 - \gamma \cdot (T - T_{\text{ref}})\right] \times (1 - \text{is\_night})
+\end{equation}
+
+特征组的完整定义汇总于\cref{tab:feature-groups}。
+
+\begin{table}[htbp]
+\centering
+\caption{特征组定义与对应变量}
+\label{tab:feature-groups}
+\begin{tabular}{cccc}
+\toprule
+特征组 & 变量名称 & 维度 & 物理含义 \\
+\midrule
+cyclic & hour\_sin/cos, dow\_sin/cos, month\_sin/cos & 6 & 时间周期性 \\
+solar\_geom & solar\_altitude, solar\_azimuth & 2 & 太阳天文位置 \\
+solar\_flag & is\_night & 1 & 昼夜标识 \\
+meteo\_wind & wind\_speed\_10m, \_cubed, \_hub\_est & 3 & 风速及物理代理 \\
+meteo\_irradiance & ghi, ghi\_day, ghi\_temp\_corr & 3 & 辐照及温度修正 \\
+meteo\_temp & temp\_2m\_c & 1 & 气温 \\
+meteo\_degree & cdd\_18c, hdd\_18c & 2 & 度日代理 \\
+meteo\_pressure & surface\_pressure\_hpa & 1 & 地表气压 \\
+lags & \{load,wind,solar\}\_lag\_\{12,24,48\} & 9 & 多尺度自回归 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{自回归滞后特征}
+
+选取三个滞后步数：lag\_12（1小时）、lag\_24（2小时）、lag\_48（4小时），三个序列各取三个滞后，共9个特征。多尺度滞后的设计参考了MCKAN\cite{chen2025mckan}中多尺度卷积核的思想。
+
+滞后特征在本研究中承担了双重角色：一方面提供强预测信号；另一方面，正是这种预测优势导致了本研究的核心发现——在KAN的稀疏化过程中形成捷径竞争。
+
+\section{数据划分与标准化}
+
+\subsection{时序划分策略}
+
+采用70/15/15（训练/验证/测试）三段式划分，并在训练/验证、验证/测试之间各设置48步间隔缓冲区。
+
+\subsection{Z-score标准化}
+
+仅在训练集上拟合均值和标准差参数：
+\begin{equation}
+x_{\text{scaled}} = \frac{x - \mu_{\text{train}}}{\sigma_{\text{train}}}
+\end{equation}
+
+\subsection{已知局限性}
+
+线性插值在划分之前执行，构成轻微的信息泄漏，但不影响变量间相对可辨识性差异的比较。
+
+\section{评估指标体系}
+
+\textbf{均方根误差（RMSE）：}
+\begin{equation}
+\RMSE = \sqrt{\frac{1}{N}\sum_{i=1}^{N}\left(y_i - \hat{y}_i\right)^2}
+\end{equation}
+
+\textbf{平均绝对误差（MAE）：}
+\begin{equation}
+\MAE = \frac{1}{N}\sum_{i=1}^{N}\left|y_i - \hat{y}_i\right|
+\end{equation}
+
+\textbf{决定系数（$R^2$）：}
+\begin{equation}
+R^2 = 1 - \frac{\sum_{i=1}^{N}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{N}(y_i - \bar{y})^2}
+\end{equation}
+
+\textbf{技巧分数（Skill Score）：}
+\begin{equation}
+\text{Skill} = 1 - \frac{\RMSE_{\text{model}}}{\RMSE_{\text{persistence}}}
+\end{equation}
+
+\section{问题形式化}
+
+\textbf{核心问题}：气象物理变量在KAN符号提取中被系统性剪除，其主要机制是变量无关性还是自回归捷径竞争？
+
+\textbf{研究策略}：通过控制变量实验——阻断自回归滞后特征的输入通路——测量气象变量可辨识性的变化。
+
+\section{本章小结}
+
+本章介绍了ARPA-E PERFORM数据集，描述了净负荷差分目标的构造逻辑，按物理含义将28个输入特征组织为四个大类，并将核心问题形式化为捷径竞争假说与变量无关性假说之间的判别问题。
+
+
+% ══════════════════════════════════════════════
+% 第四章  方法
+% ══════════════════════════════════════════════
+\chapter{方法}
+
+\section{总体研究框架}
+
+本研究围绕"自回归滞后特征的捷径竞争是否为气象物理量被稀疏化剪除的主要机制"这一核心问题，设计了四幕式（Four-Act）递进实验框架，如\cref{fig:system-flowchart}所示。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/system_flowchart.pdf}
+\caption{四幕式递进研究框架系统流程图}
+\label{fig:system-flowchart}
+\end{figure}
+
+\textbf{第一幕：基线建立（S1）。}以标准KAN训练流程处理净负荷差分预测任务，确认"气象物理量被系统性剪除"这一现象的存在性和普遍性。
+
+\textbf{第二幕：问题发现（S2）。}通过消融实验系统检查不同信息源对模型性能和符号提取结果的影响。
+
+\textbf{第三幕：机制检验（S2-Blocking）。}通过控制变量干预——阻断自回归滞后特征的输入通路——直接测量气象物理量可辨识性的变化，为捷径竞争假说提供干预性证据。
+
+\textbf{第四幕：构造性解决方案（S3）。}提出结构化分解策略，在结构层面消解捷径竞争。
+
+贯穿四幕实验的技术流水线为：数据预处理 $\to$ KAN教师模型训练 $\to$ L1+熵稀疏化 $\to$ 结构化剪枝 $\to$ 符号函数提取 $\to$ SymPy公式构建 $\to$ 预测性能评估与可辨识性诊断。本研究不修改KAN的训练算法或网络结构——所有干预手段仅体现在输入特征的组成控制和任务结构的设计上。这里所称teacher亦指``KAN teacher + symbolic extraction''的后验提取链路，而不是经典教师-学生蒸馏。
+
+\section{KAN教师模型训练}
+
+\subsection{KAN基本原理}
+
+不同于传统MLP在节点上使用固定激活函数，KAN将可学习的一元函数置于网络的边上，而节点仅执行求和操作。对于一个两层KAN：
+\begin{equation}
+f(\mathbf{x}) = \sum_{j=1}^{m} \Phi_{j}^{(2)}\left(\sum_{i=1}^{n} \phi_{ij}^{(1)}(x_i)\right)
+\end{equation}
+在pykan实现中\cite{liu2025kan}，每条边上的一元函数以B样条参数化：
+\begin{equation}
+\phi(x) = w_b \cdot \text{silu}(x) + w_s \cdot \text{spline}(x)
+\end{equation}
+
+\subsection{网络架构设计}
+
+采用单隐藏层KAN架构$[\text{input\_dim}, 10, 1]$，B样条网格数$G \in \{3, 5\}$，样条阶数$k=3$。
+
+\subsection{训练调度}
+
+\textbf{阶段一：预热训练（Warmup）。}200步，$\eta = 0.01$，不施加稀疏正则化。
+
+\textbf{阶段二：稀疏化训练（Sparsify）。}800步，$\eta = 0.005$，加入L1+熵正则化：
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{MSE}} + \lambda \cdot \left(\lambda_{L1} \cdot \|\boldsymbol{\phi}\|_1 + \lambda_{\text{entropy}} \cdot H(\boldsymbol{\phi})\right)
+\end{equation}
+其中$\lambda = 0.01$，$\lambda_{L1} = 1.0$，$\lambda_{\text{entropy}} = 2.0$。
+
+\textbf{阶段三：结构化剪枝（Prune）。}设置9组候选阈值进行网格搜索，满足RMSE退化$\leq 10\%$、边剪除率$\geq 80\%$的约束。
+
+\textbf{阶段四：精细化训练（Refine）。}200步，$\eta = 0.5$，在剪枝后的稀疏网络上恢复性能。
+
+\section{符号提取}
+
+\subsection{边级符号拟合}
+
+对剪枝后每条存活边，使用三组候选函数库逐一拟合并选择$R^2$最高且超过阈值的候选函数替代B样条：strict库$\{x, x^2, x^3, \sin, \cos, |\cdot|\}$；medium库在strict基础上额外包含$\exp$；strict\_poly4库则将strict中的最高多项式阶扩展到$x^4$而不引入$\exp$。其中strict与medium使用$R^2 \in \{0.98, 0.99, 0.995\}$，strict\_poly4使用更严格的$\{0.99, 0.995, 0.999\}$。
+
+\subsection{全局公式构建}
+
+通过符号组合将各层的一元函数连接为完整的多元表达式，输出SymPy表达式。标准化参数嵌入公式，使最终表达式直接接受原始尺度输入。
+
+\section{可辨识性诊断指标}
+\label{sec:metrics}
+
+\textbf{变量进入率（VER）：}
+\begin{equation}
+\VER_v = \frac{\#\{s \in \mathcal{S} : \text{edge\_count}(v, s) \geq 1\}}{|\mathcal{S}|}
+\end{equation}
+
+\textbf{公式出现率（FAR）：}
+\begin{equation}
+\FAR_v = \frac{\#\{s \in \mathcal{S} : v \in \text{symbols}(f_{\text{sym}}^{(s)})\}}{|\mathcal{S}|}
+\end{equation}
+
+\textbf{迁移间隙比（TGR）：}
+\begin{equation}
+\TGR = \frac{\RMSE_{\text{symbolic}}}{\RMSE_{\text{teacher}}}
+\end{equation}
+
+\textbf{差异VER（$\Delta$VER）：}
+\begin{equation}
+\Delta\VER_v = \VER_v^{(\text{blocked})} - \VER_v^{(\text{unblocked})}
+\end{equation}
+
+各指标定义汇总于\cref{tab:metrics}。
+
+\begin{table}[htbp]
+\centering
+\caption{可辨识性诊断指标定义}
+\label{tab:metrics}
+\begin{tabular}{ccccc}
+\toprule
+指标 & 符号 & 定义 & 取值范围 & 用途 \\
+\midrule
+变量进入率 & $\VER_v$ & 至少保留1条边的种子比例 & $[0, 1]$ & 变量存活稳健性 \\
+公式出现率 & $\FAR_v$ & 出现在最终公式中的种子比例 & $[0, 1]$ & 符号化成功率 \\
+激活边计数 & edge\_count & 剪枝后的存活边数 & $\mathbb{N}_0$ & VER的连续补充 \\
+迁移间隙比 & TGR & $\RMSE_{\text{sym}} / \RMSE_{\text{teacher}}$ & $[1, +\infty)$ & 符号提取质量 \\
+差异VER & $\Delta\VER_v$ & $\VER^{\text{blocked}} - \VER^{\text{unblocked}}$ & $[-1, 1]$ & 阻断效应核心测量 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{自回归阻断协议（S2-Blocking）}
+\label{sec:blocking-protocol}
+
+\subsection{实验条件设计}
+
+\textbf{Case 3：聚焦风电任务。}目标$\Delta\text{wind}_{h6}$。非阻断：lag\_series=[``wind'']；阻断：lag\_series=[]。
+
+\textbf{Case 4：直接净负荷任务。}目标$\Delta\text{net\_load}_{h6}$。非阻断：lag\_series=[``load'',``wind'',``solar'']；阻断：lag\_series=[``load'']。
+
+每组5个随机种子，KAN架构和超参数完全固定。
+
+\subsection{预注册判定规则}
+
+\textbf{成功（SUCCESS）}：至少一个气象物理变量的$\Delta\VER$的Bootstrap 95\% CI下界 $> 0$。
+
+\textbf{强成功（STRONG SUCCESS）}：至少2个气象物理变量满足SUCCESS条件。
+
+\textbf{零结果（NULL）}：所有$\Delta\VER$置信区间均包含0。
+
+\section{结构化分解策略（S3）}
+\label{sec:s3-design}
+
+将净负荷分解为三个物理上自然的子任务，各子任务配置如\cref{tab:s3-config}所示。
+
+\begin{table}[htbp]
+\centering
+\caption{S3结构化分解子任务配置}
+\label{tab:s3-config}
+\begin{tabular}{ccccc}
+\toprule
+子任务 & 目标变量 & 特征组 & 滞后项 & 核心物理驱动 \\
+\midrule
+Load sub-KAN & $\Delta\text{load}_{h6}$ & \makecell{cyclic, temp,\\degree, pressure} & load\_lag\_\{12,24,48\} & 气温、度日数 \\
+\addlinespace
+Wind sub-KAN & $\Delta\text{wind}_{h6}$ & cyclic, meteo\_wind & wind\_lag\_\{24,48\} & 风速、$v^3$ \\
+\addlinespace
+Solar sub-KAN & $\Delta\text{solar}_{h6}$ & \makecell{cyclic, solar\_geom,\\irradiance, temp} & solar\_lag\_\{24,48\} & GHI、太阳高度角 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+组合规则：
+\begin{equation}
+\Delta\widehat{\text{net\_load}}_{\text{composite}} = \Delta\widehat{\text{load}} - \Delta\widehat{\text{wind}} - \Delta\widehat{\text{solar}}
+\end{equation}
+本文当前已经完成$F_{\text{net}} = F_{\text{load}} - F_{\text{wind}} - F_{\text{solar}}$的显式构造与test集逐点复算，因此S3不再停留在"局部公式 + 结构化组合预测器"的半闭环状态；但总公式相对组合预测器仍存在明显transfer gap，故后续分析仍需严格区分预测器对象与公式对象。
+
+为避免把teacher/composite predictor与symbolic formula混写成同一层证据，\cref{tab:protocol-ledger}固定了各实验段落的统计单位与对象层级；完整CSV资产另存于 `doc/paper_assets/paper_delivery_20260306/protocol_ledger_20260417.csv`。
+
+\begin{table}[htbp]
+\centering
+\caption{实验协议与证据对象 ledger}
+\label{tab:protocol-ledger}
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+证据块 & 目标 & lag设置 & 统计单位 & 证据对象 \\
+\midrule
+5.1 主精度 & $\Delta\text{net\_load}_{h6}$ & load/wind/solar & run & teacher(abs-test replay) \\
+5.2 direct symbolic & $\Delta\text{net\_load}_{h6}$ & load/wind/solar & symbolic config & direct symbolic formula \\
+5.4 Case 3 & $\Delta\text{wind}_{h6}$ & wind / none & seed & pruned structure + formula stability \\
+5.4 Case 4 unblocked & $\Delta\text{net\_load}_{h6}$ & load/wind/solar & symbolic config & direct symbolic baseline \\
+5.4 Case 4 blocked & $\Delta\text{net\_load}_{h6}$ & load only & seed & blocked pruned structure \\
+5.5 S3 predictor & $\text{net\_load}_{h6}$ & structured combo & run & composite predictor \\
+5.5 S3 formula & $\text{net\_load}_{h6}$ & formula replay & run & replayed total formula \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+其中Case 4最需要单独说明：其unblocked基线来自9组direct symbolic配置，而blocked结果来自5个seed的活跃边统计，因此后文只将该对照解释为阻断支持证据，而不写成同层级的严格闭合比较。
+
+\section{本章小结}
+
+本章阐述了四幕式递进研究框架、KAN训练调度、符号提取流程、五个可辨识性诊断指标、S2-Blocking阻断协议和S3结构化分解策略。所有方法的共同设计原则是：不修改KAN的训练算法或网络架构，仅通过控制输入特征组成和任务结构来实施干预。
+
+
+% ══════════════════════════════════════════════
+% 第五章  实验与结果
+% ══════════════════════════════════════════════
+\chapter{实验与结果}
+
+\section{精度基线}
+
+\subsection{实验设置}
+
+所有模型使用相同的数据集和特征集。KAN教师采用$[\text{input\_dim}, 10, 1]$架构，四阶段训练调度。MLP采用预算匹配策略（1485个参数）。PySR设置1200次迭代\cite{cranmer2023pysr}。本节比较仅对应当前标准对齐的主实验设置，不外推到所有历史探索run。
+
+\subsection{主精度对比}
+
+\begin{table}[htbp]
+\centering
+\caption{主精度对比（目标：$\Delta\text{net\_load}_{h=6}$）}
+\label{tab:main-accuracy}
+\begin{tabular}{ccccc}
+\toprule
+方法 & RMSE & MAE & $R^2$ & Skill \\
+\midrule
+KAN教师 & 1413.51 & 906.89 & 0.991 & 0.453 \\
+MLP（参数匹配） & 1474.38 & 1018.18 & 0.990 & 0.430 \\
+PySR符号回归 & 2388.46 & 1811.00 & 0.975 & 0.076 \\
+持久性基线 & 2585.66 & — & — & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{统计显著性检验}
+
+\begin{table}[htbp]
+\centering
+\caption{KAN vs MLP配对显著性检验}
+\label{tab:significance}
+\begin{tabular}{ccccccc}
+\toprule
+指标 & KAN均值 & MLP均值 & 均值差 & 中位差 & 胜率 & $p$值 \\
+\midrule
+绝对误差 & 907.68 & 1018.81 & 111.13 & 82.41 & 56.7\% & 0.0005 \\
+平方误差 & 2001780.6 & 2177219.8 & 175439.2 & 59119.9 & 56.7\% & 0.0005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+排列检验$p=0.0005$（$< 0.01$），KAN精度优势在统计上高度显著。
+
+\subsection{小结}
+
+在当前标准对齐的主实验设置下，KAN在净负荷预测上显著优于MLP（$p=0.0005$），PySR的低精度（skill=0.076）凸显了KAN"先训练后符号化"策略的必要性，但这一排序不应被误读为所有历史探索阶段都完全一致。
+
+\section{公式坍缩}
+
+\subsection{符号提取结果}
+
+以$3\times3$网格搜索（3种函数库$\times$3种$R^2$阈值），9种配置均坍缩为仅含负荷滞后特征的公式：
+
+\begin{table}[htbp]
+\centering
+\caption{符号提取网格搜索结果（9种配置）}
+\label{tab:collapse}
+\begin{tabular}{cccccc}
+\toprule
+配置 & 函数库 & $R^2$阈值 & 公式中特征 & VER(wind) & VER(GHI) \\
+\midrule
+1 & strict & 0.98 & load滞后 & 0 & 0 \\
+2 & strict & 0.99 & load滞后 & 0 & 0 \\
+3 & strict & 0.995 & load滞后 & 0 & 0 \\
+4 & medium & 0.98 & load滞后 & 0 & 0 \\
+5 & medium & 0.99 & load滞后 & 0 & 0 \\
+6 & medium & 0.995 & load滞后 & 0 & 0 \\
+7 & strict\_poly4 & 0.99 & load滞后 & 0 & 0 \\
+8 & strict\_poly4 & 0.995 & load滞后 & 0 & 0 \\
+9 & strict\_poly4 & 0.999 & load滞后 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{../paper_assets/paper_delivery_20260306/direct_symbolic_collapse_20260417.png}
+\caption{Direct symbolic collapse 的特征族 presence matrix。9组配置中仅 `load lag` 稳定保留，wind / GHI / temp 全部为零。}
+\label{fig:direct-collapse}
+\end{figure}
+
+\cref{fig:direct-collapse} 把direct symbolic collapse从“9行重复表”压缩成一个对象层面的可视化：发生坍缩的不是单个超参数点，而是整组direct symbolic配置。代表性提取公式：
+\begin{equation}
+\hat{y} \approx 0.0007 \times \text{load} - 3.0
+\end{equation}
+
+\subsection{物理可辨识性诊断}
+
+在本文主文采用的9组direct symbolic配置中，VER(wind\_speed)=0/9，VER(GHI)=0/9，VER(temp)=0/9，且VER(any\_physical)=0/9。另有2026-03-09的补充direct远端运行曾出现包含物理量的公式，但对应skill为负，因此作为失败补充证据保留，不并入主文VER统计。
+
+\subsection{小结}
+
+公式坍缩是核心挑战：KAN预测精度良好（skill=0.453），但符号提取结果完全丧失物理可解释性。
+
+\section{可辨识性消融分析}
+
+本节的目的不是再次证明direct路线失败，而是回答一个更具体的问题：直接净负荷任务中的公式坍缩，究竟意味着"整个KAN teacher + symbolic extraction链路都无法让物理量进公式"，还是只说明在当前任务结构下物理量被负荷捷径压制。为此，本文转向focused teacher与component teacher式的定向任务诊断：以solar作为稳定正例，以wind作为边界反例，重建项目从"怀疑调参与符号配置问题"到"收敛为变量可辨识性差异"的过程链。
+
+\subsection{太阳辐照可辨识性（正例）}
+
+\begin{table}[htbp]
+\centering
+\caption{太阳辐照消融实验（3时域$\times$3特征组）}
+\label{tab:solar-ablation}
+\begin{tabular}{cccccc}
+\toprule
+时域$h$ & 特征组 & $\Delta$RMSE & $R^2$ & Skill & GHI活跃边数 \\
+\midrule
+72 & lags\_only & 6037.60 & 0.852 & 0.616 & 0 \\
+72 & meteo\_only & 5452.82 & 0.879 & 0.653 & 6 \\
+72 & both & 4385.28 & 0.922 & 0.721 & 8 \\
+\addlinespace
+144 & lags\_only & 6555.68 & 0.876 & 0.648 & 0 \\
+144 & meteo\_only & 6632.45 & 0.873 & 0.644 & 3 \\
+144 & both & 8703.26 & 0.782 & 0.533 & 0 \\
+\addlinespace
+576 & lags\_only & 5798.43 & 0.320 & 0.187 & 0 \\
+576 & meteo\_only & 5437.80 & 0.402 & 0.238 & 5 \\
+576 & both & 5584.73 & 0.369 & 0.223 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+GHI在meteo\_only配置下VER(GHI)=3/3，证明GHI并非内在不可辨识。$h=144$时域both配置出现竞争干扰。
+
+\subsection{风速可辨识性（边界案例）}
+
+\begin{table}[htbp]
+\centering
+\caption{风速时域实验}
+\label{tab:wind-ablation}
+\begin{tabular}{ccccc}
+\toprule
+时域$h$ & $\Delta$RMSE & $R^2$ & Skill & 风速活跃边数 \\
+\midrule
+6 & 821.53 & 0.240 & 0.128 & 11 \\
+72 & 3424.61 & 0.829 & 0.588 & 0 \\
+144 & 8125.28 & 0.580 & 0.354 & 9 \\
+576 & 12237.57 & 0.352 & 0.203 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+风速可辨识性呈非单调模式：$h=6$和$h=144$时存活，$h=72$和$h=576$时被完全剪除。这一结果更适合解释为wind原始物理量在不同horizon下的符号可辨识性呈非单调变化，而不是将风电路线概括为"训练失败"。与之相对，其他物理量在更长horizon下只能稳妥表述为整体更不稳定、部分量减弱，现有证据不足以支持"持续下降"或"严格单调下降"的强叙事。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{../paper_assets/paper_delivery_20260306/wind_solar_horizon_20260417.png}
+\caption{Horizon-dependent identifiability：左图给出wind的skill与风速活跃边数，突出其非单调边界；右图给出solar在不同horizon和特征组下的skill，并用 `e=` 标出GHI活跃边数，突出solar正例。}
+\label{fig:wind-solar-horizon}
+\end{figure}
+
+\cref{fig:wind-solar-horizon} 进一步把“solar正例”和“wind边界案例”放到同一张图里：solar在$h=72$的 `both` 配置下同时拥有最高skill与最多GHI活跃边，而wind则表现出“skill较好但原始风速边可能为零”的非单调模式。这也解释了为什么本文把wind写成边界问题，而不写成简单的训练失败。
+
+\subsection{小结}
+
+气象物理量具有内在可辨识性，但对任务配置和特征组成高度敏感。自回归滞后特征倾向于在稀疏化竞争中系统性压制气象特征。
+
+\section{自回归阻断干预实验}
+
+\subsection{Case 3：聚焦风电任务阻断}
+
+\begin{table}[htbp]
+\centering
+\caption{Case 3逐种子结果}
+\label{tab:case3-detail}
+\begin{tabular}{ccccc}
+\toprule
+种子 & 未阻断VER & 未阻断边数 & 阻断VER & 阻断边数 \\
+\midrule
+1 & 0 & 0 & 1 & 19 \\
+2 & 1 & 8 & 1 & 19 \\
+3 & 0 & 0 & 1 & 8 \\
+4 & 0 & 0 & 1 & 15 \\
+5 & 1 & 1 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Case 3统计汇总}
+\label{tab:case3-summary}
+\begin{tabular}{ccc}
+\toprule
+指标 & 值 & 95\% CI \\
+\midrule
+VER(unblocked) & 2/5 = 0.40 & — \\
+VER(blocked) & 5/5 = 1.00 & — \\
+$\Delta$VER & \textbf{+0.60} & \textbf{[0.200, 1.000]} \\
+$\Delta$edge\_count & +10.6 & [4.6, 15.8] \\
+RMSE(unblocked) & 1362.6 & — \\
+RMSE(blocked) & 1047.0 & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\Delta\VER=+0.60$，CI不含零，满足成功判定。阻断后RMSE反而降低，表明自回归滞后在聚焦任务中可能引入噪声。
+
+\subsection{Case 4：直接净负荷任务阻断}
+
+\begin{table}[htbp]
+\centering
+\caption{Case 4逐种子结果（4个有效matched pair）}
+\label{tab:case4-detail}
+\begin{tabular}{cccc}
+\toprule
+种子 & VER(物理量) & 活跃边数 & 出现活跃边的物理变量 \\
+\midrule
+1 & — & — & unblocked rerun未产出post-prune checkpoint（两次CPU尝试） \\
+2 & 0 & 0 & （无） \\
+3 & 0 & 0 & （无） \\
+4 & 0 & 0 & （无） \\
+5 & 1 & 1 & wind\_speed\_10m\_m\_s\_cubed(1) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Case 4统计汇总}
+\label{tab:case4-summary}
+\begin{tabular}{ccc}
+\toprule
+指标 & 值 & 95\% CI \\
+\midrule
+VER(unblocked, 4个有效matched seed) & 0/4 = 0.00 & — \\
+VER(blocked, 4个有效matched seed) & 1/4 = 0.25 & [0.000, 0.750] \\
+$\Delta$VER（paired bootstrap） & \textbf{+0.25} & \textbf{[0.000, 0.750]} \\
+物理量平均边数(blocked, valid pairs) & 0.25 & — \\
+RMSE(unblocked, pruned-delta, valid pairs) & 39815.0 & — \\
+RMSE(blocked, pruned-delta, valid pairs) & 93746.1 & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\Delta\VER=+0.25$，95\%置信区间为$[0.000, 0.750]$，下界触零。4个有效paired seed中，只有seed5在blocked条件下恢复了1条物理边（wind\_speed\_10m\_m\_s\_cubed）；seed2--4在blocked与unblocked下均为零。seed1的unblocked run在两次CPU尝试中都未产出post-prune checkpoint，因此本节只报告4个有效pair。由此，严格matched Case 4只能作为弱且不稳定的direct-task支持证据，而不再支持旧的``+0.80 / 强成功''口径。由于这些RMSE均来自delta域剪枝网络评估，本文仍不与主表abs(test)教师模型做直接百分比比较。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{../paper_assets/paper_delivery_20260306/s2_blocking_summary_20260417.png}
+\caption{S2 blocking evidence：左图为Case 3的seed级paired edge count变化；中图为Case 4在4个有效matched direct-task pair上的edge recovery；右图为Case 3/Case 4的$\Delta$VER与置信区间。Case 4的seed1因unblocked rerun两次未产出post-prune checkpoint而未纳入paired统计。}
+\label{fig:s2-blocking-summary}
+\end{figure}
+
+\cref{fig:s2-blocking-summary} 把S2证据链中的两个关键层面拆开呈现：Case 3给出稳定的seed级paired结构变化；Case 4在严格matched direct-task对照下只显示出弱且不稳定的恢复。因此，本节现在把Case 4降为辅助性direct-task证据，不再把它写成强成功或同层闭合确认。
+
+\subsection{机制确认}
+
+\begin{table}[htbp]
+\centering
+\caption{预定义规则与实际结果对照}
+\label{tab:mechanism-check}
+\begin{tabular}{ccc}
+\toprule
+预定义规则 & 实际结果 & 判定 \\
+\midrule
+Case 3: $\Delta$VER$>0$且CI不含零 & $\Delta$VER=+0.60, CI=[0.20, 1.00] & \textbf{成功} \\
+Case 3: edge\_count变化一致 & $\Delta$edge=+10.6, CI=[4.6, 15.8] & \textbf{成功} \\
+Case 4: 至少1个物理量VER提升且CI $> 0$ & 1/4 valid pairs出现物理边，CI=[0.00, 0.75] & \textbf{未满足} \\
+Case 4: 至少2个物理量（强成功） & 仅seed5恢复1条cubed风速边 & \textbf{未满足} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{小结}
+
+\textbf{自回归阻断实验为如下解释提供了较强的干预性支持：在当前实验设置下，自回归滞后特征的捷径竞争是导致气象物理量在KAN稀疏化结构中丧失可辨识性的主导机制。}两个Case的95\%置信区间均显示VER提升，其中Case 4的证据主要落在活跃边层面。
+
+\section{S3结构化分解}
+
+\subsection{子模型性能}
+
+\begin{table}[htbp]
+\centering
+\caption{S3子模型性能}
+\label{tab:s3-submodel}
+\begin{tabular}{cccc}
+\toprule
+子任务 & RMSE & MAE & $R^2$ \\
+\midrule
+负荷（Load） & 401.0 & 301.5 & 0.992 \\
+风电（Wind） & 1008.8 & 805.7 & 0.992 \\
+光伏（Solar） & 1006.7 & 482.1 & 0.991 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{组合精度与总公式复算}
+
+\begin{table}[htbp]
+\centering
+\caption{S3闭环结果：组合预测器与总公式复算}
+\label{tab:s3-composite}
+\begin{tabular}{ccccc}
+\toprule
+对象 & RMSE & MAE & Skill & $R^2$ \\
+\midrule
+\textbf{S3结构化组合预测器} & \textbf{1254.62} & \textbf{821.84} & \textbf{0.515} & \textbf{0.993} \\
+S3总公式（test复算） & 2644.36 & 1706.36 & -0.021 & 0.969 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+截至本稿收口，S3已经完成显式总公式闭环：在组合阶段直接构造
+\begin{equation}
+F_{\text{net}} = F_{\text{load}} - F_{\text{wind}} - F_{\text{solar}}
+\end{equation}
+并对test集逐点复算。结果显示，结构化组合预测器的RMSE为1254.62，skill为0.515；而显式总公式的RMSE为2644.36，skill降为-0.021。也就是说，总公式虽然已经真实生成并可复算，但相对组合预测器仍存在明显的transfer gap：RMSE增加1389.74，约为组合预测器的2.108倍。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{../paper_assets/paper_delivery_20260306/s3_formula_closure_20260417.png}
+\caption{四对象闭环对比：direct KAN、direct symbolic、S3 composite predictor 与 S3 composite formula。图中 direct 对象采用 canonical main run，S3 对象采用 paperref 正式闭环 run；该图用于展示结果链收口后的对象关系与 transfer gap，而非同 session 的严格消融比较。}
+\label{fig:s3-closure}
+\end{figure}
+
+\cref{fig:s3-closure}进一步把四个关键对象放到同一张闭环图中：direct KAN 与 direct symbolic 对应"直接路线"的起点和失败对照，S3 composite predictor 与 S3 composite formula 对应"结构化分解路线"的预测端与公式端。可以看到，direct symbolic 相对 direct KAN 仍有显著精度损失，而S3路线虽然已经把总公式真正合成出来，但总公式的数值表现仍明显弱于组合预测器。因此，本文现在可以把S3称为"已闭环的净负荷总公式方案"，但不能把公式对象与预测器对象混写成同一个结果。
+
+\subsection{物理可辨识性保持}
+
+\begin{table}[htbp]
+\centering
+\caption{S3可辨识性评估}
+\label{tab:s3-identifiability}
+\begin{tabular}{ccccc}
+\toprule
+子任务 & 目标物理量 & FAR & 活跃边数 & TGR \\
+\midrule
+负荷 & hdd\_18c（温度代理） & 3/3 & 2 & 2.569 \\
+风电 & wind\_speed\_10m\_m\_s & 3/3 & 3 & 1.401 \\
+光伏 & ghi\_w\_m2 & 3/3 & 2 & 2.302 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+三个子任务FAR均为3/3，与直接任务VER=0/9形成根本性逆转。这表明在结构化分解后，符号回归可以在子任务层面稳定恢复与物理预期一致的局部关系。
+
+\begin{table}[htbp]
+\centering
+\caption{代表性公式表：collapse 对照与三条局部公式}
+\label{tab:representative-formulas}
+\begin{tabularx}{\textwidth}{llccc}
+\toprule
+对象 & 代表性项摘要 & FAR / VER & TGR & complexity \\
+\midrule
+direct collapsed formula & load lag only; no stable physical variable & VER(any physical)=0/9 & 1.690 & 95 \\
+load local formula & load\_lag\_6, hdd\_18c, hour/month cyclic & FAR=3/3 & 2.569 & 108 \\
+wind local formula & wind-related proxies, wind lags, temp proxy & FAR=3/3 & 1.401 & 148 \\
+solar local formula & GHI, ghi\_day, solar\_altitude, solar lags & FAR=3/3 & 2.302 & 127 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\cref{tab:representative-formulas} 以四条代表性公式把“collapse 对照”和“S3局部恢复”并列展示。它对应的正式CSV资产为 `doc/paper_assets/paper_delivery_20260306/representative_formula_table_20260417.csv`，可直接用于答辩或附录引用。
+
+\subsection{小结}
+
+S3实现了精度与可解释性的统一，但这种统一需要分对象理解：结构化组合预测器保持了RMSE=1254.62、skill=0.515的高精度，三个子任务的FAR=3/3说明局部物理变量稳定进入子公式，同时显式总公式也已完成合成与test复算；然而，总公式相对组合预测器仍有明显transfer gap（RMSE 2644.36 vs 1254.62），因此预测器对象与公式对象必须并列呈现而不能混写。
+
+\section{本章总结}
+
+\begin{table}[htbp]
+\centering
+\caption{各实验阶段关键结论汇总}
+\label{tab:chapter-summary}
+\begin{tabular}{ccc}
+\toprule
+实验阶段 & 核心发现 & 关键指标 \\
+\midrule
+5.1 精度基线 & KAN显著优于参数匹配MLP & RMSE=1413.51, $p$=0.0005 \\
+5.2 公式坍缩 & 符号提取完全排除气象物理量 & VER(physical)=0/9 \\
+5.3 可辨识性消融 & 气象量具有内在可辨识性 & Solar: VER(GHI)=3/3 \\
+5.4 阻断干预 & Case 3强支持，Case 4仅弱且不稳定恢复 & $\Delta$VER=+0.60/+0.25 \\
+5.5 S3分解 & 完成总公式闭环但存在明显transfer gap & predictor RMSE=1254.62; formula RMSE=2644.36 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+四幕实验的逻辑链条可概括为：先在当前主实验设置下确认KAN teacher在预测层面优于direct PySR（5.1），随后发现direct symbolic迅速退化为负荷主导公式（5.2）；再通过定向任务验证"不是所有物理量都进不去公式"，其中solar提供稳定正例、wind提供边界反例（5.3）；阻断实验进一步为捷径竞争解释提供干预性支持（5.4）；最后，S3给出局部公式、结构化组合预测器以及已完成test复算的总公式这一建设性方案（5.5）。
+
+
+% ══════════════════════════════════════════════
+% 第六章  讨论
+% ══════════════════════════════════════════════
+\chapter{讨论}
+
+\section{捷径竞争机制的解释}
+
+S1阶段的公式坍缩和S2阻断实验的$\Delta\VER$结果共同支持如下解释：在当前实验设置下，包含自回归滞后特征的KAN符号提取更容易因为滞后项在稀疏化竞争中形成信息捷径，而系统性压制物理气象变量；这比"变量与预测目标无关"更能解释本文观察到的现象。
+
+\textbf{自相关结构下的方差支配。}在5分钟采样分辨率下，load\_lag\_1与当前时步的皮尔逊相关系数通常超过0.95，单独解释了短期预测目标方差的绝大部分。滞后项以近乎恒等映射即可实现极低的训练损失。
+
+\textbf{L1+熵正则化下的竞争压力。}模型被迫在有限的"活跃边预算"下进行特征竞争。解释了90\%以上方差的滞后项必然胜出，气象变量被逐步压制至剪枝阈值以下。
+
+\textbf{机制的普遍性。}自回归捷径竞争并非KAN所特有，而是高频时间序列预测中的一般性结构特征。KAN的特殊之处在于其稀疏化-剪枝-符号拟合管线使这一竞争以"公式坍缩"的形式可视化呈现。
+
+\section{实验过程的收敛链条}
+
+本文的主结论并不是一开始就直接得到的。项目早期首先比较KAN与PySR等方法的预测性能，但需要区分历史探索期与当前主实验期：历史探索期在个别弱配置、非canonical的load目标run中曾出现PySR优于KAN的现象；进入当前canonical matched $\Delta\text{net\_load}_{h6}$主实验设置后，KAN teacher在预测层面已稳定优于direct PySR。因此，研究的关键问题从"哪种方法精度更高"转向"高精度teacher能否转化成保留物理因子的符号公式"。
+
+direct路线的首个异常并不是wind，而是整体公式迅速退化为负荷主导。这一现象最初并不能自动推出"捷径竞争"解释，因为还存在另一种朴素可能：超参数、剪枝阈值或符号库设置得不合适，导致物理量偶然没有进入公式。正因如此，后续才需要focused teacher与component teacher式的定向实验，去验证"是不是所有物理量都进不去公式"。solar、GHI和temperature在多条定向路线中能够稳定进入局部公式，说明当前链路并非整体失效。
+
+真正持续异常的是wind。即使在多轮调参、特征重组和teacher设计之后，wind仍更常表现为：原始风速项未显式进入公式，或只通过wind\_lag\_*、代理变量和替代表达间接出现。更稳妥的解释不是"风电任务训练失败"，而是wind在当前任务和时间尺度下具有更低的符号可辨识性。进一步的long-horizon结果也更适合写成wind可辨识性的非单调变化，即中等horizon更容易显现结构、整体上接近"先增强、后减弱"；至于其他物理量，现有证据只支持"更长horizon下整体更不稳定、部分量减弱"，不支持"持续下降"或"严格单调下降"的强表述。
+
+这一收敛链条也界定了本文的叙事边界。本文讨论的是``KAN teacher + symbolic extraction''的后验提取流程，而不是经典教师-学生蒸馏；S3已经完成净负荷总公式的显式合成与test复算，但结果显示总公式对象与结构化组合预测器对象之间仍有明显transfer gap。因而，本文的主贡献应落在direct路线为何失败、S2如何提供干预性支持、以及S3如何恢复局部可辨识性并暴露总公式迁移间隙，而不是把"公式是否存在"误写成尚未完成的工程问题。
+
+\section{精度与可辨识性的权衡}
+
+Case 4的blocked run记录了直接阻断会带来显著精度代价，但其RMSE口径与主表不同，因此本文不再报告跨表百分比退化。相比之下，S3结构化组合预测器（skill=0.515，FAR=3/3）提供了更稳妥的折中方案；需要再次强调的是，S3现在同时包含"三条局部公式 + 结构化组合预测器 + 已复算的净负荷总公式"三类对象，其中真正暴露的新问题是总公式相对预测器的transfer gap，而不是总公式是否已经存在。
+
+\textbf{对实际应用的启示。}最大化短期精度场景应使用完整自回归特征；理解物理驱动因素场景可采用S3分解方案。两种范式面向不同运营需求。
+
+\section{与MCKAN的方法论对应}
+
+本研究可定位为MCKAN\cite{chen2025mckan}研究路线在可解释性维度上的延伸：MCKAN回答"KAN能否高精度预测"，本研究回答"KAN提取的符号公式能否保留物理含义"。对应关系体现在多步预测设计、特征选择方法、子任务分解和消融实验四个维度上。
+
+\section{局限性}
+
+\textbf{第一，单一数据集。}全部实验基于ERCOT区域数据，跨区域泛化性有待验证。
+
+\textbf{第二，种子数量。}5个随机种子的统计功效有限，CI宽度较大。
+
+\textbf{第三，插值泄漏。}线性插值在划分前执行，构成轻微的非变量特异性泄漏，因此本文对"主要机制"的表述也保持在当前证据强度内，不作过度泛化。
+
+\textbf{第四，缺乏物理约束。}KAN训练完全数据驱动，未融入物理先验。
+
+\textbf{第五，公式复杂度。}所得公式与"人类一眼可读"仍有差距。
+
+\textbf{第六，KAN与PySR比较的公平性。}两者优化空间存在本质差异。
+
+
+% ══════════════════════════════════════════════
+% 第七章  结论与后续工作
+% ══════════════════════════════════════════════
+\chapter{结论与后续工作}
+
+\section{主要贡献}
+
+\textbf{贡献一：}建立了从KAN教师到符号公式的完整提取管线。当前canonical matched主实验设置中的KAN教师skill=0.453，显著优于MLP（0.430，$p=0.0005$）和PySR（0.076）。
+
+\textbf{贡献二：}发现并通过干预实验支持了自回归捷径竞争是破坏符号可辨识性的主导机制。直接净负荷目标VER=0/9。S2阻断中，Case 3给出强干预证据（$\Delta\VER=+0.60$，CI=[0.20, 1.00]）；严格matched的Case 4 direct-task对照仅在4个有效paired seed上得到$\Delta\VER=+0.25$（CI=[0.00, 0.75]），另有1个seed两次未产出post-prune checkpoint，说明这一路证据更弱且不稳定。
+
+\textbf{贡献三：}提出VER/FAR诊断指标体系，使"可辨识性"从定性描述转化为可度量判据。
+
+\textbf{贡献四：}S3结构化分解方案在三个子任务层面恢复了局部物理关系的公式可辨识性，并完成了净负荷总公式的显式闭环复算：结构化组合预测器skill=0.515，FAR=3/3；显式总公式的RMSE为2644.36、skill为-0.021。由此，本文不仅证明了S3能恢复局部物理可辨识性，也进一步揭示了总公式对象相对预测器对象存在明显transfer gap这一新的事实边界。
+
+\textbf{贡献五：}诚实记录边界条件：太阳辐照的正面结果主要成立于部分短中期设置；wind更适合作为边界案例而非"训练失败"叙事，其可辨识性呈非单调变化；直接阻断存在明显精度代价。
+
+\section{收口工作与后续研究}
+
+\textbf{S3总公式的工程收口已经完成，当前剩余的问题不再是"公式是否存在"，而是"公式相对预测器为何仍有明显transfer gap"。}本文已经完成
+\begin{equation}
+F_{\text{net}} = F_{\text{load}} - F_{\text{wind}} - F_{\text{solar}}
+\end{equation}
+的显式合成与test集逐点复算，因此现在可以把S3称为"已闭环的净负荷总公式方案"。但复算结果也显示，总公式的RMSE（2644.36）显著高于结构化组合预测器（1254.62）。因此，后续研究的首要任务不再是补一条总公式，而是解释并缩小这一从"局部公式有效"到"全局总公式数值可用"之间的迁移间隙。
+
+\textbf{在补充交付之外，后续研究仍可沿三个方向推进。}其一，重构严格时间因果的数据管线，将插值放在训练/验证/测试划分之后，以进一步收紧机制结论的边界。其二，在更多区域、更多时间分辨率的数据集上复现S2与S3，以检验自回归捷径竞争及wind边界现象的普遍性。其三，在KAN训练中引入物理约束或更丰富的符号基元，探索是否可以在不牺牲精度的前提下进一步降低局部公式的迁移间隙和复杂度。
+
+% ===== 参考文献 =====
+\printbibliography[heading=bibintoc,title={参考文献}]
+
+% ===== 致谢 =====
+\backmatter
+\chapter*{致谢}
+\addcontentsline{toc}{chapter}{致谢}
+
+（待撰写）
+
+\end{document}

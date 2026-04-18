@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--kan-hidden-layers", default="", help="Optional CSV ints for deep KAN, e.g. 32,32.")
     ap.add_argument("--no-warmup-update-grid", action="store_true", help="Disable KAN warmup grid update.")
     ap.add_argument("--no-symbolic", action="store_true", help="Skip Phase-3 symbolic extraction jobs.")
-    ap.add_argument("--sweeps", default="s0,s1,s2,s3", help="Subset: s0,s1,s2,s3,s4,s0a (comma-separated). s0=symbolic, s4=pure-physics, s0a=loose-reg+lag.")
+    ap.add_argument("--sweeps", default="s0,s1,s2,s3", help="Subset: s0,s1,s2,s2b,s2c,s3,s4,s0a (comma-separated). s0=symbolic, s2b=matched Case 4 blocking, s2c=full-lag blocked direct variant, s4=pure-physics, s0a=loose-reg+lag.")
     ap.add_argument("--symbolic-train-run-id", action="append", default=[], help="Extra Phase-2 train run_id for S0 (repeatable).")
     ap.add_argument(
         "--symbolic-grid-mode",

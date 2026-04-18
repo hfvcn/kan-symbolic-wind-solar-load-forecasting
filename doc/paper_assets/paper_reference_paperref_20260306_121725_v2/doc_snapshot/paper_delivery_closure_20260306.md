@@ -79,3 +79,59 @@
 1. 摘要与答辩首页只引用第 2 节冻结后的主命题、主结论和边界结论，不再引入额外说法。
 2. 正文主表只使用第 6 节白名单中的 run 与资产。
 3. 若需要解释“为什么物理量有时不入式”，优先引用 Solar `h=144` 与 Wind `h=72/144/576` 的组合证据，而不是泛化成单一规律。
+
+## 8. 2026-03-09 收口补充
+
+### 统计显著性
+
+1. 主结果 paired 显著性已补齐，资产见 `doc/paper_assets/paper_delivery_20260306/paired_significance_main_20260309.csv`。
+2. 在 abs(test) 的绝对误差口径上，KAN 相对 matched MLP 的 mean diff = 111.13，95% bootstrap CI = [100.42, 122.29]，置换检验 `p=0.0005`。
+3. 在同一口径上，KAN 相对 strict symbolic 的 mean diff = 903.64，95% bootstrap CI = [882.04, 926.20]，置换检验 `p=0.0005`。
+
+### 条件分层误差
+
+1. Net-load 主结果在高波动切片上误差显著放大：KAN 的 high-volatility RMSE=1960.77，而 low/mid 仅为 1033.19 / 1045.59；这说明方法的主要风险集中在大幅跃迁段。
+2. Solar 条件分层见 `doc/paper_assets/paper_delivery_20260306/solar_stratified_error_20260309.csv`：`h=72 both` 在日间 RMSE=5285.63、夜间 RMSE=3568.13；`h=144 both` 的日夜与 GHI 三分位都明显退化，和 “competition 导致外生量退式” 的机制结论一致。
+3. Wind 条件分层见 `doc/paper_assets/paper_delivery_20260306/wind_stratified_error_20260309.csv`：`h=72` 在三个风速分位都保持正向表现，但 `h=576` 在 low-wind 分位出现最强退化（R²=-4.11），说明长 horizon 失效集中在低风速区间。
+
+### Direct S0 结果
+
+1. direct teacher S0 的远端同步巡检见 `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/direct_sync_status_20260309.csv`：11 个 run 中已有 6 个形成完整 run 并成功同步，但没有一组达到 `正 skill`。
+2. 最佳配置是 `20260309_modal_direct_fullflow__sym_strict_r2_0_98`，其 abs(test) RMSE=3779.76、skill=-0.459；公式中已显式包含 `wind_speed_* / ghi_* / temp_2m_c` 等物理量，但泛化仍明显差于 persistence。论文摘要表见 `doc/paper_assets/paper_delivery_20260306/direct_teacher_cloud_check_20260309.csv`。
+3. 其余 5 个 run 只留下远端部分公式工件，没有形成完整成功 run。结论是 direct S0 在当前 teacher 上未找到满足“稳定/可复算/正 skill”的配置，因此保留为失败证据，不进入正文正向 claim。
+4. 后续不再继续追加同一 `delta_net_load_h6` teacher 的 Phase 3 参数 sweep；若要重启 direct 路线，只能进入“新 teacher / 新 Phase 2 结构”的独立实验路线，而不是重复当前 symbolic 网格。
+
+### 图表与 Future Work 冻结
+
+1. 最小图表集合已补齐到 `doc/paper_assets/paper_delivery_20260306/`，新增包括 `system_flow_pipeline.png`、`solar_h288_boundary_20260306.png`、`successful_formula_summary_20260309.csv`、`formula_2026-03-01_160200_sym_strict_r2_0_995__kan151000.png` 以及 S3 子公式渲染图。
+2. “更多 baselines / 更多 horizons”、“更强物理约束”、“架构创新” 以及 “direct 公式的新 teacher 路线” 已正式降级为 future work；当前主实验矩阵已经足以支撑论文主命题，不再扩展正文实验范围。
+
+## 9. 2026-04-17 S3 总公式闭环补充
+
+### S3 闭环状态
+
+1. S3净负荷总公式的工程闭环已经完成，正式结果以 `paperref_20260306_121725_v2__s3_combo_net_load` 与 `paperref_20260306_121725_v2__s3_combo_net_load__formula` 为准。
+2. 2026-04-18 symbolic refresh 后，结构化组合预测器的正式指标更新为 RMSE=1254.62、skill=0.515；显式总公式的正式指标更新为 RMSE=2644.36、skill=-0.021。
+3. 这说明论文现在可以明确声称“净负荷总公式已显式合成并完成test复算”，但不能再把预测器对象与公式对象混写成同一个结果。
+
+### 新增交付资产
+
+1. 四对象闭环对比表：`doc/paper_assets/paper_delivery_20260306/s3_main_comparison_20260417.csv`
+2. 四对象闭环对比图：`doc/paper_assets/paper_delivery_20260306/s3_formula_closure_20260417.png`
+3. 正式 paperref 收口快照：`doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/s3_formula_closure_20260417.csv`
+
+### 2026-04-17 第二阶段证据呈现补充
+
+1. 已新增协议 ledger：`doc/paper_assets/paper_delivery_20260306/protocol_ledger_20260417.csv`，把 `teacher / direct symbolic / Case 3 / Case 4 / S3 predictor / S3 formula` 的统计单位与证据对象统一冻结。
+2. 已新增代表性公式表：`doc/paper_assets/paper_delivery_20260306/representative_formula_table_20260417.csv`，并列收录 `direct collapsed formula`、`load local formula`、`wind local formula`、`solar local formula` 的 FAR/TGR/complexity。
+3. 已新增三张关键图：
+   - `doc/paper_assets/paper_delivery_20260306/direct_symbolic_collapse_20260417.png`
+   - `doc/paper_assets/paper_delivery_20260306/wind_solar_horizon_20260417.png`
+   - `doc/paper_assets/paper_delivery_20260306/s2_blocking_summary_20260417.png`
+4. 这轮补充的目标不是再造新实验，而是把已有证据从“主要靠表格扫描”改成“图表 + protocol ledger + 对象分层”共同支撑。
+
+### 口径冻结
+
+1. 正文、摘要、答辩稿中凡涉及S3结果，必须区分 `S3 composite predictor` 与 `S3 composite formula`。
+2. 若讨论“结构化分解是否保住了精度”，引用 predictor 指标；若讨论“总公式是否已经得到”，引用 formula 指标与 transfer gap。
+3. S3当前的核心边界不再是“尚未形成总公式”，而是“总公式已经存在，但相对预测器仍有明显transfer gap”。

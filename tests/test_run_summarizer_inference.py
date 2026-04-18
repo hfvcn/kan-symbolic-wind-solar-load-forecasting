@@ -142,6 +142,32 @@ class TestRunSummarizerInference(unittest.TestCase):
             self.assertEqual(s.phase, "04-baselines-pysr")
             self.assertEqual(s.kind, "pysr_seeded")
 
+    def test_structured_combo_formula_comparison_row(self) -> None:
+        from src.eval.structured_combo import build_formula_comparison_rows
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "combo_run"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "combo_run", "phase": "05-structured-combination", "target_col": "net_load_h2"}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+            (artifacts / "formula_eval_test.json").write_text(json.dumps({"rmse": 0.0, "mae": 0.0, "r2": 1.0}))
+            (artifacts / "formula_combined_metrics.json").write_text(json.dumps({"node_count": 42}))
+            pd.DataFrame(
+                {"y_true": [1.0, 2.0, 3.0], "y_pred": [1.0, 2.0, 3.0], "residual": [0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test_formula.parquet",
+                compression="snappy",
+            )
+
+            rows = build_formula_comparison_rows([run_dir])
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["run_id"], "combo_run__formula")
+            self.assertEqual(rows[0]["kind"], "s3_composite_formula")
+            self.assertEqual(rows[0]["complexity"], 42)
+            self.assertAlmostEqual(float(rows[0]["skill_score"] or 0.0), 1.0, places=12)
+
 
 if __name__ == "__main__":
     unittest.main()

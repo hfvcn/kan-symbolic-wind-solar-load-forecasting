@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.reconstruct_predictions import _load_processed_split, _resolve_reconstruction_source
+from src.eval.reconstruction import load_processed_split, resolve_reconstruction_source
 
 
 class TestReconstructPredictions(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestReconstructPredictions(unittest.TestCase):
             test_df = pd.DataFrame({"load": [1.0, 2.0]}, index=index)
             test_df.to_parquet(processed_dir / "test_demo.parquet")
 
-            loaded = _load_processed_split(processed_dir, split="test", timestamp="demo")
+            loaded = load_processed_split(processed_dir, split="test", timestamp="demo")
 
             self.assertEqual(list(loaded.columns), ["load"])
             self.assertEqual(len(loaded), 2)
@@ -30,7 +30,7 @@ class TestReconstructPredictions(unittest.TestCase):
             (data_run_dir / "processed" / "test_demo.parquet").write_bytes(b"PAR1")
             (data_run_dir / "artifacts" / "scaler_params.json").write_text("{}")
 
-            run_id, timestamp = _resolve_reconstruction_source(data_run_dir, data_timestamp="demo")
+            run_id, timestamp = resolve_reconstruction_source(data_run_dir, data_timestamp="demo")
 
             self.assertEqual(run_id, data_run_dir.name)
             self.assertEqual(timestamp, "demo")

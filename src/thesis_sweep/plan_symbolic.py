@@ -16,6 +16,8 @@ from src.thesis_sweep.utils import (
     modal_run,
 )
 
+CLI_FUNCTION_REF = f"{REPO_ROOT / 'modal_jobs' / 'kan_symbolic.py'}::extract_symbolic_cpu_cli"
+
 
 def _symbolic_lib_plans() -> tuple[SymbolicLibPlan, ...]:
     return (
@@ -33,6 +35,11 @@ def _symbolic_lib_plans() -> tuple[SymbolicLibPlan, ...]:
 
 def _symbolic_lib_plans_reduced() -> tuple[SymbolicLibPlan, ...]:
     return (SymbolicLibPlan(name="strict", lib=LIB_STRICT, r2_thresholds=S0_R2_GRID_STRICT_ENHANCED),)
+
+
+def _prefers_full_symbolic_grid(train_id: str) -> bool:
+    train_id = str(train_id).strip().lower()
+    return train_id.startswith(("s3_comp_", "s0p_", "s4_pure_"))
 
 
 def plan_symbolic(
@@ -59,8 +66,9 @@ def plan_symbolic(
 
     planned: list[PlannedCmd] = []
     run_ids: list[str] = []
+    extra_set = set(extra)
     for train_id in train_ids:
-        use_full = (mode == "full") or (mode == "auto_reduced" and train_id in set(extra))
+        use_full = mode == "full" or (mode == "auto_reduced" and (train_id in extra_set or _prefers_full_symbolic_grid(train_id)))
         lib_plans = _symbolic_lib_plans() if use_full else _symbolic_lib_plans_reduced()
         for lib_plan in lib_plans:
             for r2t in lib_plan.r2_thresholds:
@@ -84,9 +92,30 @@ def plan_symbolic(
                 if lib_plan.eval_clip_quantiles is not None:
                     ql, qh = lib_plan.eval_clip_quantiles
                     cmd_args += ["--eval-clip-quantiles", f"{ql},{qh}"]
-                if bool(args.use_gpu):
-                    cmd_args.append("--use-gpu")
-                cmd = modal_run(REPO_ROOT / "modal_jobs" / "kan_symbolic.py", cmd_args, detached=detached)
+                # Symbolic extraction is intentionally kept on CPU in thesis sweeps.
+                if detached:
+                    detached_args = [
+                        "--train-run-id",
+                        train_id,
+                        "--run-id",
+                        rid,
+                        "--r2-threshold",
+                        str(r2t),
+                        "--weight-simple",
+                        "0.9",
+                        "--sample-rows",
+                        "20000",
+                        "--lib-csv",
+                        lib_plan.lib,
+                    ]
+                    if lib_plan.safe_exp_clip is not None:
+                        detached_args += ["--safe-exp-clip", str(lib_plan.safe_exp_clip)]
+                    if lib_plan.eval_clip_quantiles is not None:
+                        ql, qh = lib_plan.eval_clip_quantiles
+                        detached_args += ["--eval-clip-quantiles", f"{ql},{qh}"]
+                    cmd = ["modal", "run", "-d", CLI_FUNCTION_REF, *detached_args]
+                else:
+                    cmd = modal_run(REPO_ROOT / "modal_jobs" / "kan_symbolic.py", cmd_args, detached=False)
                 planned.append(PlannedCmd(name="kan_symbolic", run_id=rid, cmd=cmd))
                 run_ids.append(rid)
 

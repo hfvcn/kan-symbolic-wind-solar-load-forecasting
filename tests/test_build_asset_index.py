@@ -119,6 +119,58 @@ class TestBuildAssetIndex(unittest.TestCase):
             self.assertIn("manifest: `", text)
             self.assertIn("modal run modal_jobs/kan_train.py --run-id", text)
 
+    def test_includes_structured_formula_assets(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        script = repo_root / "scripts" / "build_asset_index.py"
+
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            runs_dir = base / "runs"
+            paper_dir = base / "doc" / "paper_assets"
+            figures_dir = paper_dir / "figures"
+            out_path = paper_dir / "ASSET_INDEX.md"
+
+            run_id = "combo_formula_run"
+            run_dir = runs_dir / run_id
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": run_id, "phase": "05-structured-combination", "kind": "net_load_from_components"}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+            (artifacts / "eval_test.json").write_text(json.dumps({"rmse": 1.0, "mae": 1.0, "r2": 0.0}))
+            (artifacts / "formula_combined.sympy.txt").write_text("load - wind - solar")
+            (artifacts / "formula_combined.tex").write_text("F_{net}")
+            (artifacts / "formula_combined_metrics.json").write_text(json.dumps({"node_count": 7}))
+            pd.DataFrame({"y_true": [1.0], "y_pred": [1.0], "residual": [0.0]}).to_parquet(
+                artifacts / "predictions_test_formula.parquet",
+                compression="snappy",
+            )
+
+            paper_dir.mkdir(parents=True, exist_ok=True)
+            figures_dir.mkdir(parents=True, exist_ok=True)
+
+            subprocess.run(
+                [
+                    "python3",
+                    str(script),
+                    "--runs-dir",
+                    str(runs_dir),
+                    "--paper-assets-dir",
+                    str(paper_dir),
+                    "--figures-dir",
+                    str(figures_dir),
+                    "--out",
+                    str(out_path),
+                ],
+                check=True,
+                cwd=str(base),
+            )
+
+            text = out_path.read_text()
+            self.assertIn("formula_combined.sympy.txt", text)
+            self.assertIn("formula_combined.tex", text)
+            self.assertIn("predictions_test_formula.parquet", text)
+
 
 if __name__ == "__main__":
     unittest.main()

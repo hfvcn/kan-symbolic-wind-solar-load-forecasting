@@ -14,12 +14,35 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.eval.structured_combo import build_formula_comparison_rows
 from src.eval.runs import build_comparison_table, day_night_breakdown, seasonal_breakdown
 from src.kan_sr.metrics import rmse
 
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
+
+
+def _finalize_comparison_table(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["pareto_optimal"] = False
+    valid = df.dropna(subset=["rmse", "complexity"]).copy()
+    if len(valid) > 0:
+        pareto = []
+        for i, a in valid.iterrows():
+            dominated = False
+            for j, b in valid.iterrows():
+                if i == j:
+                    continue
+                better_rmse = b["rmse"] <= a["rmse"]
+                better_complexity = b["complexity"] <= a["complexity"]
+                strictly_better = (b["rmse"] < a["rmse"]) or (b["complexity"] < a["complexity"])
+                if better_rmse and better_complexity and strictly_better:
+                    dominated = True
+                    break
+            pareto.append(not dominated)
+        df.loc[valid.index, "pareto_optimal"] = pareto
+    return df.sort_values(by=["rmse", "complexity"], ascending=[True, True], na_position="last")
 
 
 def _pick_predictions_path(artifacts_dir: Path) -> Path | None:
@@ -39,12 +62,15 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = build_comparison_table([Path(p) for p in args.run])
+    run_paths = [Path(p) for p in args.run]
+    df = build_comparison_table(run_paths)
+    formula_rows = build_formula_comparison_rows(run_paths)
+    if formula_rows:
+        df = _finalize_comparison_table(pd.concat([df.drop(columns=["pareto_optimal"], errors="ignore"), pd.DataFrame(formula_rows)], ignore_index=True))
     table_path = out_dir / "comparison_table.csv"
     df.to_csv(table_path, index=False)
 
     # Transfer gap table (Phase 8): compare transfer runs against their source training run on TEST.
-    run_paths = [Path(p) for p in args.run]
     run_by_name = {p.name: p for p in run_paths}
     gap_rows = []
     for p in run_paths:

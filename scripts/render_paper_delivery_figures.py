@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from pathlib import Path
 
@@ -29,6 +30,11 @@ def _apply_style() -> None:
 
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text())
+
+
+def _read_csv_rows(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh))
 
 
 def _box(ax, x: float, y: float, w: float, h: float, title: str, body: str, color: str) -> None:
@@ -113,6 +119,67 @@ def render_boundary_case(boundary_json: Path, out_path: Path) -> None:
     plt.close(fig)
 
 
+def render_s3_formula_closure(closure_csv: Path, out_path: Path) -> None:
+    rows = _read_csv_rows(closure_csv)
+    by_label = {row["label"]: row for row in rows}
+    ordered = [
+        ("direct_kan_teacher", "Direct\nKAN", "#4C72B0"),
+        ("direct_symbolic_formula", "Direct\nsymbolic", "#DD8452"),
+        ("s3_composite_predictor", "S3\npredictor", "#55A868"),
+        ("s3_composite_formula", "S3\nformula", "#C44E52"),
+    ]
+    labels = [item[1] for item in ordered]
+    colors = [item[2] for item in ordered]
+    rmse_vals = [float(by_label[item[0]]["rmse"]) for item in ordered]
+    skill_vals = [float(by_label[item[0]]["skill_score"]) for item in ordered]
+    ratio_vals = [float(by_label[item[0]]["rmse_ratio_vs_teacher"]) for item in ordered]
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.2))
+    x = np.arange(len(labels))
+
+    rmse_bars = axes[0].bar(x, rmse_vals, color=colors, alpha=0.9, edgecolor="black", linewidth=0.6)
+    axes[0].set_xticks(x, labels)
+    axes[0].set_ylabel("RMSE")
+    axes[0].set_title("Closure Replay RMSE")
+    axes[0].set_ylim(0, max(rmse_vals) * 1.18)
+    for idx, bar in enumerate(rmse_bars):
+        axes[0].text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() * 1.01,
+            f"{rmse_vals[idx]:.1f}\n{ratio_vals[idx]:.3f}x",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+
+    skill_bars = axes[1].bar(x, skill_vals, color=colors, alpha=0.9, edgecolor="black", linewidth=0.6)
+    axes[1].axhline(0.0, color="#333333", linewidth=1.0, alpha=0.8)
+    axes[1].set_xticks(x, labels)
+    axes[1].set_ylabel("Skill")
+    axes[1].set_title("Predictor vs Formula Skill")
+    ymin = min(skill_vals)
+    ymax = max(skill_vals)
+    span = max(0.15, ymax - ymin)
+    axes[1].set_ylim(ymin - span * 0.25, ymax + span * 0.35)
+    for idx, bar in enumerate(skill_bars):
+        y = bar.get_height()
+        va = "bottom" if y >= 0 else "top"
+        offset = 0.015 if y >= 0 else -0.015
+        axes[1].text(
+            bar.get_x() + bar.get_width() / 2,
+            y + offset,
+            f"{skill_vals[idx]:.3f}",
+            ha="center",
+            va=va,
+            fontsize=8,
+        )
+
+    fig.suptitle("S3 Closure: direct baseline, composite predictor, and composite formula", fontsize=13, y=1.02)
+    fig.tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Render thesis delivery figures that are not tied to a single run.")
     ap.add_argument("--out-dir", default="doc/paper_assets/paper_delivery_20260306", help="Output directory.")
@@ -120,6 +187,11 @@ def main() -> None:
         "--boundary-json",
         default="doc/paper_assets/paper_delivery_20260306/solar_h288_boundary_20260306.json",
         help="Boundary-case JSON produced by diagnose_solar_bounds.py.",
+    )
+    ap.add_argument(
+        "--s3-closure-csv",
+        default="doc/paper_assets/paper_delivery_20260306/s3_main_comparison_20260417.csv",
+        help="Four-object closure CSV for direct teacher / direct symbolic / S3 predictor / S3 formula.",
     )
     args = ap.parse_args()
 
@@ -129,6 +201,7 @@ def main() -> None:
 
     render_system_flow(out_dir / "system_flow_pipeline.png")
     render_boundary_case(Path(args.boundary_json), out_dir / "solar_h288_boundary_20260306.png")
+    render_s3_formula_closure(Path(args.s3_closure_csv), out_dir / "s3_formula_closure_20260417.png")
 
 
 if __name__ == "__main__":

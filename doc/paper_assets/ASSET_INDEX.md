@@ -16,6 +16,11 @@
 - `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/manifest.json`
 - `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/paper_assets/comparison_table.csv`
 - `doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/paper_assets/pareto_rmse_vs_complexity.png`
+- `doc/thesis_sweeps/2026-03-20_174125_b3f3bc26/manifest.json`
+- `doc/thesis_sweeps/2026-03-20_174132_541488e1/manifest.json`
+- `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- `doc/thesis_sweeps/case4_strongblock_20260417/manifest.json`
+- `doc/thesis_sweeps/case4_strongblock_retry_20260417/manifest.json`
 - `doc/thesis_sweeps/paperref_20260306_121725/manifest.json`
 - `doc/thesis_sweeps/paperref_20260306_121725_v2/manifest.json`
 - `doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/comparison_table.csv`
@@ -23,12 +28,16 @@
 - `doc/thesis_sweeps/paperref_20260309_direct_fullflow_s0_cloud/manifest.json`
 - `doc/thesis_sweeps/s0a_physics_v1/manifest.json`
 - `doc/thesis_sweeps/s0a_physics_v2/manifest.json`
+- `doc/thesis_sweeps/s3_formula_grid_20260417/manifest.json`
 - `doc/thesis_sweeps/s3_saveact_fix/manifest.json`
 - `doc/thesis_sweeps/s4_pure_physics/manifest.json`
 - `doc/thesis_sweeps/s4_pure_physics_v2/manifest.json`
 - `doc/thesis_sweeps/s4_pure_v3/manifest.json`
 - `doc/thesis_sweeps/s4_pure_v4/manifest.json`
 - `doc/thesis_sweeps/s4_pure_v5/manifest.json`
+- `doc/thesis_sweeps/symbolic_cpu24h_20260418/manifest.json`
+- `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- `doc/thesis_sweeps/symbolic_cpu24h_submit_20260418/manifest.json`
 - `doc/paper_assets/kan_pysr_cross_validation_2026-02-26_064508_3e631069.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_041718_5579aeeb.md`
 - `doc/paper_assets/physics_mapping_2026-02-26_090620_1fc7d27a.md`
@@ -48,10 +57,14 @@
 - `doc/paper_assets/sensitivity_summary_2026-03-01_072418_8b55ce9a.csv`
 - `doc/paper_assets/sensitivity_summary_2026-03-01_072722_fc08d99e.csv`
 - `doc/paper_assets/PAPER_REPRO_MAP_20260306.md`
+- `doc/paper_assets/paper_delivery_20260306/case4_matched_blocking_seed_detail_20260417.csv`
+- `doc/paper_assets/paper_delivery_20260306/case4_matched_blocking_summary_20260417.csv`
 - `doc/paper_assets/paper_delivery_20260306/comparison_table.csv`
 - `doc/paper_assets/paper_delivery_20260306/day_night_2026-03-01_151000_kan_nobase_nogrid_gpu.csv`
 - `doc/paper_assets/paper_delivery_20260306/day_night_2026-03-01_155600_baseline_mlp_match_kan151000.csv`
 - `doc/paper_assets/paper_delivery_20260306/day_night_2026-03-01_160200_sym_strict_r2_0_995__kan151000.csv`
+- `doc/paper_assets/paper_delivery_20260306/direct_symbolic_collapse_20260417.png`
+- `doc/paper_assets/paper_delivery_20260306/direct_teacher_cloud_check_20260309.csv`
 - `doc/paper_assets/paper_delivery_20260306/direct_teacher_fast5k_assessment_20260309.csv`
 - `doc/paper_assets/paper_delivery_20260306/formula_2026-03-01_160200_sym_strict_r2_0_995__kan151000.png`
 - `doc/paper_assets/paper_delivery_20260306/formula_20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k.png`
@@ -63,6 +76,8 @@
 - `doc/paper_assets/paper_delivery_20260306/pareto_rmse_vs_complexity.png`
 - `doc/paper_assets/paper_delivery_20260306/physics_mapping_20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k.json`
 - `doc/paper_assets/paper_delivery_20260306/physics_mapping_20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k.md`
+- `doc/paper_assets/paper_delivery_20260306/protocol_ledger_20260417.csv`
+- `doc/paper_assets/paper_delivery_20260306/representative_formula_table_20260417.csv`
 - `doc/paper_assets/paper_delivery_20260306/residual_box_2026-03-01_160200_sym_strict_r2_0_995__kan151000.png`
 - `doc/paper_assets/paper_delivery_20260306/residual_box_20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k.png`
 - `doc/paper_assets/paper_delivery_20260306/residual_box_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6.png`
@@ -78,6 +93,9 @@
 - `doc/paper_assets/paper_delivery_20260306/residual_qq_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6.png`
 - `doc/paper_assets/paper_delivery_20260306/residual_qq_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_load_delta_h6.png`
 - `doc/paper_assets/paper_delivery_20260306/residual_qq_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6.png`
+- `doc/paper_assets/paper_delivery_20260306/s2_blocking_summary_20260417.png`
+- `doc/paper_assets/paper_delivery_20260306/s3_formula_closure_20260417.png`
+- `doc/paper_assets/paper_delivery_20260306/s3_main_comparison_20260417.csv`
 - `doc/paper_assets/paper_delivery_20260306/seasonal_2026-03-01_151000_kan_nobase_nogrid_gpu.csv`
 - `doc/paper_assets/paper_delivery_20260306/seasonal_2026-03-01_155600_baseline_mlp_match_kan151000.csv`
 - `doc/paper_assets/paper_delivery_20260306/seasonal_2026-03-01_160200_sym_strict_r2_0_995__kan151000.csv`
@@ -98,6 +116,7 @@
 - `doc/paper_assets/paper_delivery_20260306/timeseries_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_load_delta_h6.png`
 - `doc/paper_assets/paper_delivery_20260306/timeseries_paperref_20260306_121725_v2__sym_strict_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6.png`
 - `doc/paper_assets/paper_delivery_20260306/wind_ablation_summary_20260306.csv`
+- `doc/paper_assets/paper_delivery_20260306/wind_solar_horizon_20260417.png`
 - `doc/paper_assets/paper_delivery_20260306/wind_stratified_error_20260309.csv`
 - `doc/paper_delivery_closure_20260306.md`
 - `doc/solar_ablation_summary_20260304.csv`
@@ -1160,6 +1179,97 @@
 - phase: `01-data-pipeline`
 - kind: `data_pipeline`
 
+### 2026-03-14_084300_2aebdefe
+
+- phase: `04-baselines-pysr`
+- kind: `pysr`
+
+### 2026-03-14_084748_eb4bbc69
+
+- phase: `04-baselines-pysr`
+- kind: `pysr`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/eval_test.json`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/eval_test_reconstructed.json`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/equations.csv`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/best_equation.txt`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/predictions_test.parquet`
+- `runs/2026-03-14_084748_eb4bbc69/artifacts/predictions_test_reconstructed.parquet`
+
+### 20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/eval_test_reconstructed.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula_eval_test.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula_reconstructed.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula_reconstructed.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/formula_metrics.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/predictions_test.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/predictions_test_reconstructed.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_99/artifacts/separability.json`
+
+### 20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/eval_test_reconstructed.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula_eval_test.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula_reconstructed.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula_reconstructed.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/formula_metrics.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/predictions_test.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/predictions_test_reconstructed.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_poly4_r2_0_999/artifacts/separability.json`
+
+### 20260309_modal_direct_fullflow__sym_strict_r2_0_98
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/eval_test_reconstructed.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula_eval_test.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula_reconstructed.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula_reconstructed.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/formula_metrics.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/predictions_test.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/predictions_test_reconstructed.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_98/artifacts/separability.json`
+
+### 20260309_modal_direct_fullflow__sym_strict_r2_0_99
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/eval_test_reconstructed.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula_eval_test.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula_reconstructed.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula_reconstructed.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/formula_metrics.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/predictions_test.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/predictions_test_reconstructed.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99/artifacts/separability.json`
+
+### 20260309_modal_direct_fullflow__sym_strict_r2_0_995
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/eval_test_reconstructed.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula_eval_test.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula_reconstructed.tex`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula_reconstructed.sympy.txt`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/formula_metrics.json`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/predictions_test.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/predictions_test_reconstructed.parquet`
+- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_995/artifacts/separability.json`
+
 ### 20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k
 
 - phase: `03-symbolic-extraction`
@@ -1171,7 +1281,6 @@
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/formula.sympy.txt`
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/formula_reconstructed.sympy.txt`
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/formula_metrics.json`
-- `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/physics_mapping.json`
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/predictions_test.parquet`
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/predictions_test_reconstructed.parquet`
 - `runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k/artifacts/separability.json`
@@ -1603,10 +1712,400 @@
 - `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
 - `runs/2026_03_02_s0s3_t4_nogrid__sym_strict_r2_0_99_2026_03_02_s0s3_t4_nogrid_s3_comp_wind_delta_h6/artifacts/separability.json`
 
+### 2026_03_20_174132_541488e1__s2b_wind_blocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_blocked_seed1`
+- manifest: `doc/thesis_sweeps/2026-03-20_174132_541488e1/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id 2026_03_20_174132_541488e1__s2b_wind_blocked_seed1 --kind s2b_wind_blocked_seed1 --target delta_wind_h6 --hidden-width 10 --max-train-rows 50000 --include-groups cyclic,meteo_wind --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --seed 1 --use-gpu`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_blocked_seed1/artifacts/eval_pruned.json`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_blocked_seed1/artifacts/predictions_test.parquet`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_blocked_seed1/artifacts/feature_importance.csv`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_blocked_seed1/artifacts/sparsity.json`
+
+### 2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_unblocked_seed1`
+- manifest: `doc/thesis_sweeps/2026-03-20_174132_541488e1/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id 2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1 --kind s2b_wind_unblocked_seed1 --target delta_wind_h6 --hidden-width 10 --max-train-rows 50000 --include-groups cyclic,meteo_wind --lag-series wind --lag-steps 24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --seed 1 --use-gpu`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1/artifacts/eval_pruned.json`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1/artifacts/predictions_test.parquet`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1/artifacts/feature_importance.csv`
+- `runs/2026_03_20_174132_541488e1__s2b_wind_unblocked_seed1/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_direct_blocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed1`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed1/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed1/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed1/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed1/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_direct_blocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed2`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed2/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed2/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed2/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed2/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_direct_blocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed3`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed3/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed3/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed3/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed3/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_direct_blocked_seed4
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed4`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed4/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed4/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed4/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed4/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_direct_blocked_seed5
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed5`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed5/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed5/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed5/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_direct_blocked_seed5/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_blocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_blocked_seed2`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed2/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed2/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed2/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed2/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_blocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_blocked_seed3`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed3/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed3/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed3/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed3/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_blocked_seed4
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_blocked_seed4`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed4/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed4/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed4/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed4/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_blocked_seed5
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_blocked_seed5`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed5/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed5/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed5/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_blocked_seed5/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_unblocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_unblocked_seed2`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed2/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed2/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed2/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed2/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_unblocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_unblocked_seed3`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed3/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed3/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed3/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed3/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_unblocked_seed4
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_unblocked_seed4`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed4/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed4/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed4/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed4/artifacts/sparsity.json`
+
+### 2026_03_21_s2b__s2b_wind_unblocked_seed5
+
+- phase: `02-kan-training`
+- kind: `s2b_wind_unblocked_seed5`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed5/artifacts/eval_pruned.json`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed5/artifacts/predictions_test.parquet`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed5/artifacts/feature_importance.csv`
+- `runs/2026_03_21_s2b__s2b_wind_unblocked_seed5/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_blocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed1`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_blocked_seed1 --kind s2b_direct_blocked_seed1 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 1`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed1/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed1/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed1/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed1/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_blocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed2`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_blocked_seed2 --kind s2b_direct_blocked_seed2 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 2`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed2/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed2/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed2/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed2/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_blocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_seed3`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_blocked_seed3 --kind s2b_direct_blocked_seed3 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 3`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed3/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed3/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed3/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_blocked_seed3/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_unblocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_seed1`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_unblocked_seed1 --kind s2b_direct_unblocked_seed1 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load,wind,solar --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 1`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed1/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed1/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed1/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed1/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_unblocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_seed2`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_unblocked_seed2 --kind s2b_direct_unblocked_seed2 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load,wind,solar --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 2`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed2/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed2/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed2/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed2/artifacts/sparsity.json`
+
+### case4_fix_20260417__s2b_direct_unblocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_seed3`
+- manifest: `doc/thesis_sweeps/case4_fix_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_fix_20260417__s2b_direct_unblocked_seed3 --kind s2b_direct_unblocked_seed3 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series load,wind,solar --lag-steps 12,24,48 --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 3`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed3/artifacts/eval_pruned.json`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed3/artifacts/predictions_test.parquet`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed3/artifacts/feature_importance.csv`
+- `runs/case4_fix_20260417__s2b_direct_unblocked_seed3/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_blocked_v2_seed1_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_v2_seed1_cpu`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed1_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed1_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_blocked_v2_seed2_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_v2_seed2_cpu`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed2_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed2_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_blocked_v2_seed3_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_v2_seed3_cpu`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed3_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed3_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_blocked_v2_seed4_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_v2_seed4_cpu`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed4_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed4_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_blocked_v2_seed5_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_blocked_v2_seed5_cpu`
+- `runs/case4_matched_20260417__s2b_direct_blocked_v2_seed5_cpu/artifacts/eval_pruned.json`
+
+### case4_matched_20260417__s2b_direct_unblocked_v2_seed1_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_v2_seed1_cpu`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed1_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed1_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_unblocked_v2_seed2_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_v2_seed2_cpu`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed2_cpu/artifacts/eval_pruned.json`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed2_cpu/artifacts/sparsity.json`
+
+### case4_matched_20260417__s2b_direct_unblocked_v2_seed3_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_v2_seed3_cpu`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed3_cpu/artifacts/eval_pruned.json`
+
+### case4_matched_20260417__s2b_direct_unblocked_v2_seed4_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_v2_seed4_cpu`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed4_cpu/artifacts/eval_pruned.json`
+
+### case4_matched_20260417__s2b_direct_unblocked_v2_seed5_cpu
+
+- phase: `02-kan-training`
+- kind: `s2b_direct_unblocked_v2_seed5_cpu`
+- `runs/case4_matched_20260417__s2b_direct_unblocked_v2_seed5_cpu/artifacts/eval_pruned.json`
+
+### case4_strongblock_20260417__s2c_direct_fully_blocked_seed1
+
+- phase: `02-kan-training`
+- kind: `s2c_direct_fully_blocked_seed1`
+- manifest: `doc/thesis_sweeps/case4_strongblock_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_strongblock_20260417__s2c_direct_fully_blocked_seed1 --kind s2c_direct_fully_blocked_seed1 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 1`
+- `runs/case4_strongblock_20260417__s2c_direct_fully_blocked_seed1/artifacts/eval_pruned.json`
+- `runs/case4_strongblock_20260417__s2c_direct_fully_blocked_seed1/artifacts/predictions_test.parquet`
+- `runs/case4_strongblock_20260417__s2c_direct_fully_blocked_seed1/artifacts/feature_importance.csv`
+- `runs/case4_strongblock_20260417__s2c_direct_fully_blocked_seed1/artifacts/sparsity.json`
+
+### case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2
+
+- phase: `02-kan-training`
+- kind: `s2c_direct_fully_blocked_seed2`
+- manifest: `doc/thesis_sweeps/case4_strongblock_retry_20260417/manifest.json`
+- command: `/opt/homebrew/bin/modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2 --kind s2c_direct_fully_blocked_seed2 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 2`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2/artifacts/eval_pruned.json`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2/artifacts/predictions_test.parquet`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2/artifacts/feature_importance.csv`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed2/artifacts/sparsity.json`
+
+### case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3
+
+- phase: `02-kan-training`
+- kind: `s2c_direct_fully_blocked_seed3`
+- manifest: `doc/thesis_sweeps/case4_strongblock_retry_20260417/manifest.json`
+- command: `/opt/homebrew/bin/modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3 --kind s2c_direct_fully_blocked_seed3 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 3`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3/artifacts/eval_pruned.json`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3/artifacts/predictions_test.parquet`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3/artifacts/feature_importance.csv`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed3/artifacts/sparsity.json`
+
+### case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4
+
+- phase: `02-kan-training`
+- kind: `s2c_direct_fully_blocked_seed4`
+- manifest: `doc/thesis_sweeps/case4_strongblock_retry_20260417/manifest.json`
+- command: `/opt/homebrew/bin/modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4 --kind s2c_direct_fully_blocked_seed4 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 4`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4/artifacts/eval_pruned.json`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4/artifacts/predictions_test.parquet`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4/artifacts/feature_importance.csv`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed4/artifacts/sparsity.json`
+
+### case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5
+
+- phase: `02-kan-training`
+- kind: `s2c_direct_fully_blocked_seed5`
+- manifest: `doc/thesis_sweeps/case4_strongblock_retry_20260417/manifest.json`
+- command: `/opt/homebrew/bin/modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py --data-run-id paperref_20260306_121725__derived_h1_6 --run-id case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5 --kind s2c_direct_fully_blocked_seed5 --target delta_net_load_h6 --hidden-width 10 --max-train-rows 50000 --include-groups meteorology,solar,cyclic --lag-series none --lag-steps none --warmup-steps 200 --sparsify-steps 800 --refine-steps 200 --no-include-base --no-warmup-update-grid --seed 5`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5/artifacts/eval_pruned.json`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5/artifacts/predictions_test.parquet`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5/artifacts/feature_importance.csv`
+- `runs/case4_strongblock_retry_20260417__s2c_direct_fully_blocked_seed5/artifacts/sparsity.json`
+
+### demo_midterm_chain_verify_20260412
+
+- phase: `02-kan-training`
+- kind: `demo_quick_train`
+- `runs/demo_midterm_chain_verify_20260412/artifacts/eval_pruned.json`
+- `runs/demo_midterm_chain_verify_20260412/artifacts/predictions_test.parquet`
+- `runs/demo_midterm_chain_verify_20260412/artifacts/feature_importance.csv`
+- `runs/demo_midterm_chain_verify_20260412/artifacts/sparsity.json`
+
+### demo_midterm_chain_verify_20260412__baseline_mlp
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/demo_midterm_chain_verify_20260412__baseline_mlp/artifacts/eval_test.json`
+- `runs/demo_midterm_chain_verify_20260412__baseline_mlp/artifacts/predictions_test.parquet`
+
+### demo_midterm_live
+
+- phase: `02-kan-training`
+- kind: `demo_quick_train`
+- `runs/demo_midterm_live/artifacts/eval_pruned.json`
+- `runs/demo_midterm_live/artifacts/predictions_test.parquet`
+- `runs/demo_midterm_live/artifacts/feature_importance.csv`
+- `runs/demo_midterm_live/artifacts/sparsity.json`
+
+### demo_midterm_live__baseline_mlp
+
+- phase: `04-baselines-torch`
+- kind: `mlp`
+- `runs/demo_midterm_live__baseline_mlp/artifacts/eval_test.json`
+- `runs/demo_midterm_live__baseline_mlp/artifacts/predictions_test.parquet`
+
+### demo_midterm_verify_20260412
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/demo_midterm_verify_20260412/artifacts/formula_eval_test.json`
+- `runs/demo_midterm_verify_20260412/artifacts/formula.tex`
+- `runs/demo_midterm_verify_20260412/artifacts/formula.sympy.txt`
+- `runs/demo_midterm_verify_20260412/artifacts/formula_metrics.json`
+- `runs/demo_midterm_verify_20260412/artifacts/predictions_test.parquet`
+- `runs/demo_midterm_verify_20260412/artifacts/separability.json`
+
+### demo_train_verify_20260412
+
+- phase: `02-kan-training`
+- kind: `demo_quick_train`
+- `runs/demo_train_verify_20260412/artifacts/eval_pruned.json`
+- `runs/demo_train_verify_20260412/artifacts/predictions_test.parquet`
+- `runs/demo_train_verify_20260412/artifacts/feature_importance.csv`
+- `runs/demo_train_verify_20260412/artifacts/sparsity.json`
+
 ### detached_verify_20260226__kan_train__physics_first_exogenous_only_cpu
 
 - phase: `02-kan-training`
 - kind: `kan`
+
+### hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3
+
+- phase: `05-structured-combination`
+- kind: `net_load_from_components`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/eval_test.json`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/formula_eval_test.json`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/formula_combined.tex`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/formula_combined.sympy.txt`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/formula_combined_metrics.json`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/predictions_test.parquet`
+- `runs/hybrid_formula_probe_20260417__load_s3_wind_s0p_solar_s3/artifacts/predictions_test_formula.parquet`
 
 ### local_tune7_20260303_solar_hw60_g5_k3_l001_e3_fast_mtr5000
 
@@ -1639,6 +2138,18 @@
 - `runs/locate_20260303_s4_pure_solar_abs_h6/artifacts/predictions_test.parquet`
 - `runs/locate_20260303_s4_pure_solar_abs_h6/artifacts/feature_importance.csv`
 - `runs/locate_20260303_s4_pure_solar_abs_h6/artifacts/sparsity.json`
+
+### modal_verify_20260417_s3_combo_net_load
+
+- phase: `05-structured-combination`
+- kind: `net_load_from_components`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/eval_test.json`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/formula_eval_test.json`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/formula_combined.tex`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/formula_combined.sympy.txt`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/formula_combined_metrics.json`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/predictions_test.parquet`
+- `runs/modal_verify_20260417_s3_combo_net_load/artifacts/predictions_test_formula.parquet`
 
 ### paperref_20260306_121725__derived_h1_6
 
@@ -1702,7 +2213,12 @@
 - phase: `05-structured-combination`
 - kind: `net_load_from_components`
 - `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/eval_test.json`
+- `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/formula_eval_test.json`
+- `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/formula_combined.tex`
+- `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/formula_combined.sympy.txt`
+- `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/formula_combined_metrics.json`
 - `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/predictions_test.parquet`
+- `runs/paperref_20260306_121725_v2__s3_combo_net_load/artifacts/predictions_test_formula.parquet`
 
 ### paperref_20260306_121725_v2__s3_comp_load_delta_h6
 
@@ -2216,6 +2732,47 @@
 - `runs/s0a_physics_v2__s0a_wind_delta_h6/artifacts/feature_importance.csv`
 - `runs/s0a_physics_v2__s0a_wind_delta_h6/artifacts/sparsity.json`
 
+### s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula_eval_test.json`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula.tex`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula.sympy.txt`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/formula_metrics.json`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/predictions_test.parquet`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/s3_formula_grid_20260417__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_load_delta_h6/artifacts/separability.json`
+
+### s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/s3_formula_grid_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib 'x,x^2,x^3,sin,cos,abs'`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/s3_formula_grid_20260417/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib 'x,x^2,x^3,sin,cos,abs'`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/s3_formula_grid_20260417__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
 ### s3_saveact_fix__s0p_solar_delta_h6
 
 - phase: `02-kan-training`
@@ -2310,6 +2867,783 @@
 - `runs/s4_pure_v5__s4_pure_wind_abs_h6/artifacts/predictions_test.parquet`
 - `runs/s4_pure_v5__s4_pure_wind_abs_h6/artifacts/feature_importance.csv`
 - `runs/s4_pure_v5__s4_pure_wind_abs_h6/artifacts/sparsity.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs,exp' --safe-exp-clip 10.0 --eval-clip-quantiles 0.01,0.99`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_medium_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.999 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.999 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.999 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.999 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.999 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_999_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,x^4,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_poly4_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.98 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_98_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.995 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_995_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s0p_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s0p_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s1_delta_net_load_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s1_delta_net_load_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_solar_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_solar_delta_h6/artifacts/separability.json`
+
+### symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6
+
+- phase: `03-symbolic-extraction`
+- kind: `kan_symbolic`
+- manifest: `doc/thesis_sweeps/symbolic_cpu24h_detached_v2_20260418/manifest.json`
+- command: `modal run -d /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py::extract_symbolic_cpu_cli --train-run-id paperref_20260306_121725_v2__s3_comp_wind_delta_h6 --run-id symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6 --r2-threshold 0.99 --weight-simple 0.9 --sample-rows 20000 --lib-csv 'x,x^2,x^3,sin,cos,abs'`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/eval_test_reconstructed.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_eval_test.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.tex`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_reconstructed.sympy.txt`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/formula_metrics.json`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/predictions_test_reconstructed.parquet`
+- `runs/symbolic_cpu24h_detached_v2_20260418__sym_strict_r2_0_99_paperref_20260306_121725_v2_s3_comp_wind_delta_h6/artifacts/separability.json`
+
+### symbolic_refresh_20260418__s3_combo_net_load_probe
+
+- phase: `05-structured-combination`
+- kind: `net_load_from_components`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/eval_test.json`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/formula_eval_test.json`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/formula_combined.tex`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/formula_combined.sympy.txt`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/formula_combined_metrics.json`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/predictions_test.parquet`
+- `runs/symbolic_refresh_20260418__s3_combo_net_load_probe/artifacts/predictions_test_formula.parquet`
 
 ### todoS1_20260303_solar_hw50_g5_k3_l0014_e3_pr085_rm105_req_nwug
 

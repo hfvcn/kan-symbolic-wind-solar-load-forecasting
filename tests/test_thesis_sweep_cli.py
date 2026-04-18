@@ -50,6 +50,49 @@ class TestThesisSweepCli(unittest.TestCase):
         self.assertTrue(kan_cmds)
         self.assertTrue(all("--data-timestamp" not in cmd for cmd in kan_cmds))
 
+    def test_plan_s2b_uses_canonical_no_base_direct_pairs(self) -> None:
+        from src.thesis_sweep.plan_kan import plan_s2b
+
+        args = self._make_args(sweeps="s2b")
+        planned, _mapping = plan_s2b(args, session_id="paperref", detached=False, derived_id="derived_run")
+
+        direct_unblocked = [p for p in planned if "s2b_direct_unblocked_seed" in p.run_id]
+        direct_blocked = [p for p in planned if "s2b_direct_blocked_seed" in p.run_id]
+
+        self.assertEqual(len(direct_unblocked), 5)
+        self.assertEqual(len(direct_blocked), 5)
+
+        sample_unblocked = " ".join(direct_unblocked[0].cmd)
+        sample_blocked = " ".join(direct_blocked[0].cmd)
+
+        self.assertIn("--target delta_net_load_h6", sample_unblocked)
+        self.assertIn("--no-include-base", sample_unblocked)
+        self.assertIn("--no-warmup-update-grid", sample_unblocked)
+        self.assertIn("--lag-series load,wind,solar", sample_unblocked)
+
+        self.assertIn("--target delta_net_load_h6", sample_blocked)
+        self.assertIn("--no-include-base", sample_blocked)
+        self.assertIn("--no-warmup-update-grid", sample_blocked)
+        self.assertIn("--lag-series load", sample_blocked)
+        self.assertNotIn("--lag-series load,wind,solar", sample_blocked)
+
+    def test_plan_s2c_uses_full_lag_blocking_direct_runs(self) -> None:
+        from src.thesis_sweep.plan_kan import plan_s2c
+
+        args = self._make_args(sweeps="s2c")
+        planned, _mapping = plan_s2c(args, session_id="paperref", detached=False, derived_id="derived_run")
+
+        direct_fully_blocked = [p for p in planned if "s2c_direct_fully_blocked_seed" in p.run_id]
+
+        self.assertEqual(len(direct_fully_blocked), 5)
+
+        sample_blocked = " ".join(direct_fully_blocked[0].cmd)
+        self.assertIn("--target delta_net_load_h6", sample_blocked)
+        self.assertIn("--no-include-base", sample_blocked)
+        self.assertIn("--no-warmup-update-grid", sample_blocked)
+        self.assertIn("--lag-series none", sample_blocked)
+        self.assertIn("--lag-steps none", sample_blocked)
+
 
 if __name__ == "__main__":
     unittest.main()

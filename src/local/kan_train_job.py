@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +17,7 @@ from src.local.kan_train_prepare import (
     prepare_data,
 )
 from src.local.kan_train_prune import apply_prune, search_best_prune
-from src.local.run_contract import ensure_run_dirs, utc_run_id, write_json
+from src.local.run_contract import ensure_run_dirs, mark_payload_completed, utc_run_id, write_json
 
 
 @dataclass(frozen=True)
@@ -154,7 +153,6 @@ def _prune_and_refine(
     model = apply_prune(ctx.model, ctx.prepared.dataset, record=best)
     sparsity_final = compute_edge_sparsity(model).as_dict()
     write_json(Path(ctx.dirs.artifacts_dir) / "sparsity.json", {"best_candidate": best.candidate, **sparsity_final})
-    write_json(Path(ctx.dirs.artifacts_dir) / "eval_pruned.json", best.eval_val)
 
     fit_in_chunks(
         model,
@@ -171,6 +169,17 @@ def _prune_and_refine(
     return model, best, sparsity_final, model_width
 
 
+def _write_final_pruned_eval(ctx: KanTrainContext, *, model) -> dict[str, float]:
+    eval_pruned = evaluate(
+        model,
+        ctx.prepared.dataset["test_input"],
+        ctx.prepared.dataset["test_label"],
+        target_scaler=ctx.prepared.target_scaler,
+    )
+    write_json(Path(ctx.dirs.artifacts_dir) / "eval_pruned.json", eval_pruned)
+    return eval_pruned
+
+
 def _finalize(
     ctx: KanTrainContext,
     *,
@@ -181,17 +190,16 @@ def _finalize(
     sparsity: dict[str, float | int],
     model_width: list[list[int]],
 ) -> dict[str, Any]:
+    eval_pruned = _write_final_pruned_eval(ctx, model=model)
     payload = dict(ctx.payload)
     payload["model_width"] = model_width
-    payload["completed_at"] = datetime.now(timezone.utc).isoformat()
-    payload["results"] = {
+    results = {
         "eval_unpruned": eval_unpruned,
         "eval_sparsify": eval_sparsify,
-        "eval_pruned": best.eval_val,
+        "eval_pruned": eval_pruned,
         "sparsity": sparsity,
         "prune_candidate": best.candidate,
     }
-    write_json(Path(ctx.dirs.run_dir) / "payload.json", payload)
 
     write_checkpoint(
         ckpt_path=Path(ctx.dirs.checkpoint_dir) / "model.pt",
@@ -213,7 +221,14 @@ def _finalize(
         target_scaler=ctx.prepared.target_scaler,
         device=ctx.device,
     )
-    return {"run_id": ctx.run_id, "status": "completed", "checkpoint": str(Path(ctx.dirs.checkpoint_dir) / "model.pt")}
+    final_payload = mark_payload_completed(payload, results=results)
+    write_json(Path(ctx.dirs.run_dir) / "payload.json", final_payload)
+    return {
+        "run_id": ctx.run_id,
+        "status": str(final_payload["status"]),
+        "finished_at": str(final_payload["finished_at"]),
+        "checkpoint": str(Path(ctx.dirs.checkpoint_dir) / "model.pt"),
+    }
 
 
 def train_kan_local(
