@@ -55,3 +55,6 @@ pr_temp.json
 
 # Word temp files
 ~$*.docx
+
+# Thesis LaTeX source (not open-sourced)
+doc/paper-latex/
