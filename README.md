@@ -143,20 +143,6 @@ This project uses the [ARPA-E PERFORM](https://arpa-e.energy.gov/technologies/pr
 pytest tests/
 ```
 
-## Citation
-
-If you use this code in your research, please cite:
-
-```bibtex
-@thesis{kan_sr_2026,
-  title={面向符号可解释性的KAN风光耦合负荷预测方法研究},
-  author={vfch},
-  year={2026},
-  school={University},
-  type={Bachelor's Thesis}
-}
-```
-
 ## License
 
 [MIT](LICENSE)
