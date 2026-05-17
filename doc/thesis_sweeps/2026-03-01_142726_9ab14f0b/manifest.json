@@ -1,0 +1,195 @@
+{
+  "session_id": "2026-03-01_142726_9ab14f0b",
+  "created_at": "2026-03-01T14:27:26.325367+00:00",
+  "volume_name": "kan-sr",
+  "dry_run": false,
+  "detached_remote": false,
+  "auto_sync": true,
+  "source_data_run_id": "2026-02-26_032058_1957fda1",
+  "source_timestamp": null,
+  "derived_data_run_id": "2026_03_01_142726_9ab14f0b__derived_h1_6_12_24",
+  "planned": [
+    {
+      "name": "derive_dataset",
+      "run_id": "2026_03_01_142726_9ab14f0b__derived_h1_6_12_24",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/derive_dataset.py",
+        "--source-data-run-id",
+        "2026-02-26_032058_1957fda1",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__derived_h1_6_12_24",
+        "--horizon-steps",
+        "1,6,12,24",
+        "--net-load-lag-steps",
+        "1,12,48"
+      ]
+    },
+    {
+      "name": "kan_train",
+      "run_id": "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/kan_train.py",
+        "--data-run-id",
+        "2026_03_01_142726_9ab14f0b__derived_h1_6_12_24",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--kind",
+        "s1_delta_net_load_h6",
+        "--target",
+        "delta_net_load_h6",
+        "--hidden-width",
+        "10",
+        "--max-train-rows",
+        "50000",
+        "--include-groups",
+        "meteorology,solar,cyclic",
+        "--lag-series",
+        "load,wind,solar",
+        "--lag-steps",
+        "12,24,48",
+        "--warmup-steps",
+        "200",
+        "--sparsify-steps",
+        "800",
+        "--refine-steps",
+        "200",
+        "--hidden-layers",
+        "32,32",
+        "--use-gpu"
+      ]
+    },
+    {
+      "name": "baseline_torch",
+      "run_id": "2026_03_01_142726_9ab14f0b__baseline_torch_mlp_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/baseline_torch.py",
+        "--data-run-id",
+        "2026_03_01_142726_9ab14f0b__derived_h1_6_12_24",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__baseline_torch_mlp_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+        "--model-type",
+        "mlp",
+        "--target",
+        "delta_net_load_h6",
+        "--match-kan-run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--sync-kan-feature-cols",
+        "--sync-kan-budget",
+        "--patience",
+        "0",
+        "--max-train-rows",
+        "200000",
+        "--use-gpu"
+      ]
+    },
+    {
+      "name": "kan_symbolic",
+      "run_id": "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py",
+        "--train-run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+        "--r2-threshold",
+        "0.995",
+        "--weight-simple",
+        "0.9",
+        "--sample-rows",
+        "20000",
+        "--lib",
+        "x,x^2,x^3,sin,cos,abs",
+        "--use-gpu"
+      ]
+    },
+    {
+      "name": "kan_symbolic",
+      "run_id": "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py",
+        "--train-run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+        "--r2-threshold",
+        "0.999",
+        "--weight-simple",
+        "0.9",
+        "--sample-rows",
+        "20000",
+        "--lib",
+        "x,x^2,x^3,sin,cos,abs",
+        "--use-gpu"
+      ]
+    },
+    {
+      "name": "kan_symbolic",
+      "run_id": "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py",
+        "--train-run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+        "--r2-threshold",
+        "0.995",
+        "--weight-simple",
+        "0.9",
+        "--sample-rows",
+        "20000",
+        "--lib",
+        "x,x^2,x^3,sin,cos,abs,exp",
+        "--use-gpu"
+      ]
+    },
+    {
+      "name": "kan_symbolic",
+      "run_id": "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "cmd": [
+        "modal",
+        "run",
+        "/Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py",
+        "--train-run-id",
+        "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6",
+        "--run-id",
+        "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+        "--r2-threshold",
+        "0.999",
+        "--weight-simple",
+        "0.9",
+        "--sample-rows",
+        "20000",
+        "--lib",
+        "x,x^2,x^3,sin,cos,abs,exp",
+        "--use-gpu"
+      ]
+    }
+  ],
+  "runs": {
+    "kan_train": [
+      "2026_03_01_142726_9ab14f0b__s1_delta_net_load_h6"
+    ],
+    "baselines": [
+      "2026_03_01_142726_9ab14f0b__baseline_torch_mlp_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6"
+    ],
+    "symbolic": [
+      "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "2026_03_01_142726_9ab14f0b__sym_strict_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_995_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6",
+      "2026_03_01_142726_9ab14f0b__sym_medium_r2_0_999_2026_03_01_142726_9ab14f0b_s1_delta_net_load_h6"
+    ]
+  },
+  "structured_components": {}
+}

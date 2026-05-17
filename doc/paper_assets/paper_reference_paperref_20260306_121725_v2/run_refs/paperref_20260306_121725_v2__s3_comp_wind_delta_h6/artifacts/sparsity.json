@@ -1,0 +1,9 @@
+{
+  "best_candidate": {
+    "node_th": 0.01,
+    "edge_th": 0.002
+  },
+  "total_edges": 48,
+  "pruned_edges": 13,
+  "pruned_ratio": 0.2708333333333333
+}

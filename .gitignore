@@ -1,13 +1,60 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
 .venv/
+venv/
 .env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Jupyter
 .ipynb_checkpoints/
 
-# Local artifacts (synced from Modal Volume)
+# Testing & Linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Local artifacts (synced from Modal Volume, not committed)
 runs/
 /data/
 checkpoints/
 results/
+exp/
 
+# Temporary files
+tmp/
+*.tmp
+$tmpdir
+
+# Large generated assets
+*.parquet
+met_temp.csv
+ep_temp.json
+pr_temp.json
+
+# Codex/AI task files
+.codex-tasks/
+
+# Claude Code local settings (not needed for other users)
+.claude/settings.local.json
+
+# Word temp files
+~$*.docx
+
+# Thesis LaTeX source (not open-sourced)
+doc/paper-latex/

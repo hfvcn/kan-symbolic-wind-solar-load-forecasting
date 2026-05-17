@@ -29,6 +29,38 @@ DEFAULT_SYMBOLIC_LIB: tuple[str, ...] = (
 )
 
 
+def prime_symbolic_activations(
+    model: Any,
+    x_sample: Any,
+    *,
+    device_name: str,
+    torch_mod: Any,
+    logger_obj: logging.Logger | None = None,
+) -> tuple[Any, Any]:
+    device_s = str(device_name).strip().lower()
+    if device_s not in {"cpu", "cuda"}:
+        raise ValueError(f"device_name must be 'cpu' or 'cuda', got: {device_name!r}")
+    if device_s == "cuda":
+        if logger_obj is not None:
+            logger_obj.info("Running forward on GPU to get activations...")
+        with torch_mod.no_grad():
+            _ = model(x_sample)
+        if logger_obj is not None:
+            logger_obj.info("Moving model to CPU for symbolic extraction (SymPy / fitting is CPU-only and slow on GPU)...")
+        model = model.to("cpu")
+        if hasattr(model, "device"):
+            model.device = "cpu"
+        for layer in getattr(model, "symbolic_fun", []):
+            if hasattr(layer, "to"):
+                layer.to("cpu")
+            if hasattr(layer, "device"):
+                layer.device = "cpu"
+        x_sample = x_sample.to("cpu")
+    with torch_mod.no_grad():
+        _ = model(x_sample)
+    return model, x_sample
+
+
 @dataclass(frozen=True)
 class SymbolicEdgeFit:
     layer: int
@@ -84,6 +116,7 @@ def extract_symbolic_edges(
     r2_threshold: float = 0.99,
     weight_simple: float = 0.9,
     fix_below_threshold_to_zero: bool = False,
+    force_fix_all: bool = False,
     a_range: tuple[float, float] = (-10, 10),
     b_range: tuple[float, float] = (-10, 10),
 ) -> list[SymbolicEdgeFit]:
@@ -94,6 +127,9 @@ def extract_symbolic_edges(
         - `model` is expected to be a `kan.KAN` instance (MultKAN).
         - Call a forward pass on representative inputs before this function so
           internal activations are available for symbolic fitting.
+        - `force_fix_all`: fix every active edge to its best-fit function
+          regardless of R², so that symbolic_formula() includes all edges
+          instead of leaving unfixed edges as zero.
     """
     fits: list[SymbolicEdgeFit] = []
 
@@ -132,6 +168,10 @@ def extract_symbolic_edges(
                 fixed_as = ""
 
                 if float(r2) >= r2_threshold:
+                    model.fix_symbolic(l, i, j, best_name, verbose=False, log_history=False)
+                    fixed = True
+                    fixed_as = best_name
+                elif force_fix_all:
                     model.fix_symbolic(l, i, j, best_name, verbose=False, log_history=False)
                     fixed = True
                     fixed_as = best_name
@@ -185,7 +225,10 @@ def build_symbolic_formula(
     if not formula_list:
         raise ValueError("symbolic_formula returned empty output list")
     expr = formula_list[0]
-    return sp.simplify(expr)
+    # NOTE: Avoid sp.simplify() here: it can hang indefinitely on large multi-variable
+    # KAN expressions (e.g. trigsimp blow-ups). Keep the raw SymPy expression and let
+    # callers decide if/when to simplify.
+    return expr
 
 
 def evaluate_symbolic_formula(
@@ -193,12 +236,46 @@ def evaluate_symbolic_formula(
     *,
     feature_cols: list[str],
     x_df,
+    input_clip: dict[str, tuple[float, float]] | None = None,
+    safe_exp_clip: float | None = None,
 ) -> np.ndarray:
     """
     Vectorized evaluation of a SymPy expression on a DataFrame.
     """
-    f = sp.lambdify(feature_cols, expr, modules="numpy")
-    args = [np.asarray(x_df[c].to_numpy()) for c in feature_cols]
-    pred = f(*args)
-    return np.asarray(pred, dtype=np.float64).reshape(-1)
+    safe_exp_clip_f: float | None = None
+    if safe_exp_clip is not None:
+        safe_exp_clip_f = float(safe_exp_clip)
+        if safe_exp_clip_f <= 0:
+            safe_exp_clip_f = None
 
+    def safe_exp(x):
+        x = np.asarray(x, dtype=np.float64)
+        if safe_exp_clip_f is not None:
+            x = np.clip(x, -safe_exp_clip_f, safe_exp_clip_f)
+        return np.exp(x)
+
+    modules: Any = "numpy"
+    if safe_exp_clip_f is not None:
+        modules = [{"exp": safe_exp}, "numpy"]
+
+    f = sp.lambdify(feature_cols, expr, modules=modules)
+
+    args = []
+    for c in feature_cols:
+        arr = np.asarray(x_df[c].to_numpy())
+        if input_clip is not None and c in input_clip:
+            lo, hi = input_clip[c]
+            arr = np.clip(arr, float(lo), float(hi))
+        args.append(arr)
+    pred = f(*args)
+    arr = np.asarray(pred, dtype=np.float64)
+
+    n = int(len(x_df))
+    if arr.ndim == 0:
+        return np.full(n, float(arr))
+    arr = arr.reshape(-1)
+    if arr.size == 1 and n != 1:
+        return np.full(n, float(arr.item()))
+    if arr.size != n:
+        raise ValueError(f"Symbolic formula eval length mismatch: got={arr.size} expected={n}")
+    return arr

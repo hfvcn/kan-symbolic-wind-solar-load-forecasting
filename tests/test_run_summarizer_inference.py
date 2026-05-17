@@ -32,6 +32,76 @@ class TestRunSummarizerInference(unittest.TestCase):
             self.assertEqual(s.kind, "kan")
             self.assertAlmostEqual(float(s.rmse or 0.0), 1.0, places=6)
 
+    def test_prefers_reconstructed_predictions_when_present(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "delta_run"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "delta_run", "phase": "02-kan-training", "kind": "kan", "cfg": {"target_col": "delta_load"}}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            # Baseline file (worse)
+            pd.DataFrame({"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 0.0, 0.0], "residual": [0.0, -1.0, -2.0]}).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+            # Reconstructed file (perfect)
+            pd.DataFrame({"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 1.0, 2.0], "residual": [0.0, 0.0, 0.0]}).to_parquet(
+                artifacts / "predictions_test_reconstructed.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertIsNotNone(s.rmse)
+            self.assertAlmostEqual(float(s.rmse), 0.0, places=12)
+
+    def test_skill_score_vs_persistence(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "kan_train"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "kan_train", "phase": "02-kan-training", "kind": "kan"}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            pd.DataFrame(
+                {"y_true": [0.0, 1.0, 2.0], "y_pred": [0.0, 1.0, 2.0], "residual": [0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertAlmostEqual(float(s.rmse_persistence or 0.0), 1.0, places=12)
+            self.assertAlmostEqual(float(s.skill_score or 0.0), 1.0, places=12)
+
+    def test_skill_score_vs_persistence_horizon_h2(self) -> None:
+        from src.eval.runs import summarize_run
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "kan_train_h2"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "kan_train_h2", "phase": "02-kan-training", "kind": "kan", "cfg": {"target_col": "delta_load_h2"}}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+
+            pd.DataFrame(
+                {"y_true": [0.0, 1.0, 2.0, 3.0, 4.0], "y_pred": [0.0, 1.0, 2.0, 3.0, 4.0], "residual": [0.0, 0.0, 0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test.parquet",
+                compression="snappy",
+            )
+
+            s = summarize_run(run_dir)
+            self.assertAlmostEqual(float(s.rmse_persistence or 0.0), 2.0, places=12)
+            self.assertAlmostEqual(float(s.skill_score or 0.0), 1.0, places=12)
+
     def test_symbolic_phase_inferred_when_payload_phase_is_null(self) -> None:
         from src.eval.runs import summarize_run
 
@@ -71,6 +141,32 @@ class TestRunSummarizerInference(unittest.TestCase):
             s = summarize_run(run_dir)
             self.assertEqual(s.phase, "04-baselines-pysr")
             self.assertEqual(s.kind, "pysr_seeded")
+
+    def test_structured_combo_formula_comparison_row(self) -> None:
+        from src.eval.structured_combo import build_formula_comparison_rows
+
+        with tempfile.TemporaryDirectory() as d:
+            run_dir = Path(d) / "runs" / "combo_run"
+            artifacts = run_dir / "artifacts"
+            artifacts.mkdir(parents=True, exist_ok=True)
+
+            payload = {"run_id": "combo_run", "phase": "05-structured-combination", "target_col": "net_load_h2"}
+            (run_dir / "payload.json").write_text(json.dumps(payload))
+            (artifacts / "formula_eval_test.json").write_text(json.dumps({"rmse": 0.0, "mae": 0.0, "r2": 1.0}))
+            (artifacts / "formula_combined_metrics.json").write_text(json.dumps({"node_count": 42}))
+            pd.DataFrame(
+                {"y_true": [1.0, 2.0, 3.0], "y_pred": [1.0, 2.0, 3.0], "residual": [0.0, 0.0, 0.0]}
+            ).to_parquet(
+                artifacts / "predictions_test_formula.parquet",
+                compression="snappy",
+            )
+
+            rows = build_formula_comparison_rows([run_dir])
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["run_id"], "combo_run__formula")
+            self.assertEqual(rows[0]["kind"], "s3_composite_formula")
+            self.assertEqual(rows[0]["complexity"], 42)
+            self.assertAlmostEqual(float(rows[0]["skill_score"] or 0.0), 1.0, places=12)
 
 
 if __name__ == "__main__":

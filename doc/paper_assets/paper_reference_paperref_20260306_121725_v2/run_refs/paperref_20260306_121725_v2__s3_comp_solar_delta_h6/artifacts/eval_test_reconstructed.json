@@ -1,0 +1,11 @@
+{
+  "reconstructed_from": "delta_solar_h6",
+  "reconstructed_target": "solar",
+  "base_run_id": "2026-03-06_041802_0ad5813e",
+  "base_timestamp": "2026-03-06_041853",
+  "horizon_steps": 6,
+  "rmse": 1006.7443173813648,
+  "mae": 482.1395977684288,
+  "r2": 0.9912230974507582,
+  "n_eval": 15624
+}

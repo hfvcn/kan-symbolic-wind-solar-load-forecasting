@@ -1,0 +1,4 @@
+run_id,phase,kind,target_col,rmse,mae,r2,rmse_persistence,skill_score,complexity,complexity_name,physical_score,param_count,compute_time_s,path,pareto_optimal
+2026-03-01_144500_sym_strict_r2_0.995,03-symbolic-extraction,kan_symbolic,delta_net_load_h6,2585.6657732943,1636.1284812872382,0.9701340667198057,2585.6626113280736,-1.2228843053740945e-06,1.0,sympy_node_count,,,,runs/2026-03-01_144500_sym_strict_r2_0.995,True
+2026-03-01_143200_deep8_gpu_nogrid,02-kan-training,debug_deep8_gpu_nogrid,delta_net_load_h6,2585.6657732945073,1636.1284812817482,0.970134066719801,2585.6626113280736,-1.222884385532197e-06,0.9536423841059603,edge_pruned_ratio,,,102.754438,runs/2026-03-01_143200_deep8_gpu_nogrid,True
+2026-03-01_150000_baseline_mlp_gpu,04-baselines-torch,mlp,delta_net_load_h6,2589.6232206543314,1693.9646343547854,0.970042575152734,2585.6626114533037,-0.0015317579267626336,2574.0,param_count,,2574.0,12.436941,runs/2026-03-01_150000_baseline_mlp_gpu,False

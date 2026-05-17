@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-24)
 
 **Core value:** From data, extract human-understandable physical formulas -- not just accurate predictions, but transparent logic that grid engineers can read, verify, and trust.
-**Current focus:** Post-v1 optimization — unify hyperparameter tuning + Modal execution into one driver script; improve symbolic formula quality (especially non-trivial physical factors, not only autoregressive lags).
+**Current focus:** Post-v1 optimization — (1) keep all knobs in `scripts/experiment_driver.py`, (2) mitigate 5min persistence dominance via delta/residual and net-load targets, (3) improve symbolic formula quality so key physical factors (temp/GHI/wind) appear and pass physics checks.
 
 ## Current Position
 
 Phase: Post-v1 optimization
-Plan: Add a single-file experiment driver + run small symbolic sweeps; keep TDD (unit tests) and regenerate thesis assets as needed.
+Plan: Extend the pipeline with a derived-dataset stage (delta/net-load + engineered features), add persistence/skill evaluation, and regenerate thesis assets as optimization runs accumulate.
 Status: v1 roadmap remains verified; additional optimization runs are being added and indexed.
-Last activity: 2026-02-26 -- Added `scripts/experiment_driver.py`, exposed KAN train/symbolic tunable knobs, fixed Phase 2 metric summarization to prefer TEST predictions, and ran a symbolic sweep on the best preliminary KAN train run.
+Last activity: 2026-02-27 -- Added `modal_jobs/derive_dataset.py` (net_load/delta targets + engineered proxy features), added delta-run reconstruction + persistence/skill metrics in evaluation, extended physics mapping for net-load, and integrated these into `scripts/experiment_driver.py`.
 
 Progress:
 - Implementation: [██████████] 18/18 plans code complete

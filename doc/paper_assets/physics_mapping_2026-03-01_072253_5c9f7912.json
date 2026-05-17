@@ -1,0 +1,26 @@
+{
+  "target_col": "delta_load",
+  "base_target_col": "load",
+  "n_checks": 1,
+  "score": 1.0,
+  "checks": [
+    {
+      "name": "temp_sensitivity_present",
+      "passed": true,
+      "score": 1.0,
+      "details": {
+        "var": "temp_2m_c",
+        "derivative_summary": {
+          "var": "temp_2m_c",
+          "mean": 0.10466906793565267,
+          "median": 0.991761567525725,
+          "min": -0.991761567525725,
+          "max": 0.991761567525725,
+          "pct_positive": 0.5527692700357325,
+          "pct_negative": 0.4472307299642675,
+          "n": 15672
+        }
+      }
+    }
+  ]
+}

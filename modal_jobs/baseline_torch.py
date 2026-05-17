@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -34,6 +34,7 @@ if not logger.handlers:
 APP_NAME = "kan-sr-baselines-torch"
 DEFAULT_VOLUME_NAME = os.environ.get("KAN_SR_VOLUME", "kan-sr")
 VOLUME_MOUNT = "/vol"
+LSTM_LOG_EVERY_EPOCHS = 50
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name(DEFAULT_VOLUME_NAME, create_if_missing=True)
@@ -105,32 +106,73 @@ def _pick_lstm_hidden_for_param_target(input_dim: int, target_params: int, max_h
     return int(best_h)
 
 
+def _load_processed_splits(processed_dir: Path, *, timestamp: str | None) -> tuple[Any, Any, Any, str]:
+    from src.data.split import load_splits_from_parquet
+
+    train, val, test = load_splits_from_parquet(processed_dir, timestamp=timestamp)
+    if timestamp is not None:
+        return train, val, test, str(timestamp)
+
+    train_files = sorted(processed_dir.glob("train_*.parquet"))
+    if not train_files:
+        raise FileNotFoundError(f"No train_*.parquet found under processed_dir: {processed_dir}")
+    inferred = train_files[-1].stem.replace("train_", "")
+    return train, val, test, inferred
+
+
 @dataclass(frozen=True)
 class BaselineConfig:
     model_type: str = "mlp"  # mlp | lstm
     target_col: str = "load"
     seq_len: int = 48
     epochs: int = 50
+    lr: float = 1e-3
+    batch_size: int = 512
+    lstm_batch_size: int = 256
+    patience: int = 8
 
 
-@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600)
-def run_baseline(
+def _load_kan_payload(run_id: str) -> dict[str, Any]:
+    path = Path(VOLUME_MOUNT) / "runs" / run_id / "payload.json"
+    if not path.exists():
+        raise FileNotFoundError(f"KAN payload.json not found: {path}")
+    return json.loads(path.read_text())
+
+
+def _kan_total_steps(payload: dict[str, Any]) -> int:
+    cfg = payload.get("cfg") or {}
+    keys = ["warmup_steps", "sparsify_steps", "refine_steps"]
+    missing = [k for k in keys if k not in cfg]
+    if missing:
+        raise ValueError(f"KAN payload cfg missing steps keys: {missing}")
+    return int(cfg["warmup_steps"]) + int(cfg["sparsify_steps"]) + int(cfg["refine_steps"])
+
+
+def _run_baseline_impl(
     data_run_id: str,
     *,
     data_timestamp: str | None = None,
     run_id: str | None = None,
+    seed: int = 1,
     cfg: BaselineConfig = BaselineConfig(),
     match_kan_run_id: str | None = None,
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
     lag_steps: list[int] | None = None,
     max_train_rows: int | None = 200_000,
+    device_name: str | None = None,
 ) -> dict[str, Any]:
+    import math
+
     import numpy as np
     import torch
 
     from src.baselines.torch_models import LSTMRegressor, MLPRegressor
     from src.baselines.torch_training import make_lstm_sequences, train_mlp_regressor
-    from src.data.split import load_splits_from_parquet
     from src.kan_sr.dataset import pick_feature_columns
+
+    torch.manual_seed(seed)
+    np.random.seed(seed)
 
     run_id = run_id or _utc_run_id()
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
@@ -144,14 +186,62 @@ def run_baseline(
     payload_path = run_dir / "payload.json"
 
     processed_dir = Path(VOLUME_MOUNT) / "runs" / data_run_id / "processed"
-    train_df, val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=data_timestamp)
+    train_df, val_df, test_df, resolved_ts = _load_processed_splits(processed_dir, timestamp=data_timestamp)
+
+    kan_payload = None
+    kan_total_steps: int | None = None
+    if bool(sync_kan_feature_cols) or bool(sync_kan_budget):
+        if match_kan_run_id is None:
+            raise ValueError("sync_kan_feature_cols/sync_kan_budget requires match_kan_run_id")
+        kan_payload = _load_kan_payload(match_kan_run_id)
+        kan_data_run_id = kan_payload.get("data_run_id")
+        if kan_data_run_id is not None and str(kan_data_run_id) != str(data_run_id):
+            raise ValueError(f"KAN data_run_id mismatch: baseline={data_run_id} kan={kan_data_run_id}")
+        kan_target = (kan_payload.get("cfg") or {}).get("target_col")
+        if kan_target is not None and str(kan_target) != str(cfg.target_col):
+            raise ValueError(f"KAN target_col mismatch: baseline={cfg.target_col} kan={kan_target}")
+
+    if bool(sync_kan_budget):
+        assert kan_payload is not None
+        kan_total_steps = int(_kan_total_steps(kan_payload))
+        kan_max = kan_payload.get("max_train_rows")
+        max_train_rows = int(kan_max) if kan_max is not None else None
 
     if max_train_rows is not None and len(train_df) > max_train_rows:
         train_df = train_df.iloc[:max_train_rows].copy()
         logger.info(f"Downsampled train_df to first {max_train_rows} rows for baseline speed")
 
-    lag_steps = lag_steps or [1, 12, 48]
-    feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
+    if bool(sync_kan_budget):
+        assert kan_total_steps is not None
+        if str(cfg.model_type).strip().lower() == "mlp":
+            bs = int(cfg.batch_size)
+            if bs <= 0:
+                raise ValueError(f"batch_size must be positive, got: {cfg.batch_size}")
+            batches_per_epoch = int(math.ceil(len(train_df) / bs))
+        else:
+            n_seq = int(len(train_df) - (int(cfg.seq_len) - 1))
+            if n_seq <= 0:
+                raise ValueError(f"Not enough train rows for seq_len={cfg.seq_len}: n_train={len(train_df)}")
+            bs = int(cfg.lstm_batch_size)
+            if bs <= 0:
+                raise ValueError(f"lstm_batch_size must be positive, got: {cfg.lstm_batch_size}")
+            batches_per_epoch = int(math.ceil(n_seq / bs))
+        epochs = int(math.ceil(float(kan_total_steps) / float(batches_per_epoch)))
+        cfg = replace(cfg, epochs=epochs)
+
+    if bool(sync_kan_feature_cols):
+        assert kan_payload is not None
+        kan_feature_cols = kan_payload.get("feature_cols")
+        if not kan_feature_cols:
+            raise ValueError("KAN payload missing feature_cols")
+        missing_cols = [c for c in kan_feature_cols if c not in train_df.columns]
+        if missing_cols:
+            raise ValueError(f"KAN feature cols missing from dataset: {missing_cols[:10]}")
+        feature_cols = list(kan_feature_cols)
+        lag_steps = list(kan_payload.get("lag_steps") or [])
+    else:
+        lag_steps = lag_steps or [1, 12, 48]
+        feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
 
     # Parameter matching (optional)
     target_param_count = None
@@ -163,7 +253,15 @@ def run_baseline(
         else:
             logger.warning(f"KAN checkpoint not found for param matching: {kan_ckpt}")
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device_name is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    else:
+        device_s = str(device_name).strip().lower()
+        if device_s not in {"cpu", "cuda"}:
+            raise ValueError(f"device_name must be 'cpu' or 'cuda', got: {device_name!r}")
+        if device_s == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError("Requested CUDA device but torch.cuda.is_available() is False")
+        device = device_s
 
     X_train = train_df[feature_cols].to_numpy(dtype=np.float32)
     y_train = train_df[[cfg.target_col]].to_numpy(dtype=np.float32)
@@ -175,14 +273,28 @@ def run_baseline(
     payload = {
         "run_id": run_id,
         "phase": "04-baselines-torch",
+        "seed": int(seed),
         "cfg": asdict(cfg),
         "data_run_id": data_run_id,
-        "data_timestamp": data_timestamp,
+        "data_timestamp": resolved_ts,
         "feature_cols": feature_cols,
         "lag_steps": list(lag_steps),
         "match_kan_run_id": match_kan_run_id,
+        "sync_kan_feature_cols": bool(sync_kan_feature_cols),
+        "sync_kan_budget": bool(sync_kan_budget),
         "target_param_count": target_param_count,
         "device": device,
+        "budget_sync": (
+            None
+            if not bool(sync_kan_budget)
+            else {
+                "kan_total_steps": int(kan_total_steps or 0),
+                "batches_per_epoch": int(batches_per_epoch),
+                "epochs": int(cfg.epochs),
+                "optimizer_updates_target": int(kan_total_steps or 0),
+                "optimizer_updates_planned": int(cfg.epochs) * int(batches_per_epoch),
+            }
+        ),
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_json(payload_path, payload)
@@ -206,7 +318,10 @@ def run_baseline(
             y_test=y_test,
             device=device,
             metrics_path=metrics_path,
+            lr=float(cfg.lr),
+            batch_size=int(cfg.batch_size),
             epochs=cfg.epochs,
+            patience=int(cfg.patience),
         )
 
         torch.save({"model_state": model.state_dict(), "payload": payload}, ckpt_dir / "model.pt")
@@ -223,17 +338,16 @@ def run_baseline(
 
         # Hard constraint (PIKAN): nighttime PV must be 0 (for solar target).
         if cfg.target_col == "solar" and "is_night" in test_df.columns:
-            try:
-                from src.data.split import inverse_transform
+            from src.data.split import inverse_transform
 
-                scaler_params = json.loads(
-                    (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
-                )
-                is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-                pred = pred.copy()
-                pred[is_night_orig > 0.5] = 0.0
-            except Exception:  # noqa: BLE001
-                pass
+            scaler_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+            if not scaler_path.exists():
+                raise FileNotFoundError(f"scaler_params.json not found for solar nighttime constraint: {scaler_path}")
+            scaler_params = json.loads(scaler_path.read_text())
+
+            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+            pred = pred.copy()
+            pred[is_night_orig > 0.5] = 0.0
         import pandas as pd
 
         pd.DataFrame(
@@ -269,7 +383,7 @@ def run_baseline(
         y_test_n = (y_test_s - scaler["mean"]) / scaler["std"]
 
         model = model.to(device)
-        opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+        opt = torch.optim.Adam(model.parameters(), lr=float(cfg.lr))
         loss_fn = torch.nn.MSELoss()
 
         def eval_np(xb: np.ndarray, yb: np.ndarray) -> dict[str, float]:
@@ -284,15 +398,16 @@ def run_baseline(
         # Simple epoch loop
         best_state = None
         best_val = float("inf")
-        patience = 8
         bad = 0
+        early_stop = int(cfg.patience) > 0
 
         for epoch in range(1, cfg.epochs + 1):
             model.train()
             # mini-batch
             idx = np.random.permutation(len(X_train_s))
-            for start in range(0, len(idx), 256):
-                sl = idx[start : start + 256]
+            bs = int(cfg.lstm_batch_size)
+            for start in range(0, len(idx), bs):
+                sl = idx[start : start + bs]
                 xb = torch.tensor(X_train_s[sl], dtype=torch.float32).to(device)
                 yb = torch.tensor(y_train_n[sl], dtype=torch.float32).to(device)
                 opt.zero_grad()
@@ -302,6 +417,15 @@ def run_baseline(
                 opt.step()
 
             val_metrics = eval_np(X_val_s, y_val_n)
+            if epoch == 1 or epoch == cfg.epochs or (epoch % LSTM_LOG_EVERY_EPOCHS == 0):
+                print(
+                    (
+                        f"[torch_lstm] device={device} epoch={epoch}/{cfg.epochs} "
+                        f"val_rmse={float(val_metrics['rmse']):.6g} "
+                        f"val_r2={float(val_metrics['r2']):.6g}"
+                    ),
+                    flush=True,
+                )
             # write metrics
             is_new = not metrics_path.exists()
             with open(metrics_path, "a", newline="") as f:
@@ -322,9 +446,9 @@ def run_baseline(
                 best_val = float(val_metrics["rmse"])
                 best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
                 bad = 0
-            else:
+            elif early_stop:
                 bad += 1
-                if bad >= patience:
+                if bad >= int(cfg.patience):
                     break
 
         if best_state is not None:
@@ -344,18 +468,17 @@ def run_baseline(
 
         ts_index = test_df.index[cfg.seq_len - 1 :]
         if cfg.target_col == "solar" and "is_night" in test_df.columns:
-            try:
-                from src.data.split import inverse_transform
+            from src.data.split import inverse_transform
 
-                scaler_params = json.loads(
-                    (Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json").read_text()
-                )
-                is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
-                night_mask = is_night_orig[cfg.seq_len - 1 :] > 0.5
-                pred = pred.copy()
-                pred[night_mask] = 0.0
-            except Exception:  # noqa: BLE001
-                pass
+            scaler_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
+            if not scaler_path.exists():
+                raise FileNotFoundError(f"scaler_params.json not found for solar nighttime constraint: {scaler_path}")
+            scaler_params = json.loads(scaler_path.read_text())
+
+            is_night_orig = inverse_transform(test_df[["is_night"]], scaler_params)["is_night"].to_numpy(dtype=np.float64)
+            night_mask = is_night_orig[cfg.seq_len - 1 :] > 0.5
+            pred = pred.copy()
+            pred[night_mask] = 0.0
         pd.DataFrame(
             {"y_true": y_true, "y_pred": pred, "residual": pred - y_true},
             index=ts_index,
@@ -371,13 +494,113 @@ def run_baseline(
     return {"run_id": run_id, "status": "completed", "model_type": cfg.model_type, "artifacts_dir": str(artifacts_dir)}
 
 
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600)
+def run_baseline(
+    data_run_id: str,
+    *,
+    data_timestamp: str | None = None,
+    run_id: str | None = None,
+    seed: int = 1,
+    cfg: BaselineConfig = BaselineConfig(),
+    match_kan_run_id: str | None = None,
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
+    lag_steps: list[int] | None = None,
+    max_train_rows: int | None = 200_000,
+) -> dict[str, Any]:
+    return _run_baseline_impl(
+        data_run_id,
+        data_timestamp=data_timestamp,
+        run_id=run_id,
+        seed=int(seed),
+        cfg=cfg,
+        match_kan_run_id=match_kan_run_id,
+        sync_kan_feature_cols=bool(sync_kan_feature_cols),
+        sync_kan_budget=bool(sync_kan_budget),
+        lag_steps=lag_steps,
+        max_train_rows=max_train_rows,
+        device_name=None,
+    )
+
+
+@app.function(image=image, volumes={VOLUME_MOUNT: volume}, timeout=6 * 3600, gpu="L4")
+def run_baseline_gpu(
+    data_run_id: str,
+    *,
+    data_timestamp: str | None = None,
+    run_id: str | None = None,
+    seed: int = 1,
+    cfg: BaselineConfig = BaselineConfig(),
+    match_kan_run_id: str | None = None,
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
+    lag_steps: list[int] | None = None,
+    max_train_rows: int | None = 200_000,
+) -> dict[str, Any]:
+    return _run_baseline_impl(
+        data_run_id,
+        data_timestamp=data_timestamp,
+        run_id=run_id,
+        seed=int(seed),
+        cfg=cfg,
+        match_kan_run_id=match_kan_run_id,
+        sync_kan_feature_cols=bool(sync_kan_feature_cols),
+        sync_kan_budget=bool(sync_kan_budget),
+        lag_steps=lag_steps,
+        max_train_rows=max_train_rows,
+        device_name="cuda",
+    )
+
+
 @app.local_entrypoint()
 def main(
     data_run_id: str,
     model_type: str = "mlp",
     target: str = "load",
+    seed: int = 1,
     match_kan_run_id: Optional[str] = None,
+    sync_kan_feature_cols: bool = False,
+    sync_kan_budget: bool = False,
+    data_timestamp: str = "",
+    run_id: str = "",
+    seq_len: int = 48,
+    epochs: int = 50,
+    lr: float = 1e-3,
+    batch_size: int = 512,
+    lstm_batch_size: int = 256,
+    patience: int = 8,
+    lag_steps: str = "1,12,48",
+    max_train_rows: int = 200_000,
+    use_gpu: bool = False,
 ) -> None:
-    cfg = BaselineConfig(model_type=model_type, target_col=target)
-    result = run_baseline.remote(data_run_id, cfg=cfg, match_kan_run_id=match_kan_run_id)
+    lag_steps_list = [int(s.strip()) for s in str(lag_steps).split(",") if s.strip()]
+    max_train_rows_opt: Optional[int] = int(max_train_rows)
+    if max_train_rows_opt <= 0:
+        max_train_rows_opt = None
+    ts_opt = data_timestamp.strip() or None
+    run_id_opt = run_id.strip() or None
+
+    cfg = BaselineConfig(
+        model_type=model_type,
+        target_col=target,
+        seq_len=int(seq_len),
+        epochs=int(epochs),
+        lr=float(lr),
+        batch_size=int(batch_size),
+        lstm_batch_size=int(lstm_batch_size),
+        patience=int(patience),
+    )
+    fn = run_baseline_gpu if use_gpu else run_baseline
+    result = fn.remote(
+        data_run_id,
+        data_timestamp=ts_opt,
+        run_id=run_id_opt,
+        seed=int(seed),
+        cfg=cfg,
+        match_kan_run_id=match_kan_run_id,
+        sync_kan_feature_cols=bool(sync_kan_feature_cols),
+        sync_kan_budget=bool(sync_kan_budget),
+        lag_steps=lag_steps_list,
+        max_train_rows=max_train_rows_opt,
+    )
     print(json.dumps(result, indent=2))

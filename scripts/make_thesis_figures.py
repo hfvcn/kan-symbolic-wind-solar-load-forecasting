@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from statistics import NormalDist
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import matplotlib
+matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -172,7 +177,9 @@ def _plot_feature_importance(run_dir: Path, out_path: Path) -> None:
 
 
 def _render_formula(run_dir: Path, out_path: Path) -> None:
-    tex = run_dir / "artifacts" / "formula.tex"
+    tex = run_dir / "artifacts" / "formula_reconstructed.tex"
+    if not tex.exists():
+        tex = run_dir / "artifacts" / "formula.tex"
     if not tex.exists():
         return
     latex = tex.read_text()
@@ -287,7 +294,9 @@ def main() -> None:
 
     for run_path_str in args.run:
         run_dir = Path(run_path_str)
-        pred_path = run_dir / "artifacts" / "predictions_test.parquet"
+        pred_path = run_dir / "artifacts" / "predictions_test_reconstructed.parquet"
+        if not pred_path.exists():
+            pred_path = run_dir / "artifacts" / "predictions_test.parquet"
         if pred_path.exists():
             pred_df = pd.read_parquet(pred_path)
             _plot_timeseries(pred_df, out_dir / f"timeseries_{run_dir.name}.png", title=f"{run_dir.name} prediction vs actual")

@@ -256,8 +256,15 @@ def get_feature_groups() -> dict[str, list[str]]:
     Returns:
         Dict with keys:
             - "cyclic": Cyclic time encoding columns
-            - "solar": Solar position columns
-            - "meteorology": Meteorological proxy columns (if present)
+            - "solar": Solar position columns (union)
+            - "solar_geom": Solar geometry columns (alt/azimuth)
+            - "solar_flag": Solar flags (e.g., is_night)
+            - "meteorology": Meteorological proxy columns (union)
+            - "meteo_temp": Temperature columns
+            - "meteo_wind": Wind proxy columns
+            - "meteo_pressure": Pressure proxy columns
+            - "meteo_irradiance": Irradiance proxy columns
+            - "meteo_degree": Degree (CDD/HDD) proxy columns
             - "lag_pattern": Regex pattern for lag columns
 
     Example:
@@ -265,6 +272,14 @@ def get_feature_groups() -> dict[str, list[str]]:
         >>> cyclic_cols = [c for c in df.columns if c in groups['cyclic']]
         >>> lag_cols = [c for c in df.columns if 'lag_' in c]
     """
+    solar_geom = ["solar_altitude", "solar_azimuth"]
+    solar_flag = ["is_night"]
+    meteo_temp = ["temp_2m_c"]
+    meteo_wind = ["wind_speed_10m_m_s", "wind_speed_10m_m_s_cubed", "wind_speed_hub_est"]
+    meteo_pressure = ["surface_pressure_hpa"]
+    meteo_irradiance = ["ghi_w_m2", "ghi_day_w_m2", "ghi_temp_corr_w_m2"]
+    meteo_degree = ["cdd_18c", "hdd_18c"]
+
     return {
         "cyclic": [
             "hour_sin",
@@ -274,16 +289,21 @@ def get_feature_groups() -> dict[str, list[str]]:
             "month_sin",
             "month_cos",
         ],
-        "solar": [
-            "solar_altitude",
-            "solar_azimuth",
-            "is_night",
-        ],
+        # Fine-grained groups for ablation studies (GHI vs solar geometry, etc.)
+        "solar_geom": solar_geom,
+        "solar_flag": solar_flag,
+        "solar": [*solar_geom, *solar_flag],
+        "meteo_temp": meteo_temp,
+        "meteo_wind": meteo_wind,
+        "meteo_pressure": meteo_pressure,
+        "meteo_irradiance": meteo_irradiance,
+        "meteo_degree": meteo_degree,
         "meteorology": [
-            "temp_2m_c",
-            "wind_speed_10m_m_s",
-            "surface_pressure_hpa",
-            "ghi_w_m2",
+            *meteo_temp,
+            *meteo_wind,
+            *meteo_pressure,
+            *meteo_irradiance,
+            *meteo_degree,
         ],
         "lag_pattern": r".*_lag_\d+$",  # Regex pattern for matching lag columns
     }

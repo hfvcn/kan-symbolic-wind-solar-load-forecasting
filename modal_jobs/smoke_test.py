@@ -70,7 +70,7 @@ def square(i: int) -> int:
     return i * i
 
 
-@app.function(image=image, gpu="T4")
+@app.function(image=image, gpu="L4")
 def gpu_probe() -> dict:
     import glob
     import subprocess

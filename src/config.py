@@ -102,6 +102,12 @@ RESOLUTION_MINUTES: int = 5
 LAG_WINDOW: int = 48
 """Autoregressive lag window size. 48 steps = 4 hours at 5-min resolution."""
 
+MAX_HORIZON_HOURS: int = 48
+"""Maximum supported horizon in hours for derived targets (day-ahead to 2-day-ahead)."""
+
+MAX_HORIZON_STEPS: int = int(MAX_HORIZON_HOURS * 60 // RESOLUTION_MINUTES)
+"""Maximum supported horizon in steps (48h @ 5-min = 576)."""
+
 TRAIN_RATIO: float = 0.7
 """Training set fraction of total data."""
 

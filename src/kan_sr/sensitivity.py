@@ -6,6 +6,8 @@ from typing import Any
 import numpy as np
 import sympy as sp
 
+BASELINE_MEAN = "mean"
+
 
 @dataclass(frozen=True)
 class DerivativeSummary:
@@ -31,8 +33,10 @@ class DerivativeSummary:
         }
 
 
-def compute_partials(expr: sp.Expr, vars_: list[sp.Symbol]) -> dict[str, sp.Expr]:
-    return {v.name: sp.simplify(sp.diff(expr, v)) for v in vars_}
+def compute_partials(expr: sp.Expr, vars_: list[sp.Symbol], *, simplify: bool = False) -> dict[str, sp.Expr]:
+    if simplify:
+        return {v.name: sp.simplify(sp.diff(expr, v)) for v in vars_}
+    return {v.name: sp.diff(expr, v) for v in vars_}
 
 
 def summarize_derivative(values: np.ndarray, *, var: str) -> DerivativeSummary:
@@ -51,3 +55,55 @@ def summarize_derivative(values: np.ndarray, *, var: str) -> DerivativeSummary:
         n=int(len(v)),
     )
 
+
+def _mean_baseline(x_df, feature_cols: list[str]) -> dict[str, float]:
+    return {col: float(np.asarray(x_df[col], dtype=np.float64).mean()) for col in feature_cols}
+
+
+def feature_sensitivity(
+    expr: sp.Expr,
+    *,
+    feature_cols: list[str],
+    x_df,
+    baseline: str = BASELINE_MEAN,
+    input_clip: dict[str, tuple[float, float]] | None = None,
+    safe_exp_clip: float | None = None,
+) -> dict[str, dict[str, Any]]:
+    if baseline != BASELINE_MEAN:
+        raise ValueError(f"Unsupported baseline strategy: {baseline!r}")
+
+    from src.kan_sr.symbolic import evaluate_symbolic_formula
+
+    baseline_values = _mean_baseline(x_df, feature_cols)
+    base_pred = evaluate_symbolic_formula(
+        expr,
+        feature_cols=feature_cols,
+        x_df=x_df,
+        input_clip=input_clip,
+        safe_exp_clip=safe_exp_clip,
+    )
+
+    out: dict[str, dict[str, Any]] = {}
+    for col in feature_cols:
+        ablated_df = x_df.loc[:, feature_cols].copy()
+        ablated_df[col] = baseline_values[col]
+        ablated_pred = evaluate_symbolic_formula(
+            expr,
+            feature_cols=feature_cols,
+            x_df=ablated_df,
+            input_clip=input_clip,
+            safe_exp_clip=safe_exp_clip,
+        )
+        delta = np.abs(np.asarray(base_pred, dtype=np.float64) - np.asarray(ablated_pred, dtype=np.float64))
+        finite = delta[np.isfinite(delta)]
+        if len(finite) == 0:
+            raise ValueError(f"No finite sensitivity values for feature: {col}")
+        out[col] = {
+            "baseline_strategy": baseline,
+            "baseline_value": float(baseline_values[col]),
+            "mean_abs_delta": float(np.mean(finite)),
+            "median_abs_delta": float(np.median(finite)),
+            "max_abs_delta": float(np.max(finite)),
+            "n": int(len(finite)),
+        }
+    return out

@@ -1,0 +1,143 @@
+{
+  "run_id": "paperref_20260306_fullflow__kan_delta_net_load_h6",
+  "phase": "02-kan-training",
+  "kind": "paperref_main_kan_delta_net_load_h6",
+  "data_run_id": "paperref_20260306_fullflow__derived_h1_6_72_144_576",
+  "data_timestamp": "2026-03-06_042421",
+  "started_at": "2026-03-06T04:26:33.808583+00:00",
+  "cfg": {
+    "target_col": "delta_net_load_h6",
+    "grid_range_min": -5.0,
+    "grid_range_max": 5.0,
+    "hidden_width": 10,
+    "hidden_layers": null,
+    "grid": 5,
+    "k": 3,
+    "seed": 1,
+    "hidden_mult": 0,
+    "mult_arity": 2,
+    "warmup_steps": 200,
+    "sparsify_steps": 800,
+    "refine_steps": 200,
+    "warmup_lr": 0.01,
+    "sparsify_lr": 0.005,
+    "refine_lr": 0.5,
+    "sparsify_lamb": 0.01,
+    "sparsify_lamb_l1": 1.0,
+    "sparsify_lamb_entropy": 2.0,
+    "sparsify_lamb_coef": 0.0,
+    "sparsify_lamb_coefdiff": 0.0,
+    "target_pruned_ratio": 0.8,
+    "max_rmse_degrade_ratio": 1.1,
+    "prune_require_features": [],
+    "prune_require_strict": false,
+    "hidden_width_final": 3,
+    "hidden_mult_final": 0
+  },
+  "feature_cols": [
+    "temp_2m_c",
+    "wind_speed_10m_m_s",
+    "wind_speed_10m_m_s_cubed",
+    "wind_speed_hub_est",
+    "surface_pressure_hpa",
+    "ghi_w_m2",
+    "ghi_day_w_m2",
+    "ghi_temp_corr_w_m2",
+    "cdd_18c",
+    "hdd_18c",
+    "solar_altitude",
+    "solar_azimuth",
+    "is_night",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "load_lag_12",
+    "load_lag_24",
+    "load_lag_48",
+    "wind_lag_12",
+    "wind_lag_24",
+    "wind_lag_48",
+    "solar_lag_12",
+    "solar_lag_24",
+    "solar_lag_48"
+  ],
+  "target_scaler": {
+    "mean": -3.769159183593512,
+    "std": 2613.739021329064
+  },
+  "lag_steps": [
+    12,
+    24,
+    48
+  ],
+  "lag_series": [
+    "load",
+    "wind",
+    "solar"
+  ],
+  "include_groups": [
+    "meteorology",
+    "solar",
+    "cyclic"
+  ],
+  "include_base": false,
+  "max_train_rows": 50000,
+  "device": "cuda",
+  "env": {
+    "python": "3.11.12",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "torch_version": "2.10.0+cu128",
+    "torch_cuda_available": true,
+    "torch_cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "cuda_device_name": "NVIDIA L4",
+    "cuda_capability": [
+      8,
+      9
+    ]
+  },
+  "model_width": [
+    [
+      28,
+      0
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "completed_at": "2026-03-06T04:29:46.597926+00:00",
+  "results": {
+    "eval_unpruned": {
+      "rmse": 1724.3660610275556,
+      "mae": 1137.805962324632,
+      "r2": 0.43751373863167753
+    },
+    "eval_sparsify": {
+      "rmse": 1528.0507077082107,
+      "mae": 1149.6195460535512,
+      "r2": 0.558298861071789
+    },
+    "eval_pruned": {
+      "rmse": 1474.2148572168373,
+      "mae": 1017.4883086476524,
+      "r2": 0.5888743682553719
+    },
+    "sparsity": {
+      "total_edges": 87,
+      "pruned_edges": 29,
+      "pruned_ratio": 0.3333333333333333
+    },
+    "prune_candidate": {
+      "node_th": 0.01,
+      "edge_th": 0.005
+    }
+  }
+}

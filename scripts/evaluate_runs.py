@@ -5,6 +5,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,8 +14,43 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.eval.runs import build_comparison_table, seasonal_breakdown
+from src.eval.structured_combo import build_formula_comparison_rows
+from src.eval.runs import build_comparison_table, day_night_breakdown, seasonal_breakdown
 from src.kan_sr.metrics import rmse
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
+def _finalize_comparison_table(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["pareto_optimal"] = False
+    valid = df.dropna(subset=["rmse", "complexity"]).copy()
+    if len(valid) > 0:
+        pareto = []
+        for i, a in valid.iterrows():
+            dominated = False
+            for j, b in valid.iterrows():
+                if i == j:
+                    continue
+                better_rmse = b["rmse"] <= a["rmse"]
+                better_complexity = b["complexity"] <= a["complexity"]
+                strictly_better = (b["rmse"] < a["rmse"]) or (b["complexity"] < a["complexity"])
+                if better_rmse and better_complexity and strictly_better:
+                    dominated = True
+                    break
+            pareto.append(not dominated)
+        df.loc[valid.index, "pareto_optimal"] = pareto
+    return df.sort_values(by=["rmse", "complexity"], ascending=[True, True], na_position="last")
+
+
+def _pick_predictions_path(artifacts_dir: Path) -> Path | None:
+    for name in ("predictions_test_reconstructed.parquet", "predictions_test.parquet"):
+        path = artifacts_dir / name
+        if path.exists():
+            return path
+    return None
 
 
 def main() -> None:
@@ -26,77 +62,87 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = build_comparison_table([Path(p) for p in args.run])
+    run_paths = [Path(p) for p in args.run]
+    df = build_comparison_table(run_paths)
+    formula_rows = build_formula_comparison_rows(run_paths)
+    if formula_rows:
+        df = _finalize_comparison_table(pd.concat([df.drop(columns=["pareto_optimal"], errors="ignore"), pd.DataFrame(formula_rows)], ignore_index=True))
     table_path = out_dir / "comparison_table.csv"
     df.to_csv(table_path, index=False)
 
     # Transfer gap table (Phase 8): compare transfer runs against their source training run on TEST.
-    run_paths = [Path(p) for p in args.run]
     run_by_name = {p.name: p for p in run_paths}
     gap_rows = []
     for p in run_paths:
-        try:
-            payload = json.loads((p / "payload.json").read_text())
-        except Exception:
-            continue
+        payload = _read_json(p / "payload.json")
         if payload.get("phase") != "08-transfer-eval":
             continue
         src_id = payload.get("train_run_id")
-        if not src_id or src_id not in run_by_name:
-            continue
+        if not src_id:
+            raise ValueError(f"08-transfer-eval run missing train_run_id: {p}")
+        if str(src_id) not in run_by_name:
+            raise ValueError(f"08-transfer-eval run references missing source run_id={src_id}: {p}")
         src_run = run_by_name[str(src_id)]
-        pred_src = src_run / "artifacts" / "predictions_test.parquet"
-        pred_tgt = p / "artifacts" / "predictions_test.parquet"
-        if not (pred_src.exists() and pred_tgt.exists()):
-            continue
-        try:
-            src_df = pd.read_parquet(pred_src).dropna(subset=["y_true", "y_pred"])
-            tgt_df = pd.read_parquet(pred_tgt).dropna(subset=["y_true", "y_pred"])
-            r_src = rmse(src_df["y_true"].to_numpy(dtype="float64"), src_df["y_pred"].to_numpy(dtype="float64"))
-            r_tgt = rmse(tgt_df["y_true"].to_numpy(dtype="float64"), tgt_df["y_pred"].to_numpy(dtype="float64"))
-            gap_rows.append(
-                {
-                    "train_run_id": str(src_id),
-                    "transfer_run_id": p.name,
-                    "target_col": payload.get("target_col"),
-                    "target_data_run_id": payload.get("target_data_run_id"),
-                    "rmse_source_test": r_src,
-                    "rmse_transfer_test": r_tgt,
-                    "gap_ratio": (r_tgt / r_src) if (r_src is not None and r_src > 0) else None,
-                }
-            )
-        except Exception:
-            continue
+        pred_src = _pick_predictions_path(src_run / "artifacts")
+        pred_tgt = _pick_predictions_path(p / "artifacts")
+        if pred_src is None:
+            raise FileNotFoundError(f"Missing source predictions for transfer gap: {src_run / 'artifacts'}")
+        if pred_tgt is None:
+            raise FileNotFoundError(f"Missing transfer predictions for transfer gap: {p / 'artifacts'}")
+
+        src_df = pd.read_parquet(pred_src).dropna(subset=["y_true", "y_pred"])
+        tgt_df = pd.read_parquet(pred_tgt).dropna(subset=["y_true", "y_pred"])
+        r_src = rmse(src_df["y_true"].to_numpy(dtype="float64"), src_df["y_pred"].to_numpy(dtype="float64"))
+        r_tgt = rmse(tgt_df["y_true"].to_numpy(dtype="float64"), tgt_df["y_pred"].to_numpy(dtype="float64"))
+        gap_rows.append(
+            {
+                "train_run_id": str(src_id),
+                "transfer_run_id": p.name,
+                "target_col": payload.get("target_col"),
+                "target_data_run_id": payload.get("target_data_run_id"),
+                "rmse_source_test": r_src,
+                "rmse_transfer_test": r_tgt,
+                "gap_ratio": (r_tgt / r_src) if (r_src is not None and r_src > 0) else None,
+            }
+        )
 
     if gap_rows:
         gap_df = pd.DataFrame(gap_rows)
         gap_df.to_csv(out_dir / "transfer_gaps.csv", index=False)
 
         # Simple thesis-ready visualization of generalization gap.
-        try:
-            fig, ax = plt.subplots(figsize=(6, 3))
-            ax.bar(gap_df["transfer_run_id"], gap_df["gap_ratio"], color="#C44E52", alpha=0.9)
-            ax.axhline(1.0, color="black", linewidth=1.0, alpha=0.7)
-            ax.set_ylabel("RMSE (transfer) / RMSE (source)")
-            ax.set_title("Cross-ISO generalization gap")
-            fig.tight_layout()
-            fig.savefig(out_dir / "transfer_gap_ratio.png", dpi=200)
-            plt.close(fig)
-        except Exception:
-            pass
+        fig, ax = plt.subplots(figsize=(6, 3))
+        ax.bar(gap_df["transfer_run_id"], gap_df["gap_ratio"], color="#C44E52", alpha=0.9)
+        ax.axhline(1.0, color="black", linewidth=1.0, alpha=0.7)
+        ax.set_ylabel("RMSE (transfer) / RMSE (source)")
+        ax.set_title("Cross-ISO generalization gap")
+        fig.tight_layout()
+        fig.savefig(out_dir / "transfer_gap_ratio.png", dpi=200)
+        plt.close(fig)
 
     # Per-run seasonal breakdown (if predictions_test.parquet exists)
     for run_path in [Path(p) for p in args.run]:
-        pred_path = run_path / "artifacts" / "predictions_test.parquet"
+        pred_path = run_path / "artifacts" / "predictions_test_reconstructed.parquet"
+        if not pred_path.exists():
+            pred_path = run_path / "artifacts" / "predictions_test.parquet"
         if not pred_path.exists():
             continue
-        try:
-            pred_df = pd.read_parquet(pred_path)
-            sb = seasonal_breakdown(pred_df)
-            sb.to_csv(out_dir / f"seasonal_{run_path.name}.csv", index=False)
-        except Exception:
-            # Keep evaluation best-effort; some runs may not have datetime index.
-            continue
+        pred_df = pd.read_parquet(pred_path)
+        sb = seasonal_breakdown(pred_df)
+        sb.to_csv(out_dir / f"seasonal_{run_path.name}.csv", index=False)
+
+        # Optional: day/night breakdown (requires access to the underlying processed test split for is_night)
+        payload = _read_json(run_path / "payload.json")
+        data_run_id = payload.get("data_run_id")
+        data_ts = payload.get("data_timestamp")
+        if data_run_id and data_ts:
+            test_path = REPO_ROOT / "runs" / str(data_run_id) / "processed" / f"test_{data_ts}.parquet"
+            if test_path.exists():
+                test_df = pd.read_parquet(test_path, columns=["is_night"])
+                if "is_night" in test_df.columns:
+                    dn = day_night_breakdown(pred_df, is_night=test_df["is_night"])
+                    if len(dn) > 0:
+                        dn.to_csv(out_dir / f"day_night_{run_path.name}.csv", index=False)
 
     # Pareto-style scatter: RMSE vs complexity (if present)
     plot_df = df.dropna(subset=["rmse", "complexity"]).copy()

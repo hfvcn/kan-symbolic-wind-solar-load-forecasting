@@ -1,0 +1,46 @@
+{
+  "target_col": "delta_net_load_h6",
+  "base_target_col": "net_load",
+  "n_checks": 2,
+  "score": 0.0,
+  "checks": [
+    {
+      "name": "wind_proxy_monotone_decreasing",
+      "passed": false,
+      "score": 0.0,
+      "details": {
+        "var": "wind_speed_10m_m_s_cubed",
+        "derivative_summary": {
+          "var": "wind_speed_10m_m_s_cubed",
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "pct_positive": 0.0,
+          "pct_negative": 0.0,
+          "n": 1
+        },
+        "present_in_expr": false
+      }
+    },
+    {
+      "name": "ghi_proxy_monotone_decreasing",
+      "passed": false,
+      "score": 0.0,
+      "details": {
+        "var": "ghi_day_w_m2",
+        "derivative_summary": {
+          "var": "ghi_day_w_m2",
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "pct_positive": 0.0,
+          "pct_negative": 0.0,
+          "n": 1
+        },
+        "present_in_expr": false
+      }
+    }
+  ]
+}

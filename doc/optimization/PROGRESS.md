@@ -40,3 +40,31 @@ Local assets regenerated into `doc/paper_assets/` (figures + physics mapping + s
   - `formula_eval_test.json` metrics
   - `physics_mapping.json` score and derivative sign statistics
 
+## 2026-02-27
+
+### What changed (advice-driven, paper-aligned)
+
+- Added a derived dataset job: `modal_jobs/derive_dataset.py`
+  - Builds a new Phase-1.5 data run from an existing Phase-1 run (no re-download).
+  - Adds new **targets**: `net_load`, `delta_load`, `delta_net_load`.
+  - Adds **engineered proxy features** (normalized + appended to `scaler_params.json`):
+    - `wind_speed_10m_m_s_cubed` (wind power proxy)
+    - `ghi_day_w_m2` (daylight-gated irradiance)
+    - `cdd_18c`, `hdd_18c` (cooling/heating degree proxies)
+  - Adds normalized `net_load_lag_{k}` features (default k in {1,12,48}) to enable net-load persistence/residual modeling.
+- Added local post-processing for delta targets:
+  - `scripts/reconstruct_predictions.py` writes `predictions_test_reconstructed.parquet` and `eval_test_reconstructed.json` for `delta_*` runs (so tables/plots reflect reconstructed absolute series).
+  - `scripts/make_thesis_figures.py` now prefers reconstructed predictions and `formula_reconstructed.tex` when present.
+- Evaluation improvements:
+  - `src/eval/runs.py` now computes **persistence baseline RMSE** and **skill_score** (`1 - RMSE_model/RMSE_persist`) from prediction artifacts.
+  - `scripts/evaluate_runs.py` uses reconstructed predictions for seasonal breakdown when available.
+- Physics mapping upgrades:
+  - `src/eval/physics_mapping.py` now supports `net_load` and `delta_*` targets (checks GHI/wind monotone decreasing for net load).
+- Experiment integration:
+  - `scripts/experiment_driver.py` can optionally run Phase-1.5 derived dataset creation and automatically runs reconstruction before local evaluation/plots.
+
+### Tests
+
+- Added `tests/test_derived_features.py`.
+- Updated `tests/test_physics_mapping.py` (net-load checks).
+- Updated `tests/test_run_summarizer_inference.py` (reconstructed predictions preference + skill_score).

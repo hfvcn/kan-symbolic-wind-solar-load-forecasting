@@ -1,0 +1,129 @@
+{
+  "run_id": "paperref_20260306_121725_v2__s3_comp_load_delta_h6",
+  "phase": "02-kan-training",
+  "kind": "s3_comp_load_delta_h6",
+  "data_run_id": "paperref_20260306_121725__derived_h1_6",
+  "data_timestamp": "2026-03-06_043036",
+  "started_at": "2026-03-06T04:35:50.006493+00:00",
+  "cfg": {
+    "target_col": "delta_load_h6",
+    "grid_range_min": -5.0,
+    "grid_range_max": 5.0,
+    "hidden_width": 10,
+    "hidden_layers": null,
+    "grid": 5,
+    "k": 3,
+    "seed": 1,
+    "hidden_mult": 0,
+    "mult_arity": 2,
+    "warmup_steps": 200,
+    "sparsify_steps": 800,
+    "refine_steps": 200,
+    "warmup_lr": 0.01,
+    "sparsify_lr": 0.005,
+    "refine_lr": 0.5,
+    "sparsify_lamb": 0.01,
+    "sparsify_lamb_l1": 1.0,
+    "sparsify_lamb_entropy": 2.0,
+    "sparsify_lamb_coef": 0.0,
+    "sparsify_lamb_coefdiff": 0.0,
+    "target_pruned_ratio": 0.8,
+    "max_rmse_degrade_ratio": 1.1,
+    "prune_require_features": [],
+    "prune_require_strict": false,
+    "hidden_width_final": 3,
+    "hidden_mult_final": 0
+  },
+  "feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "temp_2m_c",
+    "cdd_18c",
+    "hdd_18c",
+    "surface_pressure_hpa",
+    "is_night",
+    "load_lag_12",
+    "load_lag_24",
+    "load_lag_48"
+  ],
+  "target_scaler": {
+    "mean": 1.396126328125,
+    "std": 887.1735889403895
+  },
+  "lag_steps": [
+    12,
+    24,
+    48
+  ],
+  "lag_series": [
+    "load"
+  ],
+  "include_groups": [
+    "cyclic",
+    "meteo_temp",
+    "meteo_degree",
+    "meteo_pressure",
+    "solar_flag"
+  ],
+  "include_base": false,
+  "max_train_rows": 50000,
+  "device": "cuda",
+  "env": {
+    "python": "3.11.12",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "torch_version": "2.10.0+cu128",
+    "torch_cuda_available": true,
+    "torch_cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "cuda_device_name": "NVIDIA L4",
+    "cuda_capability": [
+      8,
+      9
+    ]
+  },
+  "model_width": [
+    [
+      14,
+      0
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "completed_at": "2026-03-06T04:37:57.635411+00:00",
+  "results": {
+    "eval_unpruned": {
+      "rmse": 472.7137028068985,
+      "mae": 377.09263126932836,
+      "r2": 0.6951389757153229
+    },
+    "eval_sparsify": {
+      "rmse": 689.9840959303878,
+      "mae": 521.6593945521768,
+      "r2": 0.35049323025727597
+    },
+    "eval_pruned": {
+      "rmse": 625.1601161964867,
+      "mae": 510.3862048684063,
+      "r2": 0.466802569729346
+    },
+    "sparsity": {
+      "total_edges": 45,
+      "pruned_edges": 30,
+      "pruned_ratio": 0.6666666666666666
+    },
+    "prune_candidate": {
+      "node_th": 0.01,
+      "edge_th": 0.08
+    }
+  }
+}

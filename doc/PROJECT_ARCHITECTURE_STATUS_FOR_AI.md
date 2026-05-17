@@ -5,8 +5,143 @@
 > 2) 当前实验结论与瓶颈（为什么“可解释性”和“性能”很难兼得）  
 > 3) 在尽量贴合论文要求的前提下，下一步应如何改进（需要它提出可执行方案）
 
-更新时间：2026-02-26  
+更新时间：2026-03-02  
 项目路径（仅供本地开发者定位）：`/Users/vfch/Documents/project/graduation-design`
+
+## 0.1 重要更新（2026-02-27）
+
+为更贴合论文目标（在不靠平凡滞后解的情况下，让公式显式包含温度/GHI/风速等关键因素），系统新增了一个“Phase 1.5 派生数据集”能力：
+
+- 新增 Modal 任务：`modal_jobs/derive_dataset.py`
+  - 从既有 Phase 1 data_run 派生出新 data_run（无需重新下载原始数据）
+  - 新增 targets：`net_load`、`delta_load`、`delta_net_load`
+  - 新增工程物理代理特征（自动归一化并扩展 scaler_params）：`wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c`
+  - 新增 `net_load_lag_{k}`（默认 k∈{1,12,48}）用于 net-load 持久性/残差建模
+- 本地评估新增“持久性基线 + skill score”口径，并支持 `delta_*` 目标自动重建为绝对序列用于论文图表。
+
+## 0.2 重要更新（2026-03-01）
+
+本次已验证：采用“派生数据集 + Δ目标（残差/增量）”能让 KAN 在 5min 预测任务上**显著超过持久性基线**，并跑通“同步→重建→评估→出图”的本地闭环。
+
+- 已同步的关键 run（均已在本地 `runs/` 可用）：
+  - Phase 1.5 派生数据集（重建预测必选）：`2026-02-27_111856_3d590023`
+  - Phase 2 KAN 训练（Δ负荷）：`2026-02-27_130143_635744ad`（target=`delta_load`）
+  - Phase 2 KAN 训练（Δ净负荷）：`2026-02-27_163309_0420c80c`（target=`delta_net_load`）
+- 本地已完成 Δ→绝对序列重建：
+  - 为上述两个训练 run 生成 `artifacts/predictions_test_reconstructed.parquet` 与 `artifacts/eval_test_reconstructed.json`
+- 重建后 test 指标（对比持久性基线）：
+  - `delta_load→load`：RMSE ~82.85（persistence ~130.48，skill ~0.365）
+  - `delta_net_load→net_load`：RMSE ~329.37（persistence ~494.18，skill ~0.333）
+- 重要注意（公平性/预算差异）：上述两次 KAN 训练使用更大的训练预算（总 steps=2400，CPU 耗时约 3.4–3.5h），且稀疏正则相对放松；因此性能提升来源包含“任务重定义 + 训练预算/正则变化”，不等价于“同预算下 KAN 必然更优”。
+- 解释性差距仍存在：上述两次 run 仍停留在 Phase 2（尚未做 Phase 3 符号提取）；并且 `feature_importance.csv` 显示 wind/GHI 特征在 `delta_load` run 中活跃边为 0；`delta_net_load` run 中 GHI/HDD 有进入但 wind 仍为 0。
+
+## 0.3 重要更新（2026-03-01：论文目标倒推改进已落地）
+
+为支撑后续的 S0–S3 论文路线（Phase3 交付物、多步 horizon、特征消融、结构化分解），项目新增/修正：
+
+- **Phase 1.5 多步目标**：`modal_jobs/derive_dataset.py` 支持 `--horizon-steps`，可生成：
+  - `delta_{load,net_load,wind,solar}_h{n}`（例如 `delta_net_load_h6`）
+  - 并自动保证 `net_load_lag_{n}` 存在（用于重建与 persistence skill 评估）
+- **评估口径修正**：`src/eval/runs.py` 的 persistence baseline 由固定 `shift(1)` 改为按 `target_col` 解析 `_h{n}` 后 `shift(n)`（skill/对比表对 h>1 正确）。
+- **物理映射稳定性**：`src/eval/physics_mapping.py` 统一符号 assumptions（按变量名映射到 `real=True`），避免导数计算因符号对象不一致而退化为 0。
+- **特征组细分（S2 消融）**：`src/data/features.py:get_feature_groups()` 新增 `solar_geom/solar_flag` 与 `meteo_*` 细分组，可做“GHI vs 太阳几何”替代关系消融。
+- **结构化分解组合（S3）**：新增本地脚本 `scripts/combine_net_load_runs.py`，可将 load/wind/solar 三条子模型预测组合成一个 `phase=05-structured-combination` 的 net_load run，纳入统一评估。
+- **论文导向 sweep driver**：新增 `scripts/thesis_sweep_driver.py`，集中编排 S0–S3（支持 `--dry-run/--execute`、detached、自动 sync、本地重建/组合/评估，并写 manifest）。
+
+## 0.4 重要更新（2026-03-01：T4 全流程闭环）
+
+已在 **Modal(T4)** 上跑通 “KAN 训练 → 基线对齐训练 → Phase3 符号提取 → 同步到本地 → Δ→绝对值重建 → 论文资产输出” 的完整闭环。
+
+- 本次全流程关键 run（均已同步到本地 `runs/`）：
+  - Phase 1.5 派生数据集（含多步 horizon）：`2026_03_01_142726_9ab14f0b__derived_h1_6_12_24`
+  - Phase 2 KAN（T4）：`2026-03-01_151000_kan_nobase_nogrid_gpu`（target=`delta_net_load_h6`，`include_base=false`，`warmup_update_grid=false`）
+  - Phase 4 baseline（T4，MLP）：`2026-03-01_155600_baseline_mlp_match_kan151000`（**同步 KAN 特征列 + 同步 KAN optimizer updates 预算 + 参数量对齐**）
+  - Phase 3 符号提取（T4，strict 库）：`2026-03-01_160200_sym_strict_r2_0_995__kan151000`
+- test 指标（见本地论文资产：`doc/paper_assets/fullflow_t4_kan151000_20260301_230545/comparison_table.csv`）：
+  - KAN：RMSE=1413.51，persistence RMSE=2585.66，skill=0.453（≈45% RMSE 改善）；重建口径 WAPE≈5.26%（persistence≈9.49%）
+  - baseline MLP：RMSE=1474.38，skill=0.430；参数量=1485；预算同步后 epochs=13（optimizer updates≈1274，KAN steps=1200）
+  - 符号公式（strict）：RMSE=2388.46，skill=0.076；产物包含 `formula.tex / formula.sympy.txt / formula_eval_test.json`，可在 test 上复算
+
+**是否要替换为引用论文的数据集？（kan-citate：国网 2019–2020，15min 风电/光伏出力预测）**
+- 不建议把主线数据集整体替换：引用论文的任务对象是 **WP/PV 出力预测**，而本项目主线是 **耦合负荷/净负荷预测（load/net_load）**，研究对象不同。
+- 更可行的写法：主线继续使用 PERFORM（保证“耦合负荷/净负荷”叙事一致）；把引用论文作为架构/训练策略的参考来源。若未来能合法获得其数据，可作为附录/外部验证实验，而非替换主线。
+
+**从引用论文（kan-citate）中已借鉴并落地的点：**
+- **多步预测（multi-step）目标与数据口径**  
+  - 论文主线强调短期预测的多步设置；本项目已新增 Phase 1.5 派生数据集支持 `--horizon-steps`，生成 `delta_*_h{n}` 与 `net_load_h{n}`（例如 `delta_net_load_h6`）。  
+  - 评估口径同步：persistence baseline 与 skill 按 `_h{n}` 自动用 `shift(n)`，避免把多步任务错当单步（`shift(1)`）造成“虚假提升”。  
+
+- **多尺度（multi-scale）思想的“可符号化等价实现”**  
+  - 论文用多尺度卷积核抽取不同时间尺度的模式（MCKAN/CKAN）；本项目为了保持可解释与可符号化，采用更直接的工程等价物：  
+    - 用多尺度 lag 子集（如 12/24/48）表达多时间尺度依赖；  
+    - 配合 horizon sweep（h=6/12/24）让外生因素在更长预测步长下更有机会进入稀疏结构。  
+  - 这条路线的好处：输入变量仍是“可命名的物理量/滞后量”，符号提取时不会被卷积/池化的潜表示遮蔽。  
+
+- **更深的 KAN（Deep-KAN）作为可控对照变量**  
+  - 论文模型通过更复杂的结构提升拟合能力；本项目在不破坏 Phase3 符号提取前提下，引入 `hidden_layers`（深层 KAN）作为可控开关，用于实验回答：  
+    - “加深是否提升精度？”  
+    - “加深是否让符号提取更难/更不稳定？”  
+
+- **“自动化搜索”的工程替代（可复现 sweep）**  
+  - 论文用 CQALA 做超参自动优化；本项目目前没有实现该元启发式算法，但已经落地可复现 sweep 驱动：`scripts/thesis_sweep_driver.py`，能系统化跑 S0–S3 并输出 manifest + 论文资产，用于后续把“搜索过程”写成可复现实验。  
+
+- **数值稳定性：用“评估侧稳定化”替代“全链路改 Min-Max”**  
+  - 论文强调把特征统一缩放到 [0,1]（Min-Max）以提高稳定性；本项目主线仍用 Z-score，但已在 Phase3 公式评估侧落地更局部的稳定化：  
+    - `safe_exp(x)=exp(clip(x,-c,c))`（medium 库）  
+    - 输入按训练集分位数裁剪（`--eval-clip-quantiles low,high`）  
+  - 该做法不改变 Phase1/Phase2 训练口径，但能把“符号库可用性/稳定性”作为可控变量写进论文实验（S0）。  
+
+
+**未直接照搬的点（原因：与本项目论文目标冲突或成本过高）：**
+- 论文的 **MCKAN（多尺度卷积 KAN）/EAA 注意力/CQALA 超参优化** 会引入更强的潜表示与复杂训练流程，虽可能提升精度，但会显著降低“公式显式包含关键物理因子”的可控性；当前项目先以“可符号化可复算”为第一优先级。
+
+## 0.5 当前情况与面临问题（给讨论 AI 的摘要）
+
+### 当前情况（已落地/可复现）
+
+1) **端到端闭环已跑通（GPU T4）**  
+   - 已完成：Phase2(KAN) → Phase4(baseline) → Phase3(symbolic) → sync → 本地重建与论文资产导出  
+   - 论文资产：`doc/paper_assets/fullflow_t4_kan151000_20260301_230545/`
+
+2) **KAN 已在 30min ahead（h=6）上显著超过 persistence**  
+   - KAN：RMSE=1413.51，persistence=2585.66，skill=0.453（WAPE≈5.26%）  
+   - baseline(MLP, 预算/特征/参数对齐)：RMSE=1474.38，skill=0.430
+
+3) **对比公平性已工程化**  
+   - baseline 支持：同步 KAN 特征列、同步 KAN 的 optimizer updates 预算、对齐参数量（避免“KAN 特调训练长度”造成优势解释争议）
+
+4) **本地非 Modal 版本已具备**  
+   - `scripts/local_fullflow.py` 支持 derive-dataset / kan-train / kan-symbolic / baseline-mlp（落盘契约与 `runs/<id>/...` 一致）
+
+5) **已完成一次“论文导向 sweep session”（S0+S3）并产出资产**  
+   - session：`2026-03-02_s0s3_t4_nogrid`  
+   - manifest：`doc/thesis_sweeps/2026-03-02_s0s3_t4_nogrid/manifest.json`  
+   - 论文资产：`doc/paper_assets/thesis_sweep_2026-03-02_s0s3_t4_nogrid/`（含 `comparison_table.csv`、季节/昼夜切片表、Pareto 图）  
+   - 结构化分解组合产物：本地 run `2026_03_02_s0s3_t4_nogrid__s3_combo_net_load`（`phase=05-structured-combination`）  
+
+### 面临问题（论文交付与研究瓶颈）
+
+P1) **Phase3 符号公式精度明显低于 KAN 本体**  
+- strict 库公式 RMSE=2388.46（skill=0.076） vs KAN RMSE=1413.51（skill=0.453）  
+- 已在 S0 中验证：medium(lib 含 exp) 通过 safe-exp + 输入分位裁剪可稳定运行；并出现“更接近 KAN”的候选（例如 teacher 的 `r2_threshold=0.99` 时 RMSE≈1999）。  
+- 但整体仍存在显著 gap：符号公式仍明显弱于 KAN，本质问题可能是“库表达能力/结构约束”与 KAN spline 的 mismatch，需要进一步的符号库设计或结构约束策略。  
+- 工程注意：  
+  - KAN 训练在部分目标上启用 warmup grid update 可能触发 NaN（因此本 session 使用 `--no-warmup-update-grid` 对齐 teacher 的稳定配置）。  
+  - Phase3 的 `--eval-clip-quantiles` 需要数值型输入；特征里若包含 bool（如 `is_night`）需在 inverse_transform 后显式转为 float 再做 quantile（已修复）。  
+
+P2) **“关键物理因子进入关系式”仍不稳定**  
+- 当前最强 KAN 的 `feature_importance.csv` 显示：`wind_speed_10m_m_s / ghi_w_m2 / temp_2m_c` 等外生物理因子活跃边为 0  
+- Phase3 strict 公式也主要由 `wind_lag_* / solar_lag_*` 与 `solar_altitude/is_night/hour_sin/cos` 构成  
+- S3（结构化分解）已工程化并跑通，但当前用 strict 库对三条子模型提取出的符号公式精度仍偏低（尤其 wind/solar 子任务），导致“子公式可解释”与“子公式可用”尚未同时满足。  
+- 若论文要求最终公式显式包含 wind/GHI/temp，仍需要继续推进 **S2（替代关系消融）** 与/或对 S3 的符号提取策略做定向增强（例如更贴近物理的库、对 `is_night` 的 gating、对子任务单独调阈值/库）。  
+
+P3) **KAN “剪枝/稀疏化”与“符号化”之间存在张力**  
+- 稀疏化/剪枝有助于简化结构，但会让符号拟合更敏感；同时 KAN 的边函数若过于复杂，符号库受限时只能粗拟合 → 公式精度掉  
+- Phase2 中 `artifacts/eval_pruned.json` 可能出现与最终 test 指标不一致的情况（因为 refine 后未重新写回 eval_pruned），论文对外报告应以 `predictions_test(_reconstructed).parquet` 的复算为准
+
+P4) **任务定义与论文叙事需要统一**  
+- kan-citate 的任务是 WP/PV 出力预测（国网 15min），本项目主线是 PERFORM 的耦合负荷/净负荷预测（5min、可做 h=6/12/24）  
+- 因此不宜“直接换数据集”，更合理是：沿用 PERFORM 主线，并解释为何选择 `net_load`/多步 horizon 让外生物理因子更有解释空间
 
 ---
 
@@ -90,8 +225,8 @@ flowchart LR
 ### 3.1 顶层目录
 
 - `modal_jobs/`：所有 Modal 任务入口（数据/训练/符号提取/基线）  
-- `src/`：核心算法与工具库（数据处理、KAN 训练工具、符号构建、评估等）  
-- `scripts/`：本地脚本（同步、评估、绘图、解释性报告、实验驱动）  
+- `src/`：核心算法与工具库（数据处理、KAN 训练工具、符号构建、评估等；包含 `src/local/` 的“非 Modal”本地流水线实现）  
+- `scripts/`：本地脚本（同步、评估、绘图、解释性报告、实验驱动；包含 `scripts/local_fullflow.py` 与 `scripts/thesis_sweep_driver.py`）  
 - `runs/`：同步的实验产物（不提交 Git）  
 - `doc/paper_assets/`：可直接用于论文写作的表格与图片（可提交 Git，视学校/开源要求）  
 - `doc/optimization/`：post-v1 优化会话日志/manifest（本地生成）  
@@ -246,15 +381,24 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 - `figures/`：预测曲线、残差分布、公式渲染图等
 - `ASSET_INDEX.md`：把所有资产索引成可快速引用的清单
 
+补充说明（容易踩坑）：
+- 对 `delta_*` 目标：需要先运行 `scripts/reconstruct_predictions.py` 生成“绝对值口径”的预测；评估脚本会优先读取 `predictions_test_reconstructed.parquet`。
+- `scripts/evaluate_runs.py` 会按传入的 `--run` 列表生成对比表；如果只传少量 run，会覆盖 `comparison_table.csv` 为该子集。若要长期保留“全量对比”，需要把所有 run 一并传入，或另存一份全量表（例如 `comparison_table_all_runs.csv`）。
+-（环境兼容性）在受限环境里若 Matplotlib 无法写入 `~/.matplotlib`，可先设置 `MPLCONFIGDIR` 到可写目录再运行绘图脚本。
+
 > 注意：`physics_mapping.json` 是本地脚本写入的，会被 `sync_from_modal.sh` 重新同步覆盖；因此每次重新 sync 之后，若需要 `physical_score` 进入对比表，需要重新跑 physics_mapping 脚本。
 
 ---
 
 ## 9. 一键实验驱动（重要：方便后续 AI 给“可执行调参方案”）
 
-为便于频繁调参，本项目把“调参 + Modal 调用 + 同步 + 本地评估/绘图/索引”集成到单文件脚本：
+为便于频繁调参，本项目把“调参 + Modal 调用 + 同步 + 本地评估/绘图/索引”集成到脚本入口：
 
-- `scripts/experiment_driver.py`
+- **论文导向（S0–S3，推荐）**：`scripts/thesis_sweep_driver.py`
+  - dry-run：`python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_id> --dry-run`
+  - 真跑（含 GPU T4）：`python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_id> --execute --use-gpu`
+  - 后台提交（不自动 sync，本地稍后手动同步）：`python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_id> --execute --use-gpu --detached-remote`
+- **通用实验（legacy）**：`scripts/experiment_driver.py`
 
 使用方式：
 1) 编辑脚本顶部 `CONFIG`（数据 run_id、KAN sweep、symbolic sweep、是否跑 baselines 等）
@@ -293,6 +437,13 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 - Phase 1（ERCOT 2018, target=load）：`2026-02-26_032058_1957fda1`
   - 105,120 行；特征后 160 列；切分后 73,536 / 15,672 / 15,672
+- Phase 1.5（派生数据集：net_load + delta targets + 物理代理特征）：`2026-02-27_111856_3d590023`
+  - source：`2026-02-26_032058_1957fda1`
+  - 新增 targets：`net_load`、`delta_load`、`delta_net_load`
+  - 新增特征：`wind_speed_10m_m_s_cubed`、`ghi_day_w_m2`、`cdd_18c`、`hdd_18c` 等
+- Phase 1.5（派生数据集：**多步 horizon**）：`2026_03_01_142726_9ab14f0b__derived_h1_6_12_24`
+  - source：`2026-02-26_032058_1957fda1`
+  - 生成 targets：`delta_{load,net_load,wind,solar}_h{1,6,12,24}` 与 `net_load_h{1,6,12,24}`（用于 S1 horizon sweep / S3 结构化分解）
 
 ### 11.2 预测性能（test）概览（部分关键 run）
 
@@ -300,6 +451,11 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 | run_id | 类型 | target | 关键设置 | RMSE | R² | 备注 |
 |---|---|---|---|---:|---:|---|
+| `2026-03-01_151000_kan_nobase_nogrid_gpu` | KAN train（T4） | `delta_net_load_h6→net_load_h6`（重建口径） | `lag_steps=[12,24,48]`，`include_base=false`，`warmup_update_grid=false` | 1413.51 | 0.99107 | **skill=0.453**；persistence RMSE=2585.66；论文资产已生成 |
+| `2026-03-01_155600_baseline_mlp_match_kan151000` | Torch MLP（T4） | `delta_net_load_h6→net_load_h6`（重建口径） | **同步 KAN 特征列 + 同步 optimizer updates 预算 + 参数量对齐** | 1474.38 | 0.99029 | skill=0.430；param≈1485；epochs=13 |
+| `2026-03-01_160200_sym_strict_r2_0_995__kan151000` | KAN symbolic（T4） | `delta_net_load_h6→net_load_h6`（重建口径） | strict lib，`r2_threshold=0.995` | 2388.46 | 0.97452 | skill=0.076；输出 `formula.tex`/`formula_eval_test.json` |
+| `2026-02-27_130143_635744ad` | KAN train | `delta_load→load`（重建口径） | `lag_steps=[12,24,48]`，`include_base=false` | ~82.85 | ~0.99968 | **skill~0.365**；耗时~3.5h（CPU）；wind/GHI 特征活跃边为 0 |
+| `2026-02-27_163309_0420c80c` | KAN train | `delta_net_load→net_load`（重建口径） | `lag_steps=[12,24,48]`，`include_base=false` | ~329.37 | ~0.99952 | **skill~0.333**；耗时~3.4h（CPU）；GHI/HDD 进入但 wind 活跃边为 0 |
 | `2026-02-26_043102_777fac2d` | Torch MLP | load | 含 `load_lag_1` | ~175.7 | ~0.9986 | 5min 预测几乎可复制上一时刻 |
 | `2026-02-26_045336_77244377` | PySR | load | 含 `load_lag_1` | ~127.6 | ~0.9992 | 公式非常简单但强依赖历史负荷 |
 | `2026-02-26_055200_958b3949` | KAN train | load | 消融 no_l1（仍含 lag） | ~1050.1 | ~0.9484 | KAN 明显落后于简单基线 |
@@ -313,8 +469,9 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 1) **强自回归支配**：允许 `load_lag_1` 时，所有强模型（MLP/PySR/部分 KAN）都会主要依赖它 → 精度极高，但“风速/光照/温度”很难进入最终公式（或只作为很小的修正项，容易被剪枝/符号化忽略）。  
 2) **外生-only 可解释但不准**：去掉所有 lag 后，温度/太阳高度角等会进入公式，甚至能通过“温度敏感性存在”的检查，但预测性能显著下降（R² 变负）。  
-3) **KAN vs 简单基线差距**：在当前设置下，KAN 的最佳 run 仍明显弱于 PySR/MLP；需要判断是训练超参/稀疏策略过强、还是任务定义让基线天然占优。  
+3) **KAN 与基线的关系已发生变化**：在原始 `load` 目标下，KAN 仍明显落后于 PySR/MLP；但在 Phase 1.5 派生数据集上改用 `delta_*`（尤其是 `delta_net_load_h6`）后，KAN 能稳定超过持久性基线（skill≈0.45）。同时，本项目已实现“公平对比”机制：baseline 可同步 KAN 的特征列、训练行数与 optimizer updates 预算，并对齐参数量（见 `baseline_torch.py --sync-kan-*` 的 payload 记录）。  
 4) **耦合负荷定义需明确**：论文提“风光耦合负荷”，但目前实验目标主要是 `load`；如果“耦合负荷”更接近净负荷 `net_load = load - wind - solar` 或某种耦合形式，则需要在数据定义/目标函数上做调整，才能让风/光因子在数学关系中自然出现。  
+5) **关键物理因子仍可能被稀疏化剪掉**：即使已提供 wind/GHI/温度及其工程代理特征，当前最强的 `delta_net_load_h6` KAN run（`2026-03-01_151000_...`）在 `feature_importance.csv` 中仍把 `wind_speed_10m_m_s / ghi_w_m2 / temp_2m_c` 剪到 0，而主要依赖 `wind_lag_* / solar_lag_*` 与 `solar_altitude / is_night / hour_sin/cos`。Phase 3 提取出的 strict 公式也基本只包含这些变量。这意味着：若论文硬要求“风速、光照强度、温度、历史负荷”在最终数学关系里**显式出现**，仍需要通过 S2（替代关系消融/强制使用 GHI）或 S3（结构化分解：先用风速/GHI 预测出力，再组合到 net_load）来达标。  
 
 ---
 
@@ -324,7 +481,7 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 
 1) **贴合论文要求**：解释清楚如何让关键因素（风速/光照/温度/历史负荷）进入可解释数学关系中，并能在 test 上验证  
 2) **兼顾性能**：不能只为了可解释而让 R² 长期为负；需要给出“性能与可解释性的折中策略”  
-3) **可落地**：最好以 `scripts/experiment_driver.py` 的可调配置为核心，给出 2–4 组建议 sweep（包括特征选择与训练/符号提取参数）  
+3) **可落地**：最好以 `scripts/thesis_sweep_driver.py`（论文导向 S0–S3）或 `scripts/experiment_driver.py`（通用）为入口，给出 2–4 组建议 sweep（包括特征选择与训练/符号提取参数）  
 4) **避免“显而易见的作弊/平凡解”**：例如把 `net_load = load - wind - solar` 直接当作“发现的规律”应明确其学术意义有限；若使用，也应说明它在论文中的定位（定义 vs 发现）。  
 5) **建议补充的评估**：例如改变预测 horizon（1h ahead）、做残差建模、分解模型（baseline + correction）、或扩展物理映射检查（不仅温度，还应检查 GHI/风速敏感性）等。
 
@@ -339,9 +496,20 @@ KAN（Kolmogorov–Arnold Network）把每条边看作一元函数（样条 B-sp
 - `python3 -m unittest discover -s tests -p 'test_*.py'`
 
 一键实验：
+- `python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_id> --dry-run`
+- `python3 scripts/thesis_sweep_driver.py --source-data-run-id <phase1_id> --execute --use-gpu`
 - `python3 scripts/experiment_driver.py --dry-run`
 - `python3 scripts/experiment_driver.py --execute`
 
+本地（非 Modal）全流程入口：
+- `python3 scripts/local_fullflow.py --help`
+
 论文资产重生成：
 - 参考 `doc/paper_assets/README.md`
-
+-（本次 2026-03-01 验证的最小闭环：T4 fullflow）同步→重建→评估→出图：
+  - `scripts/sync_from_modal.sh 2026_03_01_142726_9ab14f0b__derived_h1_6_12_24`
+  - `scripts/sync_from_modal.sh 2026-03-01_151000_kan_nobase_nogrid_gpu`
+  - `scripts/sync_from_modal.sh 2026-03-01_155600_baseline_mlp_match_kan151000`
+  - `scripts/sync_from_modal.sh 2026-03-01_160200_sym_strict_r2_0_995__kan151000`
+  - `python3 scripts/reconstruct_predictions.py --run runs/2026-03-01_151000_kan_nobase_nogrid_gpu --run runs/2026-03-01_155600_baseline_mlp_match_kan151000 --run runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000`
+  - `python3 scripts/evaluate_runs.py --run runs/2026-03-01_151000_kan_nobase_nogrid_gpu --run runs/2026-03-01_155600_baseline_mlp_match_kan151000 --run runs/2026-03-01_160200_sym_strict_r2_0_995__kan151000 --out-dir doc/paper_assets/<your_session_dir>`

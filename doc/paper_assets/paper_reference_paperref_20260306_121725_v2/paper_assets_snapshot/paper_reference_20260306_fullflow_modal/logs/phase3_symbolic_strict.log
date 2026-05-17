@@ -1,0 +1,46 @@
+✓ Initialized. View run at 
+https://modal.com/apps/hfvcn/main/ap-wsWRg6JYTZlqeitDT8bWJc
+✓ Created objects.
+├── 🔨 Created mount 
+│   /Users/vfch/Documents/project/graduation-design/modal_jobs/kan_symbolic.py
+├── 🔨 Created mount /Users/vfch/Documents/project/graduation-design/src
+├── 🔨 Created function extract_symbolic.
+└── 🔨 Created function extract_symbolic_gpu.
+2026-03-06 04:30:44,525 [WARNING] kan_symbolic: Some feature cols missing from scaler_params (using mean=0,std=1): ['is_night']
+2026-03-06 04:30:45,516 [INFO] src.data.split: Loaded train: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/train_2026-03-06_042421.parquet (72960 rows)
+2026-03-06 04:30:45,692 [INFO] src.data.split: Loaded val: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/val_2026-03-06_042421.parquet (15096 rows)
+2026-03-06 04:30:45,900 [INFO] src.data.split: Loaded test: /vol/runs/paperref_20260306_fullflow__derived_h1_6_72_144_576/processed/test_2026-03-06_042421.parquet (15096 rows)
+2026-03-06 04:30:45,964 [INFO] kan_symbolic: Running forward on GPU to get activations...
+2026-03-06 04:30:46,441 [INFO] kan_symbolic: Moving model to CPU for symbolic extraction (SymPy / fitting is CPU-only and slow on GPU)...
+Traceback (most recent call last):
+  File "/pkg/modal/_runtime/container_io_manager.py", line 946, in handle_input_exception
+    yield
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/kan_symbolic.py", line 389, in extract_symbolic_gpu
+    return _extract_symbolic_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/kan_symbolic.py", line 236, in _extract_symbolic_impl
+    edge_fits = extract_symbolic_edges(
+                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/project/src/kan_sr/symbolic.py", line 120, in extract_symbolic_edges
+    best_name, _fun, r2, c = model.suggest_symbolic(
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/kan/MultKAN.py", line 2138, in suggest_symbolic
+    r2 = self.fix_symbolic(l, i, j, name, a_range=a_range, b_range=b_range, verbose=False, log_history=False)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/kan/MultKAN.py", line 951, in fix_symbolic
+    r2 = self.symbolic_fun[l].fix_symbolic(i, j, fun_name, x, y, a_range=a_range, b_range=b_range, verbose=verbose)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/kan/Symbolic_KANLayer.py", line 225, in fix_symbolic
+    params, r2 = fit_params(x,y,fun, a_range=a_range, b_range=b_range, verbose=verbose, device=self.device)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/kan/utils.py", line 222, in fit_params
+    post_fun = fun(a_grid[None,:,:] * x[:,None,None] + b_grid[None,:,:])
+                   ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
+Stopping app - uncaught exception raised locally: RuntimeError('Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!').

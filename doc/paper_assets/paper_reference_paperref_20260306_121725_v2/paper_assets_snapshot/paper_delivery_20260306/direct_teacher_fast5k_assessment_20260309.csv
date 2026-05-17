@@ -1,0 +1,3 @@
+run_id,phase,kind,target_col,rmse,mae,r2,rmse_persistence,skill_score,complexity,complexity_name,physical_score,param_count,compute_time_s,path
+paperref_20260306_fullflow__kan_delta_net_load_h6,02-kan-training,paperref_main_kan_delta_net_load_h6,delta_net_load_h6,2768.381043554,2294.196147617816,0.9663454402407754,2590.344901226247,-0.0687306706699451,0.3333333333333333,edge_pruned_ratio,,,192.789343,runs/paperref_20260306_fullflow__kan_delta_net_load_h6
+20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k,03-symbolic-extraction,kan_symbolic,delta_net_load_h6,3797.178951811681,2936.853461878699,0.9366838775866027,2590.344901226247,-0.4658970510120599,433.0,sympy_node_count,,,,runs/20260309_modal_direct_fullflow__sym_strict_r2_0_99_fast5k
