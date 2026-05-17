@@ -62,3 +62,5 @@ ppt-output/
 .serena/
 .planning/
 kaitibaogao.pptx
+*.pptx
+*.docx
