@@ -56,5 +56,9 @@ pr_temp.json
 # Word temp files
 ~$*.docx
 
-# Thesis LaTeX source (not open-sourced)
-doc/paper-latex/
+# Documentation and thesis assets (not open-sourced)
+doc/
+ppt-output/
+.serena/
+.planning/
+kaitibaogao.pptx

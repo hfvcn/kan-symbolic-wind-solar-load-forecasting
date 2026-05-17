@@ -1,2 +1,0 @@
-train_run_id,transfer_run_id,target_col,target_data_run_id,rmse_source_test,rmse_transfer_test,gap_ratio
-2026-02-26_035935_74ef1f78,transfer_2026-02-26_052920,load,2026-02-26_052312_f85bed5b,4929.434311945793,11136.072554646169,2.2590974643194777
