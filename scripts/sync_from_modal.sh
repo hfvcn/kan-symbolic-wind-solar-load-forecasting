@@ -7,6 +7,7 @@ VOLUME_NAME="${VOLUME_NAME:-kan-sr}"
 REMOTE_BASE="${REMOTE_BASE:-/runs}"
 LOCAL_BASE="${LOCAL_BASE:-"$REPO_ROOT/runs"}"
 FILE_GET_RETRIES="${FILE_GET_RETRIES:-3}"
+VOLUME_LS_RETRIES="${VOLUME_LS_RETRIES:-3}"
 
 usage() {
   cat <<'EOF'
@@ -37,6 +38,30 @@ require_cmd() {
 }
 
 require_cmd modal
+
+volume_ls() {
+  local remote_path="$1"
+  local attempt="1"
+  local output=""
+
+  while true; do
+    if output="$(modal volume ls "$VOLUME_NAME" "$remote_path" 2>/dev/null)"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+    if [[ "$attempt" -ge "$VOLUME_LS_RETRIES" ]]; then
+      return 1
+    fi
+    echo "Retrying volume ls (${attempt}/${VOLUME_LS_RETRIES}) for ${VOLUME_NAME}:${remote_path}" >&2
+    attempt="$((attempt + 1))"
+    sleep 1
+  done
+}
+
+remote_path_exists() {
+  local remote_path="$1"
+  volume_ls "$remote_path" >/dev/null 2>&1
+}
 
 find_payload_root() {
   local search_root="$1"
@@ -90,7 +115,7 @@ sync_remote_tree() {
   local listing=""
   local line_count=""
 
-  if ! listing="$(modal volume ls "$VOLUME_NAME" "$remote_path" 2>/dev/null)"; then
+  if ! listing="$(volume_ls "$remote_path")"; then
     if download_remote_file "$remote_path" "$(dirname -- "$local_path")" >/dev/null 2>&1; then
       return 0
     fi
@@ -124,7 +149,7 @@ sync_run_minimal_paths() {
 
   mkdir -p "$local_run_dir"
 
-  if modal volume ls "$VOLUME_NAME" "$remote_run_dir/payload.json" >/dev/null 2>&1; then
+  if remote_path_exists "$remote_run_dir/payload.json"; then
     download_remote_file "$remote_run_dir/payload.json" "$local_run_dir"
   else
     echo "ERROR: Missing payload.json in ${VOLUME_NAME}:${remote_run_dir}" >&2
@@ -132,7 +157,7 @@ sync_run_minimal_paths() {
   fi
 
   for optional_dir in processed artifacts checkpoint reports; do
-    if modal volume ls "$VOLUME_NAME" "$remote_run_dir/$optional_dir" >/dev/null 2>&1; then
+    if remote_path_exists "$remote_run_dir/$optional_dir"; then
       sync_remote_tree "$remote_run_dir/$optional_dir" "$local_run_dir/$optional_dir"
     fi
   done
@@ -147,7 +172,7 @@ fi
 mkdir -p "$LOCAL_BASE"
 
 if [[ "$action" == "ls" ]]; then
-  modal volume ls "$VOLUME_NAME" "$REMOTE_BASE"
+  volume_ls "$REMOTE_BASE"
   exit 0
 fi
 
@@ -158,7 +183,7 @@ if [[ "$action" == "latest" ]]; then
   # Pick the lexicographically-latest entry under REMOTE_BASE.
   # Assumes your run directories are named with sortable timestamps (e.g., YYYY-MM-DD_HHMM).
   latest_name="$(
-    modal volume ls "$VOLUME_NAME" "$REMOTE_BASE" 2>/dev/null \
+    volume_ls "$REMOTE_BASE" 2>/dev/null \
       | awk '{print $NF}' \
       | sed 's:/*$::' \
       | awk 'NF' \

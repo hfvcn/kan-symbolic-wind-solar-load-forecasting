@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.kan_sr.feature_scaling import transform_feature_frame
 from src.kan_sr.sparsity import compute_edge_sparsity
 from src.local.kan_train_artifacts import preflight, save_test_predictions, write_checkpoint, write_feature_importance_csv
 from src.local.kan_train_config import TrainConfig
@@ -45,6 +46,7 @@ def _init_context(
     lag_series: list[str] | None,
     lag_steps: list[int] | None,
     max_train_rows: int | None,
+    feature_profile: str = "default",
 ) -> KanTrainContext:
     import torch
 
@@ -58,7 +60,17 @@ def _init_context(
 
     resolved_ts, train_df, val_df, test_df = load_splits(processed_dir=processed_dir, data_timestamp=data_timestamp, max_train_rows=max_train_rows)
     groups, series, steps = normalize_feature_settings(include_groups=include_groups, lag_series=lag_series, lag_steps=lag_steps)
-    prepared = prepare_data(train_df=train_df, val_df=val_df, cfg=cfg, include_base=include_base, include_groups=groups, lag_series=series, lag_steps=steps, device=device)
+    prepared = prepare_data(
+        train_df=train_df,
+        val_df=val_df,
+        cfg=cfg,
+        include_base=include_base,
+        include_groups=groups,
+        lag_series=series,
+        lag_steps=steps,
+        feature_profile=str(feature_profile),
+        device=device,
+    )
     model = build_model(in_dim=len(prepared.feature_cols), cfg=cfg, device=device)
 
     payload = build_payload(
@@ -72,6 +84,7 @@ def _init_context(
         include_base=include_base,
         lag_series=series,
         lag_steps=steps,
+        feature_profile=str(feature_profile),
         max_train_rows=max_train_rows,
         device=device,
     )
@@ -177,7 +190,33 @@ def _write_final_pruned_eval(ctx: KanTrainContext, *, model) -> dict[str, float]
         target_scaler=ctx.prepared.target_scaler,
     )
     write_json(Path(ctx.dirs.artifacts_dir) / "eval_pruned.json", eval_pruned)
+    write_json(Path(ctx.dirs.artifacts_dir) / "eval_val.json", eval_pruned)
     return eval_pruned
+
+
+def _write_final_test_eval(ctx: KanTrainContext, *, model) -> dict[str, float]:
+    import numpy as np
+    import torch
+
+    from src.kan_sr.metrics import mae, r2, rmse
+
+    target_col = str((ctx.payload.get("cfg") or {}).get("target_col") or "load")
+    x_test_np = transform_feature_frame(ctx.test_df, ctx.prepared.feature_cols, ctx.prepared.feature_scaler)
+    x_test = torch.tensor(x_test_np).to(ctx.device)
+    with torch.no_grad():
+        pred = model(x_test).detach().cpu().numpy().reshape(-1)
+
+    y_true = ctx.test_df[target_col].to_numpy(dtype=np.float64).reshape(-1)
+    if ctx.prepared.target_scaler is not None:
+        pred = pred * float(ctx.prepared.target_scaler["std"]) + float(ctx.prepared.target_scaler["mean"])
+
+    metrics = {
+        "rmse": rmse(y_true, pred),
+        "mae": mae(y_true, pred),
+        "r2": r2(y_true, pred),
+    }
+    write_json(Path(ctx.dirs.artifacts_dir) / "eval_test.json", metrics)
+    return metrics
 
 
 def _finalize(
@@ -190,13 +229,16 @@ def _finalize(
     sparsity: dict[str, float | int],
     model_width: list[list[int]],
 ) -> dict[str, Any]:
-    eval_pruned = _write_final_pruned_eval(ctx, model=model)
+    eval_val = _write_final_pruned_eval(ctx, model=model)
+    eval_test = _write_final_test_eval(ctx, model=model)
     payload = dict(ctx.payload)
     payload["model_width"] = model_width
     results = {
         "eval_unpruned": eval_unpruned,
         "eval_sparsify": eval_sparsify,
-        "eval_pruned": eval_pruned,
+        "eval_pruned": eval_val,
+        "eval_val": eval_val,
+        "eval_test": eval_test,
         "sparsity": sparsity,
         "prune_candidate": best.candidate,
     }
@@ -206,6 +248,7 @@ def _finalize(
         model=model,
         payload=payload,
         feature_cols=ctx.prepared.feature_cols,
+        feature_scaler=ctx.prepared.feature_scaler,
         target_scaler=ctx.prepared.target_scaler,
         best_prune=best.candidate,
         sparsity=sparsity,
@@ -217,6 +260,7 @@ def _finalize(
         model=model,
         test_df=ctx.test_df,
         feature_cols=ctx.prepared.feature_cols,
+        feature_scaler=ctx.prepared.feature_scaler,
         target_col=target_col,
         target_scaler=ctx.prepared.target_scaler,
         device=ctx.device,
@@ -244,6 +288,7 @@ def train_kan_local(
     include_groups: list[str] | None = None,
     lag_series: list[str] | None = None,
     lag_steps: list[int] | None = None,
+    feature_profile: str = "default",
     max_train_rows: int | None = 50_000,
     warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
@@ -259,6 +304,7 @@ def train_kan_local(
         include_groups=include_groups,
         lag_series=lag_series,
         lag_steps=lag_steps,
+        feature_profile=feature_profile,
         max_train_rows=max_train_rows,
     )
     eval_unpruned, eval_sparsify, metrics_path = _warmup_and_sparsify(ctx, cfg=cfg, warmup_update_grid=warmup_update_grid)

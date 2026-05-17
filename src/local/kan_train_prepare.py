@@ -15,6 +15,7 @@ from src.local.run_contract import utc_now_iso
 class PreparedData:
     feature_cols: list[str]
     dataset: dict[str, Any]
+    feature_scaler: dict[str, list[float]] | None
     target_scaler: dict[str, float] | None
 
 
@@ -65,6 +66,7 @@ def pick_features(
     include_groups: list[str],
     lag_series: list[str],
     lag_steps: list[int],
+    feature_profile: str,
 ) -> list[str]:
     return pick_feature_columns(
         train_df,
@@ -73,6 +75,7 @@ def pick_features(
         include_groups=include_groups,
         lag_steps=lag_steps,
         lag_series=lag_series,
+        feature_profile=feature_profile,
     )
 
 
@@ -85,6 +88,7 @@ def prepare_data(
     include_groups: list[str],
     lag_series: list[str],
     lag_steps: list[int],
+    feature_profile: str,
     device: str,
 ) -> PreparedData:
     feature_cols = pick_features(
@@ -94,17 +98,20 @@ def prepare_data(
         include_groups=include_groups,
         lag_series=lag_series,
         lag_steps=lag_steps,
+        feature_profile=feature_profile,
     )
     dataset, ds_meta = build_kan_dataset(
         train_df,
         val_df,
         target_col=str(cfg.target_col),
         feature_cols=feature_cols,
+        scale_features=bool(cfg.scale_features),
         scale_target=True,
     )
     return PreparedData(
         feature_cols=feature_cols,
         dataset=move_dataset_to_device(dataset, device),
+        feature_scaler=ds_meta.get("feature_scaler"),
         target_scaler=ds_meta.get("target_scaler"),
     )
 
@@ -140,6 +147,7 @@ def build_payload(
     include_base: bool,
     lag_series: list[str],
     lag_steps: list[int],
+    feature_profile: str,
     max_train_rows: int | None,
     device: str,
 ) -> dict[str, Any]:
@@ -155,10 +163,12 @@ def build_payload(
         "completed_at": None,
         "cfg": asdict(cfg),
         "feature_cols": list(prepared.feature_cols),
+        "feature_scaler": prepared.feature_scaler,
         "target_scaler": prepared.target_scaler,
         "lag_steps": list(lag_steps),
         "lag_series": list(lag_series),
         "include_groups": list(include_groups),
+        "feature_profile": str(feature_profile),
         "include_base": bool(include_base),
         "max_train_rows": max_train_rows,
         "device": device,

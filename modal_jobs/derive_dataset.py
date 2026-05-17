@@ -86,24 +86,23 @@ def derive_dataset(
     add_hub_wind: bool = True,
     add_temp_ghi: bool = True,
     add_absolute_targets: bool = True,
+    rolling_origin_index: int = -1,
+    rolling_origin_step_steps: int = 0,
 ) -> dict[str, Any]:
     import pandas as pd
 
     from src.data.derived import (
-        ZScoreStats,
         add_daylight_ghi_feature,
         add_degree_features,
         add_ghi_temp_corrected_feature,
         add_wind_cubic_feature,
         add_wind_hub_feature,
-        apply_zscore,
         compute_delta,
         compute_net_load,
-        extend_scaler_params,
-        fit_zscore,
         normalize_horizon_steps,
     )
-    from src.data.split import inverse_transform, load_splits_from_parquet, save_splits_to_parquet
+    from src.data.derived_source import load_source_split_bundle
+    from src.data.split import inverse_transform, normalize_features, save_splits_to_parquet
     from src.config import MAX_HORIZON_STEPS
 
     run_id = run_id or _utc_run_id()
@@ -114,49 +113,48 @@ def derive_dataset(
     processed_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    src_run_dir = Path(VOLUME_MOUNT) / "runs" / source_data_run_id
-    src_processed = src_run_dir / "processed"
-    if not src_processed.exists():
-        raise FileNotFoundError(f"Source processed dir not found: {src_processed}")
-
-    scaler_path = src_run_dir / "artifacts" / "scaler_params.json"
-    if not scaler_path.exists():
-        raise FileNotFoundError(f"Source scaler_params.json not found: {scaler_path}")
-    scaler_params = json.loads(scaler_path.read_text())
-
-    resolved_source_ts = source_timestamp
-    if resolved_source_ts is None:
-        train_files = sorted(src_processed.glob("train_*.parquet"))
-        if not train_files:
-            raise FileNotFoundError(f"No train parquet files found in: {src_processed}")
-        resolved_source_ts = train_files[-1].stem.replace("train_", "")
-    train_df, val_df, test_df = load_splits_from_parquet(src_processed, timestamp=resolved_source_ts)
+    source_bundle = load_source_split_bundle(
+        runs_root=Path(VOLUME_MOUNT) / "runs",
+        source_data_run_id=str(source_data_run_id),
+        source_timestamp=source_timestamp,
+        rolling_origin_index=None if int(rolling_origin_index) < 0 else int(rolling_origin_index),
+        rolling_origin_step_steps=None if int(rolling_origin_step_steps) <= 0 else int(rolling_origin_step_steps),
+    )
+    train_df = source_bundle.train_df
+    val_df = source_bundle.val_df
+    test_df = source_bundle.test_df
+    scaler_params = source_bundle.scaler_params
+    resolved_source_ts = source_bundle.source_timestamp
 
     horizons = normalize_horizon_steps(horizon_steps, max_steps=MAX_HORIZON_STEPS, include_1=True)
 
-    # Base series (may be normalized or raw depending on source run); inverse_transform
-    # makes this robust by only touching columns present in scaler_params.feature_names.
-    def base_raw(df: pd.DataFrame) -> pd.DataFrame:
-        cols = [c for c in ["load", "wind", "solar"] if c in df.columns]
-        if len(cols) != 3:
-            missing = sorted(set(["load", "wind", "solar"]) - set(cols))
-            raise ValueError(f"Missing required base columns in processed split: {missing}")
-        return inverse_transform(df[cols], scaler_params)
+    def source_raw(df: pd.DataFrame) -> pd.DataFrame:
+        # Recover all source features to a single raw-space contract before creating
+        # derived targets/features. Otherwise a downstream target-role switch can mix
+        # a previously excluded raw target column with already-normalized predictors.
+        return inverse_transform(df, scaler_params)
+
+    train_df = source_raw(train_df)
+    val_df = source_raw(val_df)
+    test_df = source_raw(test_df)
 
     net_steps = sorted({*horizons, *(net_load_lag_steps or [1, 12, 48])})
 
     def add_targets(df: pd.DataFrame) -> pd.DataFrame:
-        b = base_raw(df)
+        cols = [c for c in ["load", "wind", "solar"] if c in df.columns]
+        if len(cols) != 3:
+            missing = sorted(set(["load", "wind", "solar"]) - set(cols))
+            raise ValueError(f"Missing required base columns in processed split: {missing}")
         out = df.copy()
-        out["net_load"] = compute_net_load(b["load"], b["wind"], b["solar"])
+        out["net_load"] = compute_net_load(out["load"], out["wind"], out["solar"])
         for h in horizons:
-            out[f"delta_load_h{h}"] = compute_delta(b["load"], b["load"].shift(h))
-            out[f"delta_wind_h{h}"] = compute_delta(b["wind"], b["wind"].shift(h))
-            out[f"delta_solar_h{h}"] = compute_delta(b["solar"], b["solar"].shift(h))
+            out[f"delta_load_h{h}"] = compute_delta(out["load"], out["load"].shift(h))
+            out[f"delta_wind_h{h}"] = compute_delta(out["wind"], out["wind"].shift(h))
+            out[f"delta_solar_h{h}"] = compute_delta(out["solar"], out["solar"].shift(h))
             out[f"delta_net_load_h{h}"] = compute_delta(out["net_load"], out["net_load"].shift(h))
             if add_absolute_targets:
-                out[f"wind_h{h}"] = b["wind"]
-                out[f"solar_h{h}"] = b["solar"]
+                out[f"wind_h{h}"] = out["wind"]
+                out[f"solar_h{h}"] = out["solar"]
                 out[f"net_load_h{h}"] = out["net_load"]
         out["delta_load"] = out["delta_load_h1"]
         out["delta_net_load"] = out["delta_net_load_h1"]
@@ -166,41 +164,32 @@ def derive_dataset(
     val_df2 = add_targets(val_df)
     test_df2 = add_targets(test_df)
 
-    # Optional: derived lag features for net_load (small subset, normalized).
-    def add_net_load_lags(df: pd.DataFrame, *, stats: dict[str, ZScoreStats] | None = None) -> tuple[pd.DataFrame, dict[str, ZScoreStats]]:
+    # Optional: derived lag features for net_load (small subset, raw here; the final
+    # normalize_features pass handles train-only standardization consistently).
+    def add_net_load_lags(df: pd.DataFrame) -> pd.DataFrame:
         if "net_load" not in df.columns:
             raise ValueError("Missing required column for net_load lags: net_load")
-        raw_cols: dict[str, pd.Series] = {f"net_load_lag_{k}": df["net_load"].shift(int(k)) for k in net_steps}
         out = df.copy()
-        new_stats: dict[str, ZScoreStats] = {}
-        for name, raw in raw_cols.items():
-            s = stats[name] if stats and name in stats else fit_zscore(raw)
-            new_stats[name] = s
-            out[name] = apply_zscore(raw, s)
+        for k in net_steps:
+            out[f"net_load_lag_{k}"] = out["net_load"].shift(int(k))
+        return out
 
-        # Keep raw net_load itself (target) untouched.
-        return out, new_stats
-
-    # Optional: physics proxy features (normalized).
-    def add_engineered_features(
-        df: pd.DataFrame,
-        *,
-        stats: dict[str, ZScoreStats] | None = None,
-    ) -> tuple[pd.DataFrame, dict[str, ZScoreStats]]:
+    # Optional: physics proxy features (raw here; the final normalize_features pass
+    # handles train-only standardization consistently).
+    def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
         out = df.copy()
         if not add_physics_proxies:
-            return out, {}
+            return out
 
         required = ["temp_2m_c", "wind_speed_10m_m_s", "ghi_w_m2", "is_night"]
         missing = [c for c in required if c not in out.columns]
         if missing:
             raise ValueError(f"Missing required meteo/solar columns for engineered features: {missing}")
 
-        met_raw = inverse_transform(out[["temp_2m_c", "wind_speed_10m_m_s", "ghi_w_m2"]], scaler_params)
         work = pd.DataFrame(index=out.index)
-        work["temp_2m_c"] = met_raw["temp_2m_c"]
-        work["wind_speed_10m_m_s"] = met_raw["wind_speed_10m_m_s"]
-        work["ghi_w_m2"] = met_raw["ghi_w_m2"]
+        work["temp_2m_c"] = out["temp_2m_c"]
+        work["wind_speed_10m_m_s"] = out["wind_speed_10m_m_s"]
+        work["ghi_w_m2"] = out["ghi_w_m2"]
         work["is_night"] = out["is_night"].astype(bool)
 
         work = add_wind_cubic_feature(work)
@@ -216,18 +205,13 @@ def derive_dataset(
             engineered_cols.append("wind_speed_hub_est")
         if add_temp_ghi:
             engineered_cols.append("ghi_temp_corr_w_m2")
-        new_stats: dict[str, ZScoreStats] = {}
         for col in engineered_cols:
-            raw = work[col]
-            s = stats[col] if stats and col in stats else fit_zscore(raw)
-            new_stats[col] = s
-            out[col] = apply_zscore(raw, s)
-        return out, new_stats
+            out[col] = work[col]
+        return out
 
-    # Fit stats on train for new normalized features; apply consistently to val/test.
-    train_df3, nl_stats = add_net_load_lags(train_df2, stats=None)
-    val_df3, _ = add_net_load_lags(val_df2, stats=nl_stats)
-    test_df3, _ = add_net_load_lags(test_df2, stats=nl_stats)
+    train_df3 = add_net_load_lags(train_df2)
+    val_df3 = add_net_load_lags(val_df2)
+    test_df3 = add_net_load_lags(test_df2)
 
     # Remove initial rows where shift-based targets/lags are undefined (avoids cross-split leakage).
     nan_cols = ["delta_load", "delta_net_load"]
@@ -238,24 +222,34 @@ def derive_dataset(
     val_df3 = val_df3.dropna(subset=nan_cols).copy()
     test_df3 = test_df3.dropna(subset=nan_cols).copy()
 
-    train_df4, eng_stats = add_engineered_features(train_df3, stats=None)
-    val_df4, _ = add_engineered_features(val_df3, stats=eng_stats)
-    test_df4, _ = add_engineered_features(test_df3, stats=eng_stats)
-
-    # Extend scaler params with new normalized feature cols.
-    merged_stats: dict[str, ZScoreStats] = {**nl_stats, **eng_stats}
-    scaler_params2 = extend_scaler_params(scaler_params, merged_stats)
-    _write_json(artifacts_dir / "scaler_params.json", scaler_params2)
-
-    # Save derived splits to parquet
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
-    paths = save_splits_to_parquet(train_df4, val_df4, test_df4, processed_dir, timestamp)
+    train_df4 = add_engineered_features(train_df3)
+    val_df4 = add_engineered_features(val_df3)
+    test_df4 = add_engineered_features(test_df3)
 
     target_cols = ["net_load", "delta_load", "delta_net_load"]
     for h in horizons:
         target_cols.extend([f"delta_load_h{h}", f"delta_net_load_h{h}", f"delta_wind_h{h}", f"delta_solar_h{h}"])
         if add_absolute_targets:
             target_cols.extend([f"wind_h{h}", f"solar_h{h}", f"net_load_h{h}"])
+
+    train_df5, val_df5, test_df5, scaler_params2 = normalize_features(
+        train_df4,
+        val_df4,
+        test_df4,
+        exclude_cols=sorted(set(target_cols)),
+    )
+    _write_json(artifacts_dir / "scaler_params.json", scaler_params2)
+    _write_json(artifacts_dir / "split_manifest.json", source_bundle.split_manifest)
+
+    # Save derived splits to parquet
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
+    paths = save_splits_to_parquet(train_df5, val_df5, test_df5, processed_dir, timestamp)
+
+    engineered_cols = ["wind_speed_10m_m_s_cubed", "ghi_day_w_m2", "cdd_18c", "hdd_18c"]
+    if add_hub_wind:
+        engineered_cols.append("wind_speed_hub_est")
+    if add_temp_ghi:
+        engineered_cols.append("ghi_temp_corr_w_m2")
 
     out_payload = {
         "run_id": run_id,
@@ -271,14 +265,15 @@ def derive_dataset(
         "add_temp_ghi": bool(add_temp_ghi),
         "add_absolute_targets": bool(add_absolute_targets),
         "timestamp": timestamp,
-        "rows": {"train": int(len(train_df4)), "val": int(len(val_df4)), "test": int(len(test_df4))},
+        "rows": {"train": int(len(train_df5)), "val": int(len(val_df5)), "test": int(len(test_df5))},
         "added_columns": {
             "targets": sorted(set(target_cols)),
             "net_load_lags": [f"net_load_lag_{k}" for k in net_steps],
-            "engineered_features": list(eng_stats.keys()),
+            "engineered_features": engineered_cols,
         },
         "paths": paths,
         "artifacts_dir": str(artifacts_dir),
+        "source_split": source_bundle.split_manifest,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_json(run_dir / "payload.json", out_payload)
@@ -299,6 +294,8 @@ def main(
     add_hub_wind: bool = True,
     add_temp_ghi: bool = True,
     add_absolute_targets: bool = True,
+    rolling_origin_index: int = -1,
+    rolling_origin_step_steps: int = 0,
 ) -> None:
     run_id_opt = run_id.strip() or None
     ts_opt = source_timestamp.strip() or None
@@ -315,5 +312,7 @@ def main(
         add_hub_wind=bool(add_hub_wind),
         add_temp_ghi=bool(add_temp_ghi),
         add_absolute_targets=bool(add_absolute_targets),
+        rolling_origin_index=int(rolling_origin_index),
+        rolling_origin_step_steps=int(rolling_origin_step_steps),
     )
     print(json.dumps(result, indent=2))

@@ -10,7 +10,9 @@ def plan_derive_dataset(args: argparse.Namespace, *, session_id: str, detached: 
     sweeps = {s.strip().lower() for s in str(args.sweeps).split(",") if s.strip()}
     hs = sorted({1, *parse_csv_ints(str(getattr(args, "horizons", "6,12,24")))})
     hs_name = "_".join(str(h) for h in hs)
-    derived_id = str(args.derived_data_run_id).strip() or det_run_id(session_id, f"derived_h{hs_name}")
+    rolling_origin_index = int(getattr(args, "rolling_origin_index", -1))
+    rolling_suffix = "" if rolling_origin_index < 0 else f"_ro{rolling_origin_index:02d}"
+    derived_id = str(args.derived_data_run_id).strip() or det_run_id(session_id, f"derived_h{hs_name}{rolling_suffix}")
     if not ({"s1", "s2", "s3"} & sweeps) or str(args.derived_data_run_id).strip():
         return [], [], derived_id
 
@@ -32,6 +34,12 @@ def plan_derive_dataset(args: argparse.Namespace, *, session_id: str, detached: 
             "--add-temp-ghi",
             "--add-absolute-targets",
         ]
+        + (["--rolling-origin-index", str(rolling_origin_index)] if rolling_origin_index >= 0 else [])
+        + (
+            ["--rolling-origin-step-steps", str(int(getattr(args, "rolling_origin_step_steps", 0)))]
+            if int(getattr(args, "rolling_origin_step_steps", 0)) > 0
+            else []
+        )
         + (["--source-timestamp", ts_opt] if ts_opt else []),
         detached=detached,
     )

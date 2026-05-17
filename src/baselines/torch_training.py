@@ -19,6 +19,7 @@ from src.kan_sr.metrics import mae, r2, rmse
 @dataclass(frozen=True)
 class TorchTrainResult:
     best_val_rmse: float
+    val_metrics: dict[str, float]
     test_metrics: dict[str, float]
     target_scaler: dict[str, float]
 
@@ -134,8 +135,14 @@ def train_mlp_regressor(
     if best_state is not None:
         model.load_state_dict(best_state, strict=True)
 
+    val_metrics = _eval_model(model, x_val_t, y_val_t, scaler)
     test_metrics = _eval_model(model, x_test_t, y_test_t, scaler)
-    return TorchTrainResult(best_val_rmse=float(best_val), test_metrics={k: float(v) for k, v in test_metrics.items()}, target_scaler=scaler)
+    return TorchTrainResult(
+        best_val_rmse=float(best_val),
+        val_metrics={k: float(v) for k, v in val_metrics.items()},
+        test_metrics={k: float(v) for k, v in test_metrics.items()},
+        target_scaler=scaler,
+    )
 
 
 def make_lstm_sequences(

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 
 from src.baselines.torch_models import MLPRegressor, count_trainable_params
 from src.baselines.torch_training import train_mlp_regressor
@@ -31,6 +32,7 @@ class BaselineRunOptions:
     runs_root: Path
     data_timestamp: str | None = None
     run_id: str | None = None
+    seed: int = 1
     match_kan_run_id: str | None = None
     sync_kan_feature_cols: bool = False
     sync_kan_budget: bool = False
@@ -149,6 +151,7 @@ def _build_payload(
     *,
     run_id: str,
     cfg: BaselineConfig,
+    seed: int,
     data_run_id: str,
     data_timestamp: str | None,
     feature_cols: list[str],
@@ -163,6 +166,7 @@ def _build_payload(
     return {
         "run_id": run_id,
         "phase": "04-baselines-torch",
+        "seed": int(seed),
         "cfg": asdict(cfg),
         "data_run_id": str(data_run_id),
         "data_timestamp": data_timestamp,
@@ -237,6 +241,9 @@ def run_baseline_local(
     opts: BaselineRunOptions,
     cfg: BaselineConfig = BaselineConfig(),
 ) -> dict[str, Any]:
+    torch.manual_seed(opts.seed)
+    np.random.seed(opts.seed)
+
     if str(cfg.model_type).strip().lower() != "mlp":
         raise ValueError("Local baseline_torch currently supports model_type='mlp' only")
 
@@ -273,7 +280,7 @@ def run_baseline_local(
 
     rid = opts.run_id or utc_run_id()
     dirs = ensure_run_dirs(Path(opts.runs_root), rid)
-    payload = _build_payload(run_id=rid, cfg=cfg2, data_run_id=str(data_run_id), data_timestamp=resolved_ts, feature_cols=feature_cols, lag_steps=lag_steps_out, match_kan_run_id=opts.match_kan_run_id, sync_kan_feature_cols=bool(opts.sync_kan_feature_cols), sync_kan_budget=bool(opts.sync_kan_budget), max_train_rows=max_rows2, device=device, budget_sync=budget_sync)
+    payload = _build_payload(run_id=rid, cfg=cfg2, seed=int(opts.seed), data_run_id=str(data_run_id), data_timestamp=resolved_ts, feature_cols=feature_cols, lag_steps=lag_steps_out, match_kan_run_id=opts.match_kan_run_id, sync_kan_feature_cols=bool(opts.sync_kan_feature_cols), sync_kan_budget=bool(opts.sync_kan_budget), max_train_rows=max_rows2, device=device, budget_sync=budget_sync)
     write_json(Path(dirs.run_dir) / "payload.json", payload)
 
     payload2 = _train_and_persist_mlp(dirs=dirs, payload=payload, train_df=train_df, val_df=val_df, test_df=test_df, feature_cols=feature_cols, target_col=str(cfg2.target_col), cfg=cfg2, device=device)

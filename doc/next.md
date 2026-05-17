@@ -1,3 +1,4 @@
+## 注意:实验代码通过modal运行
 # 当前需要保留的记录
 
 ## 1. 目前已确认的遗漏问题
@@ -192,9 +193,202 @@
 3. 当前更稳的说法是：
    - “已经拿到由三条局部公式结构化组合得到的净负荷总公式，并完成了 test 复算；但该总公式相对组合预测器仍存在明显 transfer gap，因此论文与答辩中必须并列呈现 predictor 与 formula 两个对象。”
 
-## 6. 审查报告筛选结论（2026-04-13）
+## 6. 新版 KAN 性能优化导致的叙事偏移问题（2026-04-22 记录）
 
-### 6.1 质量排序（1 = 最值得信）
+> **背景**：2026-04-19 在 Codex 协助下以"让 KAN 超过 LSTM"为目标优化 KAN 配置，结果 KAN 性能大幅提升，但同时发现优化后的 KAN 与论文初稿的核心叙事产生冲突。
+
+### 6.1 发生了什么
+
+在 Codex session `rollout-2026-04-19T12-13-32` 中，以"让 KAN 超过 LSTM"为目标，Codex 自主做了以下改动：
+1. 新建 `src/kan_sr/feature_scaling.py`，给所有输入做 z-score 标准化
+2. `include_base` 从 `False` 改为 `True`（加入 load/wind/solar 当前值）
+3. `hidden_width` 从 `10` 改为 `32`
+4. `sparsify_lamb` 从 `0.01` 降到 `0.0005`（20× 更弱）
+5. `sparsify_lamb_entropy` 从 `2.0` 降到 `0.5`（4× 更弱）
+6. `target_pruned_ratio` 从 `0.8` 降到 `0.0`（完全不要求剪枝）
+7. `max_rmse_degrade_ratio` 从 `1.1` 降到 `1.01`
+8. prune profile 从 `default`（起步 edge_th=0.01）改为 `gentle`（起步 0.0001）
+9. 用户要求后加入 `lag_step=1`（1 小时短期 lag）
+
+### 6.2 新版 vs 旧版的完整差异表
+
+| 配置项 | 旧版 KAN | 新版 KAN | 影响 |
+|--------|---------|---------|------|
+| `include_base` | `False` | `True` | 旧版无 load/wind/solar 当前值，新版多了 5 个特征 |
+| feature scaling | 无 | z-score | load ~40000 vs wind_speed ~5，不 scale 梯度被 load 主导 |
+| 特征数 | 26 | 31（canonical）/ 34（lag1） | 新版多了 base 列 + 新工程特征 + lag_1 |
+| `lag_steps` | [12, 24, 48] | [12, 24, 48]（canonical）/ [1, 12, 24, 48]（lag1） | lag1 版有 1 小时短期 lag |
+| `hidden_width` | 10 | 32 | 3.2× 容量 |
+| `sparsify_lamb` | 0.01 | 0.0005 | 20× 更弱的稀疏惩罚 |
+| `sparsify_lamb_entropy` | 2.0 | 0.5 | 4× 更弱 |
+| `target_pruned_ratio` | 0.8 | 0.0 | 旧版强制 80% 剪枝，新版不要求 |
+| `max_rmse_degrade` | 1.1 | 1.01 | 新版对精度几乎零容忍 |
+| `hidden_width_final` | 4 | 32 | 旧版 prune 后压缩到 4 节点 |
+
+### 6.3 新版结果
+
+**性能大幅提升：**
+
+| 模型 | test RMSE | test R² |
+|------|-----------|---------|
+| 新版 KAN (scaled lag1) | 569 | 0.952 |
+| 新版 KAN (scaled canonical) | 682 | 0.931 |
+| LSTM warm_freeze | 1572 | 0.632 |
+| MLP best (trial 3) | 1800 | 0.516 |
+
+**但物理变量 feature importance 完全不同于旧版：**
+- 旧版 direct KAN：31 个特征中只有 `load` 有 active_edges=6，其余全为 0（load-only collapse）
+- 新版 canonical：31/31 特征全部激活，active_ratio 0.72-0.81
+- 新版 lag1：34/34 特征全部激活，active_ratio 0.84-0.91
+
+**Prune sweep 结果（lag1 版，已完成 `protocol_exec_20260420_ro00__prune_sweep`）：**
+
+| edge_th | pruned_ratio | active_physical | test R² |
+|---------|-------------|-----------------|---------|
+| 0.0001 | 2.4% | 23/23 | 0.952 |
+| 0.001 | 3.1% | 23/23 | 0.952 |
+| 0.005 | 8.5% | 23/23 | 0.934 |
+| 0.01 | 15.2% | 23/23 | 0.798 |
+| 0.02 | 25.7% | 23/23 | 0.654 |
+
+关键发现：**物理变量在所有剪枝水平下全部保留**（23/23），但最大 pruned_ratio 仅 25.7%，R² 已跌到 0.654。距离 symbolic extraction 需要的 80%+ 稀疏度差距巨大。
+
+### 6.4 对论文叙事的冲击
+
+**旧叙事的受损部分：**
+- "direct KAN 连物理因素都学不进去" — 对新版不成立
+- "direct KAN 的最终结构天然坍缩成 load-only" — 被证明是配置问题（无 scaling + 过度剪枝 + 网络太窄），不是 KAN 的固有限制
+- 答辩时如被问"你试过 normalize 输入吗？"会很被动
+
+**旧叙事仍然成立的部分：**
+- "高性能 KAN predictor ≠ 可解释的物理公式" — 反而更强了
+- S2 阻断实验 — 在旧配置下仍然成立
+- S3 分解方案 — 价值不变
+
+### 6.5 旧版设计的历史还原
+
+经查 `.planning/`、`doc/optimization/`、`doc/kan_tuning_notes.md`、`doc/已尝试/` 等文档，**没有找到任何文档明确记录"为什么 `include_base=False`"的设计决策**。旧版配置的隐含逻辑是：
+
+1. **`include_base=False`**：预测目标是 `delta_net_load_h6`（变化量），当前 load/wind/solar 原值被认为属于"等式左边的已知基线"而非输入特征。这个选择在理论上合理，但缺少对其他方案的对比验证。
+2. **无 feature scaling**：pyKAN 教程和论文示例都是低维物理函数（2-5 个输入、量级相近），不存在 load~40000 vs wind_speed~5 的尺度问题。这是在高维真实数据上才暴露的工程盲点。
+3. **`hidden_width=10` + `target_pruned_ratio=0.8`**：直接跟 pyKAN 教程走。Phase 2 成功标准写的是"80% edges pruned"，这个目标在 26 维真实数据上过于激进。
+4. **`sparsity_lamb=0.01` + `entropy=2.0`**：跟 pyKAN 论文推荐值走。
+
+**总结：旧版不是"故意设计成弱配置"，而是在高维、高噪声、强自回归的真实数据场景下，暴露了低维学术示例中不存在的工程问题。**
+
+### 6.6 提议的新叙事方向
+
+不改变论文大结构，把新结果前置作为引子：
+
+1. **前人把 KAN 用成了黑盒**：文献中已有 MCKAN 等工作证明 KAN 在能源预测上有性能优势，但都只关注精度，未做 symbolic extraction（论文 Chapter 1.2 / 2.4 已有这个铺垫）
+2. **新版 KAN 前置，确认性能优势**：展示 scaled + 宽网络 KAN 的性能碾压所有 baseline，且物理变量全部进入结构层
+3. **论证"这条路到不了公式"**：用 prune sweep 的 Pareto 曲线证明不存在"既有好性能又足够稀疏"的中间态
+4. **旧版架构作为"为可解释性的有意义妥协"**：窄网络 + aggressive pruning 牺牲性能换稀疏度，使 symbolic extraction 成为可能
+5. **后续沿原有 S1/S2/S3 思路展开**
+
+### 6.7 后续实验计划
+
+#### 6.7.1 中间态搜索（关键实验，用于支撑"不可兼得"结论）
+
+**目的**：在参数/架构空间里系统搜索，确认不存在一个 KAN 配置同时保有好性能和高稀疏度，从而把“predictor 性能提升”与“symbolic extraction 可行性不足”之间的张力，写成有实验支撑的 Pareto 结论，而不是主观判断。
+
+**核心假设**：
+1. 在与论文主线一致的 `no-base` 旧版任务设定下，加入 `feature scaling` 后，KAN predictor 的性能会显著改善，但结构仍不足以自动进入 `80%+` 剪枝、且保持小退化的 symbolic 区域。
+2. 性能与稀疏度之间更接近连续权衡，而不是存在一个“稍微调一下就两者兼得”的隐藏最优点。
+3. 如果右上角长期为空，则新版高性能 KAN 更适合被写成“性能上界与结构层可学到物理量”的证据，而不能直接当成可提公式的最终方案。
+
+**实验协议**：
+1. 固定数据与任务口径不变，保持与论文 S1/S2/S3 相同的 `delta_net_load_h6`、相同切分、相同 `no-base` 特征集。
+2. 固定特征集为旧版 `26` 个输入：`include_base=False`，`lag_steps=[12,24,48]`。
+3. 仅引入一个工程修正：`feature scaling`。不加入 `lag_1`，不恢复 `include_base=True`，避免把“任务协议变化”误写成“训练技巧有效”。
+4. 宽度与稀疏惩罚做二维搜索：
+   - `hidden_width`: `10, 16, 24, 32`
+   - `sparsify_lamb`: `0.001, 0.005, 0.01, 0.02`
+5. 其余配置默认先锁定旧版主协议，仅在必要时补一维小范围附加扫描：
+   - `sparsify_lamb_entropy` 维持旧值；
+   - prune profile 维持与旧版相同的 aggressive 路径；
+   - 若二维搜索后出现边界点，再补 `target_pruned_ratio in {0.6, 0.8}` 做确认，而不是一开始就扩成大网格。
+
+**记录指标**：
+1. predictor 层：
+   - `val/test RMSE`
+   - `val/test R²`
+   - `skill`
+2. 结构层：
+   - `pruned_ratio`
+   - `active_edges`
+   - `active_physical_features / total_physical_features`
+   - 是否仍出现 `load-only` 或单一变量主导
+3. symbolic 可提取层：
+   - 在 `1%` 与 `5%` RMSE degradation 两个容忍阈值下的最大可剪枝比例
+   - 对应配置是否能稳定进入 symbolic extraction 流程
+   - 若能提公式，记录 `complexity`、`TGR` 与物理变量是否保留
+
+**判定标准**：
+1. 若某配置同时满足：
+   - `test R²` 明显优于旧版 direct KAN，且
+   - `pruned_ratio >= 0.8`，且
+   - symbolic 提取后公式复杂度与 transfer gap 可接受，
+   则“不可兼得”不能作为结论，后续应直接改写为“存在中间态配置”。
+2. 若所有配置都表现为：
+   - 高性能区集中在低剪枝比，
+   - 高剪枝区性能快速崩塌，
+   - 或虽可剪枝但 symbolic 公式不可用，
+   则可以把“高性能 predictor 与可提取公式之间存在稳定张力”写成主结论之一。
+3. 若出现少数边界配置接近右上角，但 seed 间波动很大，则结论应写成“存在候选中间态，但稳定性不足”，不能提前写成已经打通。
+
+**交付物**：
+1. 一张 `pruned_ratio - test R²` 的 Pareto 散点图。
+2. 一张按配置排序的 summary table，至少列 `width`、`sparsify_lamb`、`best_pruned_ratio`、`test R²`、`symbolic_status`。
+3. 若出现候选中间态，单独补一张 representative formula 表；若未出现，则保留“右上角为空”的主图即可。
+
+#### 6.7.2 旧版架构性能优化
+
+**目的**：如果最终论文仍以旧版窄网络 + aggressive pruning 作为“更接近可解释公式”的主工作点，则这个工作点的 predictor 性能至少要达到“明显优于旧版失败基线、且不至于被 LSTM 轻易压制”的水平，否则答辩时会被质疑为“为了公式而牺牲了过多预测有效性”。
+
+**优化原则**：
+1. 只做不改变主叙事的修正，不把 6.7.2 做成另一套新架构。
+2. 优先保留 `no-base`、高剪枝目标、可进入 symbolic extraction 这三个核心约束。
+3. 每次改动都必须回答一个清晰问题：是在修正工程缺陷，还是在改变任务本身。前者可以接受，后者不能混入主结果。
+
+**候选优化项**：
+1. 加 `feature scaling`，这是当前唯一几乎无争议、且已被新版结果证明必要的工程修正。
+2. 将 `hidden_width` 从 `10` 小幅放宽到 `16` 或 `24`，观察是否能在不破坏稀疏化前提下提高 teacher 性能。
+3. 微调 `grid` / `k` 等结构超参，优先寻找“同等剪枝率下更稳”的配置，而不是盲目追最高 `R²`。
+4. 适度延长训练步数，检查旧版是否存在“还没收敛就被拿去 prune”的问题。
+
+**明确不做的改动**：
+1. 不引入 `include_base=True`。
+2. 不引入 `lag_1`。
+3. 不把 `target_pruned_ratio` 直接降到接近 `0`。
+4. 不切换到新版宽网络 + gentle prune 的主路径，因为那会直接改变论文要论证的对象。
+
+**验收条件**：
+1. predictor 指标相对旧版 direct KAN 有可见提升。
+2. 剪枝后仍能进入 symbolic extraction，而不是停留在“结构层全保留”的黑盒 predictor。
+3. 提取出的公式不能再次退化为纯 `load`，至少要保持已有的“物理量可入式”特征。
+4. 若性能提升来自明显更复杂的公式，需同步报告 complexity 与 TGR，不能只报 predictor 结果。
+
+#### 6.7.3 实施顺序与收口规则
+
+1. **先做 6.7.1，再决定 6.7.2 是否继续扩展。**
+   - 如果 6.7.1 已经找到稳定中间态，则论文叙事应转向“存在可兼顾候选，但稳定性/复杂度仍需约束”，6.7.2 只做补充验证。
+   - 如果 6.7.1 明确右上角为空，则 6.7.2 的任务就变成：为旧版可解释路径争取一个更体面的 predictor 下界。
+2. **优先输出能直接进入论文的证据对象。**
+   - 图表优先于零散 run；
+   - summary table 优先于口头描述；
+   - 若没有完成 Pareto 图与代表性配置表，就不算这一节真正闭环。
+3. **所有结论必须按对象分层写。**
+   - predictor 层说性能；
+   - pruned structure 层说稀疏性；
+   - symbolic formula 层说复杂度、物理变量保留和 transfer gap；
+   - 不允许再把三层证据拼成一个“KAN 已经同时解决精度与解释性”的强结论。
+
+**实验顺序**：先做 6.7.1；只有在 6.7.1 不能直接给出稳定收口结论时，再进入 6.7.2。
+
+## 7. 审查报告筛选结论（2026-04-13）
+
+### 7.1 质量排序（1 = 最值得信）
 
 1. `gedt-1.md`
    - 最稳。紧扣现稿，能准确区分“证据链未闭合”和“主张可以成立但应降强度”，几乎每条批评都能落到当前论文修改上。
@@ -209,7 +403,7 @@
 6. `gpp-1.md`
    - 排名最低。并非完全无用，但它把若干真实问题直接上升为“致命 flaw / 当前版本无法接收”这类过强定性；这些定性本身不直接进入正文口径，但对应的事实性问题仍应纳入后续修改。
 
-### 6.2 可直接采纳的文字口径
+### 7.2 可直接采纳的文字口径
 
 1. `Case 4` 不能再写成已经严格闭合的机制证明。更稳的写法应是：阻断实验提供了支持 `shortcut competition` 的干预性证据，但由于 `unblocked` 与 `blocked` 当前统计对象和口径不完全同层，这一节应避免“唯一机制已被完全证明”的强表述。
    来源：`gedt-1.md`、`gp-1.md`
@@ -227,7 +421,7 @@
 5. 需要补一段更明确的“证据对象说明”：哪些结果是 `teacher/composite predictor` 层面的，哪些是 `symbolic formula` 层面的，不能在讨论与结论里跨对象拼接成一个更强结论。
    来源：`gedt-1.md`、`gp-1.md`
 
-### 6.3 可直接采纳的结构与图表改法
+### 7.3 可直接采纳的结构与图表改法
 
 1. 当前正文确实存在“1 张图 + 大量表格”的问题，关键转折点仍主要靠读者自己扫表拼出来；这一判断可信，应采纳。
    来源：`gedt-1-gc.md`、`gp-1-gc.md`、`gpp-1-gc.md`
@@ -257,7 +451,7 @@
    - 评估对象是 `teacher`、`pruned structure` 还是 `symbolic formula`。
    来源：`gpp-1-gc.md`、`gp-1.md`
 
-### 6.4 现稿核对后应顺手修掉的一致性问题
+### 7.4 现稿核对后应顺手修掉的一致性问题
 
 1. 已确认真实切分口径来自代码：`TRAIN_RATIO=0.7`、`VAL_RATIO=0.15`，即 `70/15/15 + 48步gap`。第三章、第五章、主文件与流程图已统一到这一口径。
    来源：代码核对 `src/config.py`、`src/data/split.py`
@@ -266,7 +460,7 @@
 3. `Case 4` 已经按 canonical `no-base` direct-task 口径重跑并收齐 3 对 paired seed；但由于效应量仍偏弱且波动明显，正文和答辩口径仍应把它写成支持 `shortcut competition` 的干预性证据，而不是最硬的一条机制证明。
    来源：`gedt-1.md`、`gp-1.md`
 
-### 6.5 采纳原则（改成按属实与否，不按难度）
+### 7.5 采纳原则（改成按属实与否，不按难度）
 
 1. 后续是否纳入修改，只看一条：该判断或其对应问题是否属实。
 2. 只要与代码、实验资产、现稿核对后属实，就进入后续改动清单；区别只在于分阶段推进，而不是简单标成“不采纳”。
@@ -274,7 +468,7 @@
    - 事实性问题：例如 `Case 4` 口径未完全对齐、`S3 predictor` 与 `S3 formula` 容易被混写、当前存在划分前插值、当前只有单数据集/有限 seed/有限 baseline。这些若属实，全部纳入后续修改。
    - 结论性定性：例如“这是致命 flaw”“当前版本无法接收”。这类属于外部评审口吻，不直接照抄进论文正文；但其背后对应的事实性问题，仍按上条纳入处理。
 
-### 6.6 分阶段纳入清单
+### 7.6 分阶段纳入清单
 
 1. 第一阶段：口径与一致性修正
    - 【已于 2026-04-17 完成】已统一 `main.tex` / `chapters/*.tex` / `thesis_draft` 中的 `S3` 总公式闭环口径、`Case 4` 边界说明、`PySR=0.076`、`strict/medium/strict_poly4` 函数库定义与旧的 `load_lag_1` 残留表述；并已根据 canonical `no-base` 的 Case 4 direct-task paired 结果下调相关结论强度：当前 3 对 final-pred seed 的 `blocked - unblocked` RMSE 分别为 `+53.05`、`+470.44`、`+214.82`，均值 `+246.10`，方向一致但强度有限。
@@ -296,5 +490,226 @@
    来源：`gedt-1.md`、`gp-1.md`、`gpp-1.md`
 4. 图表层面的建议也按同样规则处理：
    - “需要把坍缩、恢复、S3 出路可视化”这一判断属实，应纳入第二阶段。
-   - 具体图型如 `Sankey`、拓扑炫图、特定绘图库风格是否采用，不按“建议里写了什么”决定，而按是否服务于事实表达决定；若只是包装而不增加证据表达，就不作为优先项。
+   - 具体图型如 `Sankey`、拓扑炫图、特定绘图库风格是否采用，不按”建议里写了什么”决定，而按是否服务于事实表达决定；若只是包装而不增加证据表达，就不作为优先项。
    来源：`gedt-1-gc.md`、`gp-1-gc.md`、`gpp-1-gc.md`
+
+## 8. 6.7 中间态搜索阶段性结果与叙事修正（2026-04-22 更新）
+
+### 8.1 已发现的中间态候选：w16_l0p001
+
+- run: `kan_67_execution__kan67_train_w16_l0p001`
+- `status = completed`
+- `test RMSE = 1296.5795`，`test MAE = 858.4613`，`test R² = 0.74897`
+- `pruned_ratio = 0.83046`（训练内 prune 候选：`node_th=0.01, edge_th=0.05`）
+- `active features = 21/28`，`active physical features = 15`
+- 保留的代表性物理变量：`wind_speed_10m_m_s`、`ghi_w_m2`、`ghi_day_w_m2`、`solar_altitude`、`solar_azimuth`、`is_night`，以及多个 `wind_lag_*` / `solar_lag_*`
+- 外部 prune sweep（`kan_67_execution__kan67_prune_w16_l0p001_rerun`）已确认该候选点稳定
+
+**这条结果直接推翻了 6.7.1 原假设中”右上角为空”的临时判断。** 但它仍然只是 predictor/pruned-structure 层面的证据，不等于已经有可用的 symbolic formula。
+
+### 8.2 w10 已完成子集汇总
+
+| 配置 | test R² | pruned_ratio | 状态 |
+|------|---------|-------------|------|
+| w10_l0p001 | -0.333 | 0.40 | 性能不可用 |
+| w10_l0p005 | 0.718 | 0.47 | 性能可接受但稀疏度不足 |
+| w10_l0p01 | 0.443 | 0.16 | 性能与稀疏度均不足 |
+| w10_l0p02 | -6.801 | 0.21 | 完全失败 |
+
+w10 子集中没有出现”高性能 + 0.8 以上稀疏度”的候选。
+
+### 8.3 叙事修正：从”不存在”改为”存在但有缺陷”
+
+原计划的 6.7.1 结论是”不存在中间态”，当前必须修正为：
+
+**中间态在 predictor/pruned-structure 层存在，但有以下明确缺陷：**
+1. 性能代价显著：R² 从 0.952（全性能 KAN）降至 0.749，降幅约 21%
+2. active features 仍有 21/28，结构密度远高于 S3 局部任务的 ~5-8 个特征
+3. symbolic extraction 尚未完成：21 个 active features 做提取大概率产生高复杂度公式
+4. S3 composite predictor（RMSE=1254.62）仍优于该候选点（RMSE=1296.58）
+
+因此叙事第三步应改为：
+> “中间态搜索发现候选点（w16, λ=0.001），pruned_ratio 达 0.83 且保留 15 个物理变量。但该候选点性能显著下降（R² 0.75 vs 0.95），且剪枝后仍有 21 个 active features，结构密度不足以支撑简洁的符号提取。”
+
+### 8.4 关于 feature scaling 与公式坍缩的两难关系
+
+6.7 网格的 w10 子集已经暴露了一个关键的两难：
+
+1. **无 scaling（旧版）**：load 梯度主导 → 训练可以达到 0.8+ 剪枝比 → 但公式坍缩为 load-only
+2. **有 scaling（6.7 网格）**：梯度均衡、物理变量全部激活 → 但 w10 最高只能到 0.47 剪枝比，不够稀疏做提取
+
+这说明坍缩不只是”工程缺陷的下游后果”这么简单——**修了 scaling 丢稀疏度，保了稀疏度但坍缩**。这个两难本身就是 S3 分解方案的真正动机：把任务拆开后，每个子任务既不需要极端稀疏度，也不会被 load 主导。
+
+**对论文的影响：**
+- 不需要再”证明加了 scaling 还坍缩”（这可能不成立）
+- 也不需要”证明中间态完全不存在”（已被 w16_l0p001 推翻）
+- 应把两难本身写成发现，然后自然引出 S3
+
+### 8.5 高性能 KAN symbolic extraction 已终止
+
+- app `ap-4xF12vE5xJUp7u0nYbe5BE` 已 `stopped, Tasks=0`
+- 根因不是公式提取逻辑错误，而是 **Modal 运行时 heartbeat 超时**（反复出现 `ConnectionError('Deadline exceeded')`）
+- `modal_jobs/kan_symbolic.py` 三个入口均未配 `retries=`，不是业务重试
+- 关键产物（`formula_eval_val.json`、`formula_eval_test.json`、`physics_mapping.json`）均未生成
+- **结论：高性能 KAN 的 symbolic extraction 不适合在当前 Modal 配置下等待结果，转为后续独立处理**
+
+### 8.6 当前待完成实验与下一步
+
+**6.7 网格剩余状态：**
+- `w10 × 4`：全部完成 ✅
+- `w16_l0p001`：完成 ✅（强中间态候选）
+- `w16 × {0.005, 0.01, 0.02}`：待同步
+- `w24 × 4`：待同步
+- `w32 × 4`：待同步
+- prune sweep：已提交 `w10 × 4` 和 `w16_l0p001`
+
+**行动项（按优先级排序）：**
+
+#### A1. 同步剩余 train run 并画 Pareto 图（阻塞论文收口）
+
+1. 继续通过 `modal volume ls/get` 同步剩余 12 个 train run（w16 剩余 3 + w24×4 + w32×4）
+2. 对所有已完成 run 提取 `test R²` 和 `pruned_ratio`
+3. 画一张 `pruned_ratio (x) - test R² (y)` 散点图，按 `hidden_width` 着色
+4. 结论口径从”右上角为空”改为”右上角有候选（w16_l0p001）但有明确缺陷（21 active features、R² 降至 0.75）”
+5. **交付物**：Pareto 散点图 PNG + summary table CSV，落盘到 `doc/thesis_sweeps/kan_67_execution/`
+
+#### A2. Modal heartbeat 超时问题修复（阻塞后续 symbolic extraction）
+
+**问题**：`kan_symbolic.py` 的三个入口虽然配了 `timeout=24h`，但在长时间 CPU-bound 计算中 Modal client-worker heartbeat 反复 `Deadline exceeded`，导致任务看似在运行但无法完成。app `ap-4xF12vE5xJUp7u0nYbe5BE` 已手动终止。
+
+**根因**：pyKAN 的 `auto_symbolic()` 对每条 active edge 逐一尝试候选函数库，21 个 active features 的模型计算量极大，期间无任何 I/O 或 volume 交互，Modal 运行时误判连接已死。
+
+**候选修复方案（按侵入性从低到高）：**
+1. **在 symbolic 循环中加 periodic `volume.commit()`**：每处理完一条 edge 后做一次 volume commit，既能 checkpoint 进度、也能保持 Modal 心跳活跃。侵入性最低，优先尝试。
+2. **加 `retries=1`**：如果 heartbeat 真的杀死了 worker，至少能自动重启一次。但由于没有 checkpoint，重启后从头开始，浪费计算。应与方案 1 配合使用。
+3. **缩减候选函数库**：对 21 个 active features 的模型，默认函数库（含 `exp`、`log`、`sqrt`、`tanh` 等）组合爆炸。可限制为 `['x', 'x^2', 'x^3', 'sin']` 等小函数库，降低单次提取耗时。
+4. **拆分提取为 per-layer 子任务**：把 `auto_symbolic()` 拆成按 layer 分步提取，每层完成后落盘，下一层从 checkpoint 继续。侵入性最高但最彻底。
+
+**建议**：先实施方案 1 + 2，观察是否足以让 w16_l0p001 的 symbolic extraction 在 Modal 上跑完。若仍超时，再补方案 3。
+
+#### A3. w16_l0p001 的 symbolic extraction（A2 完成后执行）
+
+- 在 A2 修复后对 w16_l0p001 执行 symbolic extraction
+- 预期该候选点因 21 个 active features 会产生高复杂度公式
+- 记录 `complexity`、`TGR`、物理变量保留情况
+- 若公式不可用（过于复杂或 transfer gap 过大），直接写成”中间态在 formula 层不可行”的闭环证据
+
+#### A4. 旧版 KAN + scaling 分析（已有数据，无需新实验）
+
+- 6.7 网格 w10 子集（见 8.2）已经是”旧版 KAN + scaling”的结果
+- 当前结论：性能改善但稀疏度全面下降（最高 0.47），无法达到 0.8 剪枝目标
+- 这个结论将直接写入 Pareto 图的解读中，无需单独跑实验
+
+## 9. 完整 Pareto 数据与净负荷空间转换（2026-04-22）
+
+### 9.1 数据来源
+
+- **6.7 网格 16 cell（已全部完成）**：`runs/kan_67_execution__kan67_train_w{10,16,24,32}_l{0p001,0p005,0p01,0p02}/payload.json`
+- **Ceiling run**：`runs/kan_67_execution__kan67_train_ceiling_w32_l0p0005_v2/payload.json`
+- **旧版 KAN 与 baseline**：`doc/thesis_sweeps/paperref_20260306_121725_v2/paper_assets/comparison_table.csv`
+- **LSTM baseline**：`doc/thesis_sweeps/protocol_exec_20260419_ro00_baseline_family_refresh/` 目录下的 payload
+
+### 9.2 净负荷空间转换方法
+
+由于预测目标是 `delta_net_load_h6`，重建净负荷预测时 `net_load_hat = net_load_t + delta_hat`，每个样本加了一个常数。因此：
+- **RMSE 在 delta 空间和净负荷空间完全相同**
+- **R² 不同**，因为分母（总方差）不同：`R²_net = 1 - RMSE² / var(net_load_test)`
+- 由旧版 KAN 反推：`var(net_load_test) = 2588.41² / (1 - 0.9701) ≈ 224,076,000`
+
+### 9.3 特征集不一致问题（2026-04-22 发现）
+
+在对比 6.7 网格与论文基线时，发现存在**三套不同的特征集**，源于 `derive_dataset` 管线在不同时间点的演化：
+
+| 数据源 | 日期 | 特征数 | `hub_est` | `temp_corr` | 使用者 |
+|--------|------|--------|-----------|-------------|--------|
+| `2026_03_01_142726…derived_h1_6_12_24` | 3月1日 | **26** | ❌ | ❌ | 论文基线 KAN（`2026-03-01_151000_kan_nobase_nogrid_gpu`） |
+| `paperref_20260306_121725…derived_h1_6` | 3月6日 | **28+** | ✅ | ✅ | paperref_v2 的 S1（31维，含base）、S3 子任务（11-15维，按需选子集） |
+| `protocol_exec_20260419_ro00…derived_h1_6` | 4月19日 | **28** | ✅ | ✅ | 6.7 网格全部 16 cell + ceiling |
+
+新增的两个特征：
+- `wind_speed_hub_est`：幂律风廓线外推到 100m 轮毂高度（`v_hub = v_10m × (100/10)^0.14`）
+- `ghi_temp_corr_w_m2`：温度修正 GHI（`ghi × (1-0.004×(T-25)) × daytime`）
+
+这两个特征是为了让物理量更容易进入公式而后期加入的（见 `plan_kan.py`：”目的：让 wind_speed_hub_est / ghi_temp_corr_w_m2 等物理量保住激活边”）。
+
+**影响**：
+- 6.7 网格（28维）与论文基线（26维）不在同一特征集上，不能直接做绝对值对比
+- 6.7 网格内部是一致的（都是 28 维），Pareto 图本身有效
+- S3 各子任务使用了 3 月 6 日数据源中的新特征（wind 用了 hub_est，solar 用了 temp_corr）
+- comparison_table.csv 中的 s1（RMSE=2588.41）使用的是 3 月 6 日数据源（31维，含 base），与论文第五章引用的 3 月 1 日 run（RMSE=1413.51，26维）是完全不同的 run
+
+### 9.4 论文基线复现验证
+
+为确认论文数字可靠，用论文原始 26 维数据源重跑了完全相同的配置：
+
+**复现 run**：`kan_67_execution__kan67_repro_thesis_26dim`
+**数据源**：`2026_03_01_142726_9ab14f0b__derived_h1_6_12_24`（26维）
+**配置**：`w10, grid=5, k=3, λ=0.01, entropy=2.0, no scaling, no include_base, target_pruned_ratio=0.8, default prune profile`
+
+| 指标 | 本次复现 | 论文 run | 差异 |
+|------|---------|---------|------|
+| test RMSE | **1403.0** | **1413.5** | -0.7% |
+| pruned_ratio | **0.803** | **0.827** | 接近 |
+| total_edges | 81 | 81 | 一致 |
+| unpruned RMSE | 1418.3 | — | — |
+
+**结论：论文数字可复现。** RMSE 差异在随机性范围内（0.7%），剪枝比也都过了 0.8。
+
+**对比 28 维重跑的失败**：用 28 维数据（`protocol_exec_20260419_ro00`）重跑同一配置时，pruned_ratio 仅 0.319，远未达标。说明**多出的 2 个物理特征显著改变了剪枝动态**——26 维下模型能自然稀疏化到 80%，28 维下模型更难稀疏化。
+
+| 重跑配置 | 特征数 | test RMSE | pruned_ratio | 备注 |
+|---------|--------|-----------|-------------|------|
+| 26 维（论文数据源） | 26 | 1403.0 | **0.803** | ✅ 复现成功 |
+| 28 维 grid=5（4月数据源）| 28 | 1248.2 | 0.319 | ❌ 稀疏度不足 |
+| 28 维 grid=3（4月数据源）| 28 | 1584.4 | 0.218 | ❌ 稀疏度不足 |
+
+### 9.5 论文基线的真实性能
+
+论文第五章的 KAN 基线来自 `2026-03-01_151000_kan_nobase_nogrid_gpu`（26维，无 scaling），**不是** comparison_table.csv 中的 paperref_v2 s1 run（31维，含 base，RMSE=2588）。两者是完全不同的 run：
+
+| | 论文基线 KAN | comparison_table s1 |
+|--|------------|-------------------|
+| run_id | `2026-03-01_151000_kan_nobase_nogrid_gpu` | `paperref_20260306_121725_v2__s1_delta_net_load_h6` |
+| 数据源 | 3月1日（26维） | 3月6日（31维，含base） |
+| RMSE | **1413.5** | **2588.4** |
+| skill | **0.453** | -0.00003（坍缩） |
+| pruned_ratio | 0.827 | 0.938 |
+| 状态 | 正常工作 | load-only 坍缩 |
+
+论文基线 KAN（RMSE=1413）远优于 persistence（2585），**已经显著优于 LSTM（约2590）**。
+
+### 9.6 全模型净负荷空间对比表（修正版）
+
+RMSE 在 delta 和净负荷空间相同（重建只加 per-sample 常数）。R² 转换公式：`R²_net = 1 - RMSE² / var(net_load_test)`，其中 `var(net_load_test) ≈ 224,076,000`（由论文基线反推）。
+
+| 配置 | 特征数 | RMSE | 净负荷 R² | pruned_ratio | 数据位置 |
+|------|--------|------|----------|-------------|---------|
+| ceiling w32 λ=0.0005 | 28 | 1149.5 | 0.9941 | 0.753 | `runs/…ceiling_w32_l0p0005_v2` |
+| w24_l0p001 | 28 | 1251.4 | 0.9930 | **0.833** | `runs/…w24_l0p001` |
+| S3 composite pred | 混合 | 1254.6 | 0.9930 | — | `comparison_table.csv` |
+| w16_l0p001 | 28 | 1296.6 | 0.9925 | **0.830** | `runs/…w16_l0p001` |
+| **论文基线 KAN** | **26** | **1413.5** | **0.9911** | **0.827** | `runs/2026-03-01_151000…` |
+| 复现验证 | 26 | 1403.0 | 0.9912 | 0.803 | `runs/…repro_thesis_26dim` |
+| MLP（论文） | 26 | 1474.4 | 0.9903 | — | 论文 chapter5 |
+| persistence | — | 2585.7 | 0.9702 | — | 论文 chapter5 |
+| LSTM best | — | ~2590 | ~0.9701 | — | baseline refresh |
+
+**注意**：6.7 网格（28维）与论文基线（26维）不在同一特征集上。6.7 网格内部对比有效，但与论文基线做绝对值对比时需标注差异。
+
+### 9.7 待决定事项
+
+1. **特征集统一问题**：
+   - 6.7 网格（28维）的 Pareto 图内部一致，可直接使用
+   - 若需要和论文基线（26维）做严格对比，需用 26 维数据源补跑关键点（ceiling + 1-2 个中间态）
+   - 或在论文中标注特征集差异，解释多出的 2 个物理特征的目的和影响
+2. **论文第五章的 G=3 表述需修正**：实际 run 使用 `grid=5`，不是论文文本写的 `G=3`
+3. **comparison_table.csv 与论文第五章数字不一致**：需明确论文最终引用哪一组数字（3月1日 run 还是 3月6日 paperref_v2）
+
+### 9.8 工作优先级（更新后）
+
+1. **实验收口**：
+   - 画 Pareto 图（A1，6.7 网格 28 维数据已齐）
+   - 修 Modal heartbeat 问题（A2）
+   - 中间态 symbolic extraction（A3，依赖 A2）
+2. **协议对齐决策**：确定论文最终使用哪套数据源、哪套特征集作为统一基准
+3. **论文撰写**：所有实验和协议问题收口后再统一修改正文

@@ -153,6 +153,7 @@ def _run_baseline_impl(
     *,
     data_timestamp: str | None = None,
     run_id: str | None = None,
+    seed: int = 1,
     cfg: BaselineConfig = BaselineConfig(),
     match_kan_run_id: str | None = None,
     sync_kan_feature_cols: bool = False,
@@ -169,6 +170,9 @@ def _run_baseline_impl(
     from src.baselines.torch_models import LSTMRegressor, MLPRegressor
     from src.baselines.torch_training import make_lstm_sequences, train_mlp_regressor
     from src.kan_sr.dataset import pick_feature_columns
+
+    torch.manual_seed(seed)
+    np.random.seed(seed)
 
     run_id = run_id or _utc_run_id()
     run_dir = Path(VOLUME_MOUNT) / "runs" / run_id
@@ -269,6 +273,7 @@ def _run_baseline_impl(
     payload = {
         "run_id": run_id,
         "phase": "04-baselines-torch",
+        "seed": int(seed),
         "cfg": asdict(cfg),
         "data_run_id": data_run_id,
         "data_timestamp": resolved_ts,
@@ -495,6 +500,7 @@ def run_baseline(
     *,
     data_timestamp: str | None = None,
     run_id: str | None = None,
+    seed: int = 1,
     cfg: BaselineConfig = BaselineConfig(),
     match_kan_run_id: str | None = None,
     sync_kan_feature_cols: bool = False,
@@ -506,6 +512,7 @@ def run_baseline(
         data_run_id,
         data_timestamp=data_timestamp,
         run_id=run_id,
+        seed=int(seed),
         cfg=cfg,
         match_kan_run_id=match_kan_run_id,
         sync_kan_feature_cols=bool(sync_kan_feature_cols),
@@ -522,6 +529,7 @@ def run_baseline_gpu(
     *,
     data_timestamp: str | None = None,
     run_id: str | None = None,
+    seed: int = 1,
     cfg: BaselineConfig = BaselineConfig(),
     match_kan_run_id: str | None = None,
     sync_kan_feature_cols: bool = False,
@@ -533,6 +541,7 @@ def run_baseline_gpu(
         data_run_id,
         data_timestamp=data_timestamp,
         run_id=run_id,
+        seed=int(seed),
         cfg=cfg,
         match_kan_run_id=match_kan_run_id,
         sync_kan_feature_cols=bool(sync_kan_feature_cols),
@@ -548,6 +557,7 @@ def main(
     data_run_id: str,
     model_type: str = "mlp",
     target: str = "load",
+    seed: int = 1,
     match_kan_run_id: Optional[str] = None,
     sync_kan_feature_cols: bool = False,
     sync_kan_budget: bool = False,
@@ -585,6 +595,7 @@ def main(
         data_run_id,
         data_timestamp=ts_opt,
         run_id=run_id_opt,
+        seed=int(seed),
         cfg=cfg,
         match_kan_run_id=match_kan_run_id,
         sync_kan_feature_cols=bool(sync_kan_feature_cols),

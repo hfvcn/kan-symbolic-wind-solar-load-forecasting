@@ -8,7 +8,7 @@ import torch
 
 from src.kan_sr.prune import prune_kan_model
 from src.kan_sr.sparsity import compute_edge_sparsity
-from src.local.kan_train_config import DEFAULT_PRUNE_CANDIDATES, TrainConfig
+from src.local.kan_train_config import TrainConfig, prune_candidates_for_profile
 from src.local.kan_train_core import evaluate
 
 logger = logging.getLogger(__name__)
@@ -91,13 +91,14 @@ def search_best_prune(
     target_scaler: dict[str, float] | None,
     baseline_rmse: float,
     cfg: TrainConfig,
-    candidates: tuple[dict[str, float], ...] = DEFAULT_PRUNE_CANDIDATES,
+    candidates: tuple[dict[str, float], ...] | None = None,
 ) -> PruneRecord:
     state_before = {k: v.detach().clone() for k, v in model.state_dict().items()}
     _ = model(dataset["train_input"])
 
     prune_records: list[PruneRecord] = []
-    for cand in candidates:
+    active_candidates = tuple(candidates or prune_candidates_for_profile(cfg.prune_candidate_profile))
+    for cand in active_candidates:
         model.load_state_dict(state_before, strict=True)
         try:
             rec = _eval_candidate(

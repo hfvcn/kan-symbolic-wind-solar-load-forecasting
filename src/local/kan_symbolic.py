@@ -9,11 +9,12 @@ from typing import Any
 import numpy as np
 
 from src.data.split import inverse_transform, load_splits_from_parquet
-from src.kan_sr.metrics import mae, r2, rmse
+from src.eval.physics_mapping import analyze_physics
+from src.eval.symbolic_formula import compute_eval_clip_bounds, evaluate_symbolic_split
+from src.kan_sr.feature_scaling import compose_affine_normalizers, transform_feature_frame
 from src.kan_sr.symbolic import (
     DEFAULT_SYMBOLIC_LIB,
     build_symbolic_formula,
-    evaluate_symbolic_formula,
     extract_symbolic_edges,
     prime_symbolic_activations,
     sympy_complexity,
@@ -126,10 +127,10 @@ def _save_artifacts(
     edge_fits,
     expr,
     formula_complexity: dict[str, Any],
-    eval_metrics: dict[str, float] | None,
-    y_true: np.ndarray,
-    pred: np.ndarray,
-    index,
+    physics_report: dict[str, Any] | None,
+    eval_val_metrics: dict[str, float] | None,
+    eval_test_metrics: dict[str, float] | None,
+    test_pred_df,
 ) -> None:
     import pandas as pd
     import sympy as sp
@@ -138,9 +139,13 @@ def _save_artifacts(
     (Path(artifacts_dir) / "formula.sympy.txt").write_text(str(expr))
     (Path(artifacts_dir) / "formula.tex").write_text(sp.latex(expr))
     write_json(Path(artifacts_dir) / "formula_metrics.json", formula_complexity)
-    if eval_metrics is not None:
-        write_json(Path(artifacts_dir) / "formula_eval_test.json", eval_metrics)
-    pd.DataFrame({"y_true": y_true, "y_pred": pred, "residual": pred - y_true}, index=index).to_parquet(Path(artifacts_dir) / "predictions_test.parquet", compression="snappy")
+    if physics_report is not None:
+        write_json(Path(artifacts_dir) / "physics_mapping.json", physics_report)
+    if eval_val_metrics is not None:
+        write_json(Path(artifacts_dir) / "formula_eval_val.json", eval_val_metrics)
+    if eval_test_metrics is not None:
+        write_json(Path(artifacts_dir) / "formula_eval_test.json", eval_test_metrics)
+    test_pred_df.to_parquet(Path(artifacts_dir) / "predictions_test.parquet", compression="snappy")
 
 
 def _build_payload(
@@ -152,8 +157,10 @@ def _build_payload(
     target_col: str,
     cfg: SymbolicConfig,
     feature_cols: list[str],
-    eval_metrics: dict[str, float],
+    eval_val_metrics: dict[str, float],
+    eval_test_metrics: dict[str, float],
     complexity: dict[str, Any],
+    physics_mapping_score: float | None,
 ) -> dict[str, Any]:
     return {
         "run_id": str(run_id),
@@ -166,7 +173,13 @@ def _build_payload(
         "cfg": asdict(cfg),
         "feature_cols": list(feature_cols),
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "results": {"eval_test": dict(eval_metrics), "complexity": dict(complexity)},
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "results": {
+            "eval_val": dict(eval_val_metrics),
+            "eval_test": dict(eval_test_metrics),
+            "complexity": dict(complexity),
+        },
+        "physics_mapping_score": physics_mapping_score,
     }
 
 
@@ -188,6 +201,7 @@ def extract_symbolic_local(
 
     payload = ckpt.get("payload", {})
     feature_cols = list(ckpt["feature_cols"])
+    feature_scaler = ckpt.get("feature_scaler")
     target_scaler = ckpt.get("target_scaler")
     train_cfg = payload.get("cfg", {})
 
@@ -196,58 +210,96 @@ def extract_symbolic_local(
     target_col = str(train_cfg.get("target_col") or payload.get("target_col") or "load")
 
     scaler_params = _load_scaler_params(Path(runs_root), str(data_run_id))
-    input_norm = _load_scaler_for_features(scaler_params, feature_cols)
+    input_norm = compose_affine_normalizers(_load_scaler_for_features(scaler_params, feature_cols), feature_scaler)
     output_norm = {"mean": [float(target_scaler["mean"])], "std": [float(target_scaler["std"])]} if target_scaler is not None else None
 
     model = _build_kan_model(feature_cols=feature_cols, train_cfg=train_cfg, ckpt=ckpt, device=device_s)
 
     processed_dir = Path(runs_root) / str(data_run_id) / "processed"
-    train_df, _val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=str(data_timestamp))
+    train_df, val_df, test_df = load_splits_from_parquet(processed_dir, timestamp=str(data_timestamp))
     if cfg.sample_rows is not None and len(train_df) > int(cfg.sample_rows):
         train_df = train_df.sample(n=int(cfg.sample_rows), random_state=1).sort_index()
 
-    x_sample = torch.tensor(train_df[feature_cols].to_numpy(dtype=np.float32), device=device_s)
+    x_sample_np = transform_feature_frame(train_df, feature_cols, feature_scaler)
+    x_sample = torch.tensor(x_sample_np, device=device_s)
     model, x_sample = prime_symbolic_activations(model, x_sample, device_name=device_s, torch_mod=torch)
 
     edge_fits = extract_symbolic_edges(model, lib=cfg.lib or DEFAULT_SYMBOLIC_LIB, r2_threshold=float(cfg.r2_threshold), weight_simple=float(cfg.weight_simple), fix_below_threshold_to_zero=bool(cfg.fix_below_threshold_to_zero))
     expr = build_symbolic_formula(model, feature_cols=feature_cols, input_normalizer=input_norm, output_normalizer=output_norm)
 
-    clip_bounds: dict[str, tuple[float, float]] | None = None
-    if cfg.eval_clip_quantiles is not None:
-        q_low, q_high = float(cfg.eval_clip_quantiles[0]), float(cfg.eval_clip_quantiles[1])
-        if not (0.0 <= q_low < q_high <= 1.0):
-            raise ValueError(f"eval_clip_quantiles must satisfy 0<=low<high<=1, got: {cfg.eval_clip_quantiles}")
-        train_x_orig = inverse_transform(train_df[feature_cols], scaler_params).astype(np.float64)
-        lows = train_x_orig.quantile(q_low)
-        highs = train_x_orig.quantile(q_high)
-        clip_bounds = {c: (float(lows[c]), float(highs[c])) for c in feature_cols}
+    clip_bounds = compute_eval_clip_bounds(
+        train_df=train_df,
+        feature_cols=feature_cols,
+        scaler_params=scaler_params,
+        eval_clip_quantiles=cfg.eval_clip_quantiles,
+    )
+    if clip_bounds is not None:
         write_json(
             Path(dirs.artifacts_dir) / "eval_input_clip.json",
-            {"quantiles": [q_low, q_high], "bounds": {c: {"low": float(lows[c]), "high": float(highs[c])} for c in feature_cols}},
+            {
+                "quantiles": [float(cfg.eval_clip_quantiles[0]), float(cfg.eval_clip_quantiles[1])],
+                "bounds": {
+                    col: {"low": float(bounds[0]), "high": float(bounds[1])}
+                    for col, bounds in clip_bounds.items()
+                },
+            },
         )
 
-    test_x_orig = inverse_transform(test_df[feature_cols], scaler_params).astype(np.float64)
-    y_true = test_df[target_col].to_numpy(dtype=np.float64).reshape(-1)
-    pred = evaluate_symbolic_formula(expr, feature_cols=feature_cols, x_df=test_x_orig, input_clip=clip_bounds, safe_exp_clip=cfg.safe_exp_clip)
-
-    finite = np.isfinite(pred)
-    if not bool(np.all(finite)):
-        nonfinite_count = int(np.sum(~finite))
-        write_json(
-            Path(dirs.artifacts_dir) / "formula_eval_nonfinite.json",
-            {"n_total": int(len(pred)), "nonfinite_count": nonfinite_count, "nonfinite_frac": float(nonfinite_count) / float(len(pred) or 1)},
+    try:
+        val_eval = evaluate_symbolic_split(
+            split_name="val",
+            expr=expr,
+            split_df=val_df,
+            feature_cols=feature_cols,
+            scaler_params=scaler_params,
+            target_col=target_col,
+            safe_exp_clip=cfg.safe_exp_clip,
+            clip_bounds=clip_bounds,
         )
-        _save_artifacts(artifacts_dir=dirs.artifacts_dir, edge_fits=edge_fits, expr=expr, formula_complexity=sympy_complexity(expr), eval_metrics=None, y_true=y_true, pred=pred, index=test_df.index)
-        raise RuntimeError(f"Non-finite values in symbolic formula evaluation: nonfinite_count={nonfinite_count}")
-
-    eval_metrics = {"rmse": rmse(y_true, pred), "mae": mae(y_true, pred), "r2": r2(y_true, pred)}
-    if not all(np.isfinite([eval_metrics["rmse"], eval_metrics["mae"], eval_metrics["r2"]])):
-        write_json(Path(dirs.artifacts_dir) / "formula_eval_nonfinite.json", {"eval_metrics": eval_metrics})
-        _save_artifacts(artifacts_dir=dirs.artifacts_dir, edge_fits=edge_fits, expr=expr, formula_complexity=sympy_complexity(expr), eval_metrics=None, y_true=y_true, pred=pred, index=test_df.index)
-        raise RuntimeError(f"Non-finite metrics in symbolic formula evaluation: {eval_metrics}")
+        test_eval = evaluate_symbolic_split(
+            split_name="test",
+            expr=expr,
+            split_df=test_df,
+            feature_cols=feature_cols,
+            scaler_params=scaler_params,
+            target_col=target_col,
+            safe_exp_clip=cfg.safe_exp_clip,
+            clip_bounds=clip_bounds,
+        )
+    except RuntimeError as exc:
+        write_json(Path(dirs.artifacts_dir) / "formula_eval_nonfinite.json", {"error": str(exc)})
+        raise
     complexity = sympy_complexity(expr)
+    x_test_orig = inverse_transform(test_df[feature_cols], scaler_params).astype(np.float64)
+    physics_report = analyze_physics(
+        expr,
+        feature_cols=feature_cols,
+        x_df=x_test_orig,
+        target_col=target_col,
+    )
 
-    _save_artifacts(artifacts_dir=dirs.artifacts_dir, edge_fits=edge_fits, expr=expr, formula_complexity=complexity, eval_metrics=eval_metrics, y_true=y_true, pred=pred, index=test_df.index)
-    out_payload = _build_payload(run_id=run_id, train_run_id=str(train_run_id), data_run_id=str(data_run_id), data_timestamp=str(data_timestamp), target_col=target_col, cfg=cfg, feature_cols=feature_cols, eval_metrics=eval_metrics, complexity=complexity)
+    _save_artifacts(
+        artifacts_dir=dirs.artifacts_dir,
+        edge_fits=edge_fits,
+        expr=expr,
+        formula_complexity=complexity,
+        physics_report=physics_report,
+        eval_val_metrics=val_eval.metrics,
+        eval_test_metrics=test_eval.metrics,
+        test_pred_df=test_eval.predictions,
+    )
+    out_payload = _build_payload(
+        run_id=run_id,
+        train_run_id=str(train_run_id),
+        data_run_id=str(data_run_id),
+        data_timestamp=str(data_timestamp),
+        target_col=target_col,
+        cfg=cfg,
+        feature_cols=feature_cols,
+        eval_val_metrics=val_eval.metrics,
+        eval_test_metrics=test_eval.metrics,
+        complexity=complexity,
+        physics_mapping_score=float(physics_report.get("score")) if physics_report.get("score") is not None else None,
+    )
     write_json(dirs.run_dir / "payload.json", out_payload)
     return out_payload

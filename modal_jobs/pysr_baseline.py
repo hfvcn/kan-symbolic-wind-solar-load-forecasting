@@ -106,6 +106,7 @@ class PySRConfig:
     maxsize: int = 20
     warm_start: bool = False
     use_original_features: bool = True
+    complexity_of_variables: list[int] | None = None
 
 
 def _load_kan_payload(run_id: str) -> dict[str, Any]:
@@ -130,7 +131,11 @@ def run_pysr(
     *,
     data_timestamp: str | None = None,
     run_id: str | None = None,
+    seed: int = 1,
     cfg: PySRConfig = PySRConfig(),
+    include_base: bool = True,
+    include_groups: list[str] | None = None,
+    lag_series: list[str] | None = None,
     lag_steps: list[int] | None = None,
     max_train_rows: int | None = 10_000,
     seed_from_symbolic_run: str | None = None,
@@ -175,11 +180,18 @@ def run_pysr(
         cfg = replace(cfg, niterations=int(total_steps))
 
     if max_train_rows is not None and len(train_df) > max_train_rows:
-        train_df = train_df.sample(n=max_train_rows, random_state=1).sort_index()
+        train_df = train_df.sample(n=max_train_rows, random_state=seed).sort_index()
         logger.info(f"Downsampled train_df to {max_train_rows} sampled rows for PySR speed")
 
-    lag_steps = lag_steps or [1, 12, 48]
-    feature_cols = pick_feature_columns(train_df, target_col=cfg.target_col, lag_steps=lag_steps)
+    from src.local.kan_train_prepare import normalize_feature_settings
+
+    groups, series, steps = normalize_feature_settings(
+        include_groups=include_groups, lag_series=lag_series, lag_steps=lag_steps,
+    )
+    feature_cols = pick_feature_columns(
+        train_df, target_col=cfg.target_col, include_base=include_base,
+        include_groups=groups, lag_steps=steps, lag_series=series,
+    )
 
     if bool(sync_kan_feature_cols) and (not seed_from_symbolic_run):
         assert kan_payload is not None
@@ -215,13 +227,18 @@ def run_pysr(
         scaler_params_path = Path(VOLUME_MOUNT) / "runs" / data_run_id / "artifacts" / "scaler_params.json"
         scaler_params = json.loads(scaler_params_path.read_text())
         x_train_df = inverse_transform(train_df[feature_cols], scaler_params)
+        x_val_df = inverse_transform(val_df[feature_cols], scaler_params)
         x_test_df = inverse_transform(test_df[feature_cols], scaler_params)
     else:
         x_train_df = train_df[feature_cols]
+        x_val_df = val_df[feature_cols]
         x_test_df = test_df[feature_cols]
 
     X_train = x_train_df.to_numpy(dtype=np.float64)
     y_train = train_df[cfg.target_col].to_numpy(dtype=np.float64)
+
+    X_val = x_val_df.to_numpy(dtype=np.float64)
+    y_val = val_df[cfg.target_col].to_numpy(dtype=np.float64)
 
     X_test = x_test_df.to_numpy(dtype=np.float64)
     y_test = test_df[cfg.target_col].to_numpy(dtype=np.float64)
@@ -238,23 +255,27 @@ def run_pysr(
         seeds = extract_seed_features(expr, max_seeds=seed_max_seeds)
 
         seed_train, seed_names, kept = compute_seed_matrix(seeds, feature_cols=feature_cols, x_df=x_train_df)
+        seed_val, _seed_names_v, _kept_v = compute_seed_matrix(kept, feature_cols=feature_cols, x_df=x_val_df)
         seed_test, _seed_names2, _kept2 = compute_seed_matrix(kept, feature_cols=feature_cols, x_df=x_test_df)
 
         if seed_train.shape[1] > 0:
             # Stabilize the Julia backend by keeping seed feature scales reasonable.
-            # We robust-clip and z-score using *train* statistics, then apply to test.
+            # We robust-clip and z-score using *train* statistics, then apply to val/test.
             clip_lo = np.quantile(seed_train, 0.005, axis=0)
             clip_hi = np.quantile(seed_train, 0.995, axis=0)
             seed_train = np.clip(seed_train, clip_lo, clip_hi)
+            seed_val = np.clip(seed_val, clip_lo, clip_hi)
             seed_test = np.clip(seed_test, clip_lo, clip_hi)
 
             seed_mean = seed_train.mean(axis=0)
             seed_std = seed_train.std(axis=0)
             seed_std = np.where(seed_std > 0, seed_std, 1.0)
             seed_train = (seed_train - seed_mean) / seed_std
+            seed_val = (seed_val - seed_mean) / seed_std
             seed_test = (seed_test - seed_mean) / seed_std
 
             X_train = np.concatenate([X_train, seed_train], axis=1)
+            X_val = np.concatenate([X_val, seed_val], axis=1)
             X_test = np.concatenate([X_test, seed_test], axis=1)
             feature_cols = list(feature_cols) + list(seed_names)
             seed_features_meta = {
@@ -273,6 +294,7 @@ def run_pysr(
     payload = {
         "run_id": run_id,
         "phase": "04-baselines-pysr",
+        "seed": int(seed),
         "data_run_id": data_run_id,
         "data_timestamp": data_timestamp,
         "cfg": asdict(cfg),
@@ -328,6 +350,8 @@ def run_pysr(
         # Reduce verbosity in Modal logs.
         "progress": True,
     }
+    if cfg.complexity_of_variables is not None:
+        model_kwargs["complexity_of_variables"] = cfg.complexity_of_variables
 
     sig = inspect.signature(PySRRegressor)
     if "multithreading" in sig.parameters:
@@ -335,7 +359,7 @@ def run_pysr(
     if "deterministic" in sig.parameters:
         model_kwargs["deterministic"] = True
     if "random_state" in sig.parameters:
-        model_kwargs["random_state"] = 1
+        model_kwargs["random_state"] = int(seed)
     if seed_from_symbolic_run:
         # Extra guardrails against Julia crashes during constant optimization.
         if "should_optimize_constants" in sig.parameters:
@@ -356,30 +380,43 @@ def run_pysr(
 
     eq_df = model.equations_.copy()
 
-    # Add test metrics per equation when sympy representation is available.
+    # Add val/test metrics per equation when sympy representation is available.
     sym_col = "sympy_format" if "sympy_format" in eq_df.columns else ("equation" if "equation" in eq_df.columns else None)
     if sym_col is not None:
         locals_map = {name: sp.Symbol(name) for name in feature_cols}
-        test_rmse = []
-        test_mae = []
-        test_r2 = []
+        val_rmse, val_mae, val_r2_list = [], [], []
+        test_rmse, test_mae, test_r2 = [], [], []
         for s in eq_df[sym_col].astype(str).tolist():
             try:
                 expr = sp.sympify(s, locals=locals_map)
                 f = sp.lambdify(feature_cols, expr, modules="numpy")
+
+                vargs = [X_val[:, i] for i in range(X_val.shape[1])]
+                vpred = np.asarray(f(*vargs), dtype=np.float64).reshape(-1)
+                if vpred.shape[0] == 1 and y_val.shape[0] > 1:
+                    vpred = np.full_like(y_val, float(vpred[0]), dtype=np.float64)
+                val_rmse.append(rmse(y_val, vpred))
+                val_mae.append(mae(y_val, vpred))
+                val_r2_list.append(r2(y_val, vpred))
+
                 args = [X_test[:, i] for i in range(X_test.shape[1])]
-                pred = f(*args)
-                pred = np.asarray(pred, dtype=np.float64).reshape(-1)
+                pred = np.asarray(f(*args), dtype=np.float64).reshape(-1)
                 if pred.shape[0] == 1 and y_test.shape[0] > 1:
                     pred = np.full_like(y_test, float(pred[0]), dtype=np.float64)
                 test_rmse.append(rmse(y_test, pred))
                 test_mae.append(mae(y_test, pred))
                 test_r2.append(r2(y_test, pred))
             except Exception:  # noqa: BLE001
+                val_rmse.append(float("nan"))
+                val_mae.append(float("nan"))
+                val_r2_list.append(float("nan"))
                 test_rmse.append(float("nan"))
                 test_mae.append(float("nan"))
                 test_r2.append(float("nan"))
 
+        eq_df["val_rmse"] = val_rmse
+        eq_df["val_mae"] = val_mae
+        eq_df["val_r2"] = val_r2_list
         eq_df["test_rmse"] = test_rmse
         eq_df["test_mae"] = test_mae
         eq_df["test_r2"] = test_r2
@@ -428,16 +465,36 @@ def run_pysr(
     return {"run_id": run_id, "status": "completed", "eval_test": eval_test, "artifacts_dir": str(artifacts_dir)}
 
 
+def _parse_str_list(value: str) -> list[str] | None:
+    text = str(value).strip().lower()
+    if text in ("", "none"):
+        return [] if text == "none" else None
+    return [item.strip() for item in str(value).split(",") if item.strip()]
+
+
+def _parse_int_list(value: str) -> list[int] | None:
+    text = str(value).strip().lower()
+    if text in ("", "none"):
+        return [] if text == "none" else None
+    return [int(item.strip()) for item in text.split(",") if item.strip()]
+
+
 @app.local_entrypoint()
 def main(
     data_run_id: str,
+    run_id: str = "",
     target: str = "load",
+    seed: int = 1,
     niterations: int = 200,
     populations: int = 8,
     population_size: int = 40,
     maxsize: int = 20,
     warm_start: bool = False,
     use_original_features: bool = True,
+    complexity_of_variables: str = "",
+    include_base: bool = True,
+    include_groups: str = "",
+    lag_series: str = "",
     lag_steps: str = "1,12,48",
     max_train_rows: int = 10_000,
     seed_from_symbolic_run: str = "",
@@ -447,11 +504,10 @@ def main(
     sync_kan_budget: bool = False,
     data_timestamp: str = "",
 ) -> None:
-    lag_steps_list = [int(s.strip()) for s in str(lag_steps).split(",") if s.strip()]
     max_train_rows_opt: int | None = int(max_train_rows)
     if max_train_rows_opt <= 0:
         max_train_rows_opt = None
-    seed = seed_from_symbolic_run.strip() or None
+    seed_run_id = seed_from_symbolic_run.strip() or None
     match = match_kan_run_id.strip() or None
     ts_opt = data_timestamp.strip() or None
 
@@ -463,14 +519,20 @@ def main(
         maxsize=int(maxsize),
         warm_start=bool(warm_start),
         use_original_features=bool(use_original_features),
+        complexity_of_variables=_parse_int_list(complexity_of_variables),
     )
     result = run_pysr.remote(
         data_run_id,
+        run_id=run_id.strip() or None,
         data_timestamp=ts_opt,
+        seed=int(seed),
         cfg=cfg,
-        lag_steps=lag_steps_list,
+        include_base=bool(include_base),
+        include_groups=_parse_str_list(include_groups),
+        lag_series=_parse_str_list(lag_series),
+        lag_steps=_parse_int_list(lag_steps),
         max_train_rows=max_train_rows_opt,
-        seed_from_symbolic_run=seed,
+        seed_from_symbolic_run=seed_run_id,
         seed_max_seeds=int(seed_max_seeds),
         match_kan_run_id=match,
         sync_kan_feature_cols=bool(sync_kan_feature_cols),

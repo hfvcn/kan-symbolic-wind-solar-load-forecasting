@@ -116,6 +116,7 @@ def extract_symbolic_edges(
     r2_threshold: float = 0.99,
     weight_simple: float = 0.9,
     fix_below_threshold_to_zero: bool = False,
+    force_fix_all: bool = False,
     a_range: tuple[float, float] = (-10, 10),
     b_range: tuple[float, float] = (-10, 10),
 ) -> list[SymbolicEdgeFit]:
@@ -126,6 +127,9 @@ def extract_symbolic_edges(
         - `model` is expected to be a `kan.KAN` instance (MultKAN).
         - Call a forward pass on representative inputs before this function so
           internal activations are available for symbolic fitting.
+        - `force_fix_all`: fix every active edge to its best-fit function
+          regardless of R², so that symbolic_formula() includes all edges
+          instead of leaving unfixed edges as zero.
     """
     fits: list[SymbolicEdgeFit] = []
 
@@ -164,6 +168,10 @@ def extract_symbolic_edges(
                 fixed_as = ""
 
                 if float(r2) >= r2_threshold:
+                    model.fix_symbolic(l, i, j, best_name, verbose=False, log_history=False)
+                    fixed = True
+                    fixed_as = best_name
+                elif force_fix_all:
                     model.fix_symbolic(l, i, j, best_name, verbose=False, log_history=False)
                     fixed = True
                     fixed_as = best_name

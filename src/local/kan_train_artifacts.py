@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 
+from src.kan_sr.feature_scaling import transform_feature_frame
 from src.local.kan_train_core import assert_finite_dataset, tensor_stats
 from src.local.run_contract import write_json
 
@@ -39,6 +40,7 @@ def write_checkpoint(
     model,
     payload: dict[str, Any],
     feature_cols: list[str],
+    feature_scaler: dict[str, list[float]] | None,
     target_scaler: dict[str, float] | None,
     best_prune: dict[str, float],
     sparsity: dict[str, float | int],
@@ -50,6 +52,7 @@ def write_checkpoint(
         "model_state": model.state_dict(),
         "payload": payload,
         "feature_cols": feature_cols,
+        "feature_scaler": feature_scaler,
         "target_scaler": target_scaler,
         "best_prune": best_prune,
         "sparsity": sparsity,
@@ -64,6 +67,7 @@ def save_test_predictions(
     model,
     test_df,
     feature_cols: list[str],
+    feature_scaler: dict[str, list[float]] | None,
     target_col: str,
     target_scaler: dict[str, float] | None,
     device: str,
@@ -71,7 +75,8 @@ def save_test_predictions(
     import pandas as pd
     import torch
 
-    x_test = torch.tensor(test_df[feature_cols].to_numpy(dtype=np.float32)).to(device)
+    x_test_np = transform_feature_frame(test_df, feature_cols, feature_scaler)
+    x_test = torch.tensor(x_test_np).to(device)
     with torch.no_grad():
         pred_norm = model(x_test).detach().cpu().numpy().reshape(-1)
 
@@ -81,4 +86,3 @@ def save_test_predictions(
     else:
         pred = pred_norm
     pd.DataFrame({"y_true": y_true, "y_pred": pred, "residual": pred - y_true}, index=test_df.index).to_parquet(out_path, compression="snappy")
-

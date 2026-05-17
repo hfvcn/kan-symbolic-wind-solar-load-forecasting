@@ -10,7 +10,7 @@ debug_physics_formula.py
   - Step 3: 对两个模型提取符号公式，打印结果对比
 
 用法：
-    cd /Users/vfch/Documents/project/graduation-design
+    cd 
     python scripts/debug_physics_formula.py --source-run <source_data_run_id>
 
 参数:

@@ -624,6 +624,14 @@ def main() -> None:
                         cmd_args += ["--lstm-batch-size", str(int(b["lstm_batch_size"]))]
                     if b.get("patience") is not None:
                         cmd_args += ["--patience", str(int(b["patience"]))]
+                    if b.get("hidden_dim") is not None:
+                        cmd_args += ["--hidden-dim", str(int(b["hidden_dim"]))]
+                    if b.get("dropout") is not None:
+                        cmd_args += ["--dropout", str(float(b["dropout"]))]
+                    if b.get("protocol_name") is not None:
+                        cmd_args += ["--protocol-name", str(b["protocol_name"])]
+                    if b.get("protocol_trial") is not None:
+                        cmd_args += ["--protocol-trial", str(b["protocol_trial"])]
                     if b.get("max_train_rows") is not None:
                         cmd_args += ["--max-train-rows", str(int(b["max_train_rows"]))]
                     if b.get("lag_steps") is not None:
@@ -635,6 +643,8 @@ def main() -> None:
                     # Fairness: sync features/budget to a specific KAN train run
                     if match_id:
                         cmd_args += ["--match-kan-run-id", str(match_id)]
+                        if bool(b.get("match_kan_param_count", False)):
+                            cmd_args.append("--match-kan-param-count")
                         if bool(b.get("sync_kan_feature_cols", False)):
                             cmd_args.append("--sync-kan-feature-cols")
                         if bool(b.get("sync_kan_budget", False)):

@@ -63,5 +63,6 @@ def mark_payload_completed(
     out["finished_at"] = completed_at
     out["completed_at"] = completed_at
     if results is not None:
+        out.update(results)
         out["results"] = results
     return out

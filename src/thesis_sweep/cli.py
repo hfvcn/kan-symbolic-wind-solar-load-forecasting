@@ -38,6 +38,10 @@ def parse_args() -> argparse.Namespace:
         choices=["full", "auto_reduced"],
         help="S0 symbolic grid: full for all train runs, or full only for explicit --symbolic-train-run-id and reduced for auto runs.",
     )
+    ap.add_argument("--baseline-protocols", default="matched,best_effort", help="Baseline fairness protocols: matched, best_effort, or both.")
+    ap.add_argument("--baseline-models", default="mlp,lstm", help="Torch baseline families to include: mlp, lstm, or both.")
+    ap.add_argument("--rolling-origin-index", default=-1, type=int, help="Optional expanding-window rolling-origin split index. -1 keeps canonical split.")
+    ap.add_argument("--rolling-origin-step-steps", default=0, type=int, help="Optional rolling-origin backward shift in timesteps. 0 uses the canonical test-window length.")
     ap.add_argument("--session-id", default="", help="Optional fixed session id (folder under doc/thesis_sweeps/).")
     ap.add_argument("--sparsify-lamb", default=None, type=float, help="Override KAN sparsify lambda (default: 0.01). S0-physics always uses 0.005 regardless.")
     ap.add_argument("--sparsify-lamb-entropy", default=None, type=float, help="Override KAN sparsify lambda_entropy (default: 2.0).")
@@ -147,3 +151,7 @@ def main() -> None:
         sync_runs(run_ids, dry_run=dry_run)
     if auto_sync and (not dry_run):
         local_postprocess(run_ids=run_ids, comp_runs=comp_runs, session_id=session_id, session_dir=session_dir)
+
+
+if __name__ == "__main__":
+    main()

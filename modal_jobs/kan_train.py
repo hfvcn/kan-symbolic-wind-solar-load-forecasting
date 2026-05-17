@@ -13,6 +13,8 @@ Outputs (per MODAL.md contract) to:
       eval_unpruned.json
       eval_sparsify.json
       eval_pruned.json
+      eval_val.json
+      eval_test.json
       prune_search.json
 """
 
@@ -31,7 +33,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 import modal
+from src.local.kan_train_config import prune_candidates_for_profile
 from src.local.run_contract import mark_payload_completed, utc_now_iso
+from src.kan_sr.feature_scaling import transform_feature_frame
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -139,7 +143,22 @@ def _write_final_pruned_eval(
 ) -> dict[str, float]:
     eval_pruned = _evaluate(model, dataset["test_input"], dataset["test_label"], target_scaler=target_scaler)
     _write_json(artifacts_dir / "eval_pruned.json", eval_pruned)
+    _write_json(artifacts_dir / "eval_val.json", eval_pruned)
     return eval_pruned
+
+
+def _compute_test_metrics_from_predictions(pred_df) -> dict[str, float]:
+    import numpy as np
+
+    from src.kan_sr.metrics import mae, r2, rmse
+
+    y_true = pred_df["y_true"].to_numpy(dtype=np.float64)
+    y_pred = pred_df["y_pred"].to_numpy(dtype=np.float64)
+    return {
+        "rmse": rmse(y_true, y_pred),
+        "mae": mae(y_true, y_pred),
+        "r2": r2(y_true, y_pred),
+    }
 
 
 def _torch_env_info() -> dict[str, Any]:
@@ -272,6 +291,7 @@ class TrainConfig:
     target_col: str = "load"
     grid_range_min: float = -5.0
     grid_range_max: float = 5.0
+    scale_features: bool = False
     hidden_width: int = 10
     hidden_layers: tuple[int, ...] | None = None
     grid: int = 5
@@ -301,6 +321,7 @@ class TrainConfig:
     max_rmse_degrade_ratio: float = 1.1  # within 10%
     prune_require_features: tuple[str, ...] = ()
     prune_require_strict: bool = False
+    prune_candidate_profile: str = "default"
 
 
 def _move_dataset_to_device(dataset: dict[str, Any], device: str) -> dict[str, Any]:
@@ -407,6 +428,7 @@ def _train_kan_impl(
     include_groups: Optional[list[str]] = None,
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
+    feature_profile: str = "default",
     max_train_rows: Optional[int] = 50_000,
     warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
@@ -431,7 +453,7 @@ def _train_kan_impl(
     import torch
     from kan import KAN
 
-    from src.kan_sr.dataset import build_kan_dataset, pick_feature_columns
+    from src.kan_sr.dataset import build_kan_dataset, normalize_feature_profile, pick_feature_columns
     from src.kan_sr.prune import prune_kan_model
     from src.kan_sr.sparsity import compute_edge_sparsity
 
@@ -468,6 +490,7 @@ def _train_kan_impl(
         lag_series = ["load", "wind", "solar"]
     if lag_steps is None:
         lag_steps = [1, 12, 48]
+    feature_profile = normalize_feature_profile(feature_profile)
     feature_cols = pick_feature_columns(
         train_df,
         target_col=cfg.target_col,
@@ -475,11 +498,20 @@ def _train_kan_impl(
         include_groups=include_groups,
         lag_steps=lag_steps,
         lag_series=lag_series,
+        feature_profile=feature_profile,
     )
     if cfg.prune_require_features:
         _validate_required_feature_patterns(feature_cols, cfg.prune_require_features)
 
-    dataset, ds_meta = build_kan_dataset(train_df, val_df, target_col=cfg.target_col, feature_cols=feature_cols, scale_target=True)
+    dataset, ds_meta = build_kan_dataset(
+        train_df,
+        val_df,
+        target_col=cfg.target_col,
+        feature_cols=feature_cols,
+        scale_features=bool(cfg.scale_features),
+        scale_target=True,
+    )
+    feature_scaler = ds_meta.get("feature_scaler")
     target_scaler = ds_meta.get("target_scaler")
 
     def hidden_sizes() -> list[int]:
@@ -509,10 +541,12 @@ def _train_kan_impl(
         "completed_at": None,
         "cfg": asdict(cfg),
         "feature_cols": feature_cols,
+        "feature_scaler": feature_scaler,
         "target_scaler": target_scaler,
         "lag_steps": list(lag_steps),
         "lag_series": list(lag_series),
         "include_groups": list(include_groups),
+        "feature_profile": str(feature_profile),
         "include_base": bool(include_base),
         "max_train_rows": max_train_rows,
         "device": device_name,
@@ -528,9 +562,18 @@ def _train_kan_impl(
     _assert_finite_dataset(dataset)
 
     # Quick input range report
-    x_np = train_df[feature_cols].to_numpy()
+    x_np = dataset["train_input"].detach().cpu().numpy()
     out_of_range = float(np.mean((x_np < cfg.grid_range_min) | (x_np > cfg.grid_range_max)))
-    _write_json(artifacts_dir / "input_range_report.json", {"grid_range": [cfg.grid_range_min, cfg.grid_range_max], "out_of_range_fraction": out_of_range})
+    _write_json(
+        artifacts_dir / "input_range_report.json",
+        {
+            "grid_range": [cfg.grid_range_min, cfg.grid_range_max],
+            "out_of_range_fraction": out_of_range,
+            "scale_features": bool(cfg.scale_features),
+        },
+    )
+    if feature_scaler is not None:
+        _write_json(artifacts_dir / "feature_scaler.json", feature_scaler)
     volume.commit()
 
     model = KAN(
@@ -627,17 +670,7 @@ def _train_kan_impl(
     baseline_rmse = float(eval_sparsify["rmse"])
     prune_records: list[dict[str, Any]] = []
 
-    candidates = [
-        {"node_th": 0.01, "edge_th": 0.002},
-        {"node_th": 0.01, "edge_th": 0.005},
-        {"node_th": 0.01, "edge_th": 0.01},
-        {"node_th": 0.01, "edge_th": 0.03},
-        {"node_th": 0.01, "edge_th": 0.05},
-        {"node_th": 0.01, "edge_th": 0.08},
-        {"node_th": 0.02, "edge_th": 0.10},
-        {"node_th": 0.02, "edge_th": 0.15},
-        {"node_th": 0.03, "edge_th": 0.20},
-    ]
+    candidates = list(prune_candidates_for_profile(cfg.prune_candidate_profile))
 
     state_before_prune = {k: v.clone() for k, v in model.state_dict().items()}
 
@@ -809,6 +842,7 @@ def _train_kan_impl(
         "model_state": model.state_dict(),
         "payload": payload,
         "feature_cols": feature_cols,
+        "feature_scaler": feature_scaler,
         "target_scaler": target_scaler,
         "best_prune": best["candidate"],
         "sparsity": sparsity_final.as_dict(),
@@ -825,7 +859,8 @@ def _train_kan_impl(
     prune_candidate_final = best["candidate"]
 
     # Save test predictions for downstream evaluation/plots
-    x_test = torch.tensor(test_df[feature_cols].to_numpy(dtype=np.float32)).to(device_name)
+    x_test_np = transform_feature_frame(test_df, feature_cols, feature_scaler)
+    x_test = torch.tensor(x_test_np).to(device_name)
     with torch.no_grad():
         pred_norm = model(x_test).detach().cpu().numpy().reshape(-1)
 
@@ -850,6 +885,8 @@ def _train_kan_impl(
         pred[night_mask] = 0.0
 
     pred_df = pd.DataFrame({"y_true": y_true, "y_pred": pred, "residual": pred - y_true}, index=test_df.index)
+    eval_test_final = _compute_test_metrics_from_predictions(pred_df)
+    _write_json(artifacts_dir / "eval_test.json", eval_test_final)
     pred_df.to_parquet(artifacts_dir / "predictions_test.parquet", compression="snappy")
     payload = mark_payload_completed(
         payload,
@@ -857,6 +894,8 @@ def _train_kan_impl(
             "eval_unpruned": eval_unpruned,
             "eval_sparsify": eval_sparsify,
             "eval_pruned": eval_pruned_final,
+            "eval_val": eval_pruned_final,
+            "eval_test": eval_test_final,
             "sparsity": sparsity_final.as_dict(),
             "prune_candidate": prune_candidate_final,
         },
@@ -872,6 +911,7 @@ def _train_kan_impl(
         "data_timestamp": resolved_ts,
         "eval_unpruned": eval_unpruned,
         "eval_pruned": eval_pruned_final,
+        "eval_test": eval_test_final,
         "sparsity": sparsity_final.as_dict(),
         "checkpoint": str(checkpoint_dir / "model.pt"),
     }
@@ -889,6 +929,7 @@ def train_kan_cpu(
     include_groups: Optional[list[str]] = None,
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
+    feature_profile: str = "default",
     max_train_rows: Optional[int] = 50_000,
     warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
@@ -903,6 +944,7 @@ def train_kan_cpu(
         include_groups=include_groups,
         lag_series=lag_series,
         lag_steps=lag_steps,
+        feature_profile=feature_profile,
         max_train_rows=max_train_rows,
         warmup_update_grid=bool(warmup_update_grid),
     )
@@ -920,6 +962,7 @@ def train_kan_gpu(
     include_groups: Optional[list[str]] = None,
     lag_series: Optional[list[str]] = None,
     lag_steps: Optional[list[int]] = None,
+    feature_profile: str = "default",
     max_train_rows: Optional[int] = 50_000,
     warmup_update_grid: bool = True,
 ) -> dict[str, Any]:
@@ -934,6 +977,7 @@ def train_kan_gpu(
         include_groups=include_groups,
         lag_series=lag_series,
         lag_steps=lag_steps,
+        feature_profile=feature_profile,
         max_train_rows=max_train_rows,
         warmup_update_grid=bool(warmup_update_grid),
     )
@@ -944,6 +988,7 @@ def main(
     data_run_id: str,
     data_timestamp: Optional[str] = None,
     target: str = "load",
+    scale_features: bool = False,
     hidden_width: int = 10,
     hidden_layers: str = "",
     grid_range_min: float = -5.0,
@@ -955,6 +1000,7 @@ def main(
     include_groups: str = "meteorology,solar,cyclic",
     lag_series: str = "load,wind,solar",
     lag_steps: str = "1,12,48",
+    feature_profile: str = "default",
     include_base: bool = True,
     warmup_steps: int = 200,
     sparsify_steps: int = 800,
@@ -971,11 +1017,11 @@ def main(
     max_rmse_degrade_ratio: float = 1.1,
     prune_require_features: str = "",
     prune_require_strict: bool = False,
+    prune_candidate_profile: str = "default",
     hidden_mult: int = 0,
     mult_arity: int = 2,
     warmup_update_grid: bool = True,
     use_gpu: bool = False,
-    submit_only: bool = False,
     run_id: Optional[str] = None,
     kind: Optional[str] = None,
 ) -> None:
@@ -990,6 +1036,7 @@ def main(
         target_col=target,
         grid_range_min=float(grid_range_min),
         grid_range_max=float(grid_range_max),
+        scale_features=bool(scale_features),
         hidden_width=hidden_width,
         hidden_layers=hidden_layers_tuple,
         grid=int(grid),
@@ -1012,6 +1059,7 @@ def main(
         max_rmse_degrade_ratio=float(max_rmse_degrade_ratio),
         prune_require_features=tuple(_parse_csv_strs(prune_require_features)),
         prune_require_strict=bool(prune_require_strict),
+        prune_candidate_profile=str(prune_candidate_profile),
     )
 
     include_groups_list = _parse_csv_strs(include_groups)
@@ -1022,23 +1070,6 @@ def main(
         max_train_rows_opt = None
 
     fn = train_kan_gpu if use_gpu else train_kan_cpu
-    if submit_only:
-        call = fn.spawn(
-            data_run_id,
-            data_timestamp=data_timestamp,
-            run_id=run_id,
-            kind=kind,
-            cfg=cfg,
-            include_base=include_base,
-            include_groups=include_groups_list,
-            lag_series=lag_series_list,
-            lag_steps=lag_steps_list,
-            max_train_rows=max_train_rows_opt,
-            warmup_update_grid=bool(warmup_update_grid),
-        )
-        print(json.dumps({"run_id": run_id, "status": "submitted", "call": str(call)}, indent=2))
-        return
-
     result = fn.remote(
         data_run_id,
         data_timestamp=data_timestamp,
@@ -1049,6 +1080,7 @@ def main(
         include_groups=include_groups_list,
         lag_series=lag_series_list,
         lag_steps=lag_steps_list,
+        feature_profile=str(feature_profile),
         max_train_rows=max_train_rows_opt,
         warmup_update_grid=bool(warmup_update_grid),
     )

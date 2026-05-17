@@ -18,7 +18,9 @@ def _plan_kan_train_cmd(
     lag_steps: str,
     include_base: bool,
     lag_series: str,
+    feature_profile: str | None = None,
     sparsify_lamb: float | None = None,
+    sparsify_lamb_l1: float | None = None,
     sparsify_lamb_entropy: float | None = None,
     hidden_width_override: int | None = None,
     force_no_warmup_update_grid: bool = False,
@@ -27,6 +29,7 @@ def _plan_kan_train_cmd(
     hidden_layers = str(args.kan_hidden_layers).strip()
     # Use caller-supplied lamb override; fall back to CLI arg; fall back to modal default (0.01).
     lamb = sparsify_lamb if sparsify_lamb is not None else getattr(args, "sparsify_lamb", None)
+    lamb_l1 = sparsify_lamb_l1 if sparsify_lamb_l1 is not None else getattr(args, "sparsify_lamb_l1", None)
     lamb_entropy = sparsify_lamb_entropy if sparsify_lamb_entropy is not None else getattr(args, "sparsify_lamb_entropy", None)
     hw = str(hidden_width_override) if hidden_width_override is not None else (str(args.kan_hidden_width).strip() or "10")
     cmd_args = [
@@ -57,10 +60,14 @@ def _plan_kan_train_cmd(
     ]
     if lamb is not None:
         cmd_args += ["--sparsify-lamb", str(float(lamb))]
+    if lamb_l1 is not None:
+        cmd_args += ["--sparsify-lamb-l1", str(float(lamb_l1))]
     if lamb_entropy is not None:
         cmd_args += ["--sparsify-lamb-entropy", str(float(lamb_entropy))]
     if hidden_layers:
         cmd_args += ["--hidden-layers", hidden_layers]
+    if feature_profile is not None:
+        cmd_args += ["--feature-profile", str(feature_profile)]
     if not include_base:
         cmd_args.append("--no-include-base")
     if bool(args.no_warmup_update_grid) or force_no_warmup_update_grid:
@@ -87,7 +94,9 @@ def _plan_kan_train(
     lag_steps: str,
     include_base: bool,
     lag_series: str,
+    feature_profile: str | None = None,
     sparsify_lamb: float | None = None,
+    sparsify_lamb_l1: float | None = None,
     sparsify_lamb_entropy: float | None = None,
     hidden_width_override: int | None = None,
     force_no_warmup_update_grid: bool = False,
@@ -105,7 +114,9 @@ def _plan_kan_train(
         lag_steps=lag_steps,
         include_base=include_base,
         lag_series=lag_series,
+        feature_profile=feature_profile,
         sparsify_lamb=sparsify_lamb,
+        sparsify_lamb_l1=sparsify_lamb_l1,
         sparsify_lamb_entropy=sparsify_lamb_entropy,
         hidden_width_override=hidden_width_override,
         force_no_warmup_update_grid=force_no_warmup_update_grid,
@@ -129,6 +140,7 @@ def _append_kan_train(
     lag_steps: str,
     include_base: bool,
     lag_series: str,
+    feature_profile: str | None = None,
     force_no_warmup_update_grid: bool = False,
     seed: int | None = None,
 ) -> None:
@@ -143,6 +155,7 @@ def _append_kan_train(
         lag_steps=lag_steps,
         include_base=include_base,
         lag_series=lag_series,
+        feature_profile=feature_profile,
         force_no_warmup_update_grid=force_no_warmup_update_grid,
         seed=seed,
     )
@@ -167,6 +180,7 @@ def plan_s1(args: argparse.Namespace, *, session_id: str, detached: bool, derive
             lag_steps=lag,
             include_base=True,
             lag_series="load,wind,solar",
+            force_no_warmup_update_grid=True,
         )
         planned.append(cmd)
         mapping[run_id] = target_col
@@ -221,6 +235,7 @@ def plan_s3(args: argparse.Namespace, *, session_id: str, detached: bool, derive
             lag_steps=lag_steps,
             include_base=False,
             lag_series=lag_series,
+            feature_profile="thesis_26",
         )
         planned.append(cmd)
         mapping[run_id] = target_col

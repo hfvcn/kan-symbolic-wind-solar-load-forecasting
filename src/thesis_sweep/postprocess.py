@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from src.thesis_sweep.selection import formula_selection_sort_key, predictor_selection_sort_key
 from src.thesis_sweep.utils import REPO_ROOT, VOLUME_NAME, det_run_id, local_py, modal_run, run_cmd, sync_run
 
 COMPONENT_RUN_PREFERENCES = {
@@ -27,23 +28,14 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return None
     return json.loads(path.read_text())
 
-
-def _prediction_rmse(run_dir: Path) -> float:
-    artifacts = run_dir / "artifacts"
-    for name in ("eval_test_reconstructed.json", "eval_test.json"):
-        metrics = _read_json(artifacts / name) or {}
-        if metrics.get("rmse") is not None:
-            return float(metrics["rmse"])
-    return float("inf")
-
-
 def _select_best_component_run(runs_root: Path, *, comp_runs: dict[str, str], keys: tuple[str, ...]) -> str | None:
     candidates: list[tuple[float, int, str]] = []
     for idx, key in enumerate(keys):
         run_id = str(comp_runs.get(key) or "").strip()
         if not run_id:
             continue
-        candidates.append((_prediction_rmse(runs_root / run_id), idx, run_id))
+        rmse, _name = predictor_selection_sort_key(runs_root / run_id)
+        candidates.append((rmse, idx, run_id))
     if not candidates:
         return None
     candidates.sort()
@@ -64,14 +56,6 @@ def _structured_component_runs(runs_root: Path, comp_runs: dict[str, str]) -> di
         return None
     return resolved
 
-
-def _formula_candidate_sort_key(run_dir: Path, payload: dict[str, Any]) -> tuple[float, float, str]:
-    metrics = _read_json(run_dir / "artifacts" / "formula_eval_test.json") or {}
-    rmse = float(metrics.get("rmse")) if metrics.get("rmse") is not None else float("inf")
-    threshold = float(payload.get("r2_threshold")) if payload.get("r2_threshold") is not None else 0.0
-    return (rmse, -threshold, run_dir.name)
-
-
 def _find_best_symbolic_run(runs_root: Path, *, train_run_ids: tuple[str, ...]) -> str | None:
     candidates: list[tuple[tuple[float, float, str], str]] = []
     train_id_set = set(train_run_ids)
@@ -82,7 +66,7 @@ def _find_best_symbolic_run(runs_root: Path, *, train_run_ids: tuple[str, ...]) 
         run_dir = payload_path.parent
         if not (run_dir / "artifacts" / "formula.sympy.txt").exists():
             continue
-        candidates.append((_formula_candidate_sort_key(run_dir, payload), run_dir.name))
+        candidates.append((formula_selection_sort_key(run_dir), run_dir.name))
     if not candidates:
         return None
     candidates.sort(key=lambda item: item[0])

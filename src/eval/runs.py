@@ -213,9 +213,37 @@ def summarize_run(run_dir: str | Path) -> RunSummary:
             if p.get("score") is not None:
                 physical_score = float(p.get("score"))
 
+    # Persistence / SARIMAX / XGBoost baselines
+    elif phase in ("04-baselines-persistence", "04-baselines-sarimax", "04-baselines-xgboost"):
+        kind = payload.get("kind", phase.rsplit("-", 1)[-1])
+        eval_path = artifacts / "eval_test.json"
+        if eval_path.exists():
+            m = _read_json(eval_path)
+            rmse, mae, r2 = float(m.get("rmse")), float(m.get("mae")), float(m.get("r2"))
+        # Only compute persistence skill from predictions; do NOT overwrite
+        # model RMSE/MAE/R² (eval_test.json has full-sample metrics).
+        pred_path = _pick_predictions_path(artifacts)
+        if pred_path is not None:
+            pred_df = pd.read_parquet(pred_path)
+            mm = _metrics_from_predictions(pred_df, horizon_steps=horizon_steps)
+            if mm is not None:
+                rmse_persistence = float(mm["rmse_persistence"])
+                skill_score = float(mm["skill_score"]) if mm.get("skill_score") is not None else None
+        if param_count is not None:
+            complexity = float(param_count)
+            complexity_name = "param_count"
+
     # Torch baselines
     elif phase == "04-baselines-torch":
-        kind = payload.get("cfg", {}).get("model_type", "torch")
+        base_kind = str(payload.get("cfg", {}).get("model_type", "torch"))
+        protocol_name = str(payload.get("protocol_name") or "").strip()
+        protocol_trial = str(payload.get("protocol_trial") or "").strip()
+        if protocol_name:
+            kind = base_kind if protocol_trial in {"", "matched"} else f"{base_kind}_{protocol_name}_{protocol_trial}"
+            if protocol_trial == "matched":
+                kind = f"{base_kind}_{protocol_name}"
+        else:
+            kind = base_kind
         eval_path = artifacts / "eval_test.json"
         if eval_path.exists():
             m = _read_json(eval_path)
